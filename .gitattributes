@@ -1,0 +1,2 @@
+# Keep content-addressed sources and fixtures byte-stable across platforms.
+* -text
