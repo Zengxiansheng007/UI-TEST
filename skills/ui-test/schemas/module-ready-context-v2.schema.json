@@ -1,0 +1,353 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codex.local/ui-test/schemas/module-ready-context.schema.v2.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "context_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "module_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "checkpoint_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expires_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project_group",
+        "product",
+        "system",
+        "module_path",
+        "function",
+        "checkpoint",
+        "environment",
+        "risk_level"
+      ],
+      "properties": {
+        "project_group": {
+          "type": "string",
+          "minLength": 1
+        },
+        "product": {
+          "type": "string",
+          "minLength": 1
+        },
+        "system": {
+          "type": "string",
+          "minLength": 1
+        },
+        "module_path": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "function": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checkpoint": {
+          "type": "string",
+          "minLength": 1
+        },
+        "environment": {
+          "enum": [
+            "public",
+            "test",
+            "staging",
+            "production"
+          ]
+        },
+        "risk_level": {
+          "$ref": "#/$defs/risk"
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "branch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "branch_id"
+      ],
+      "properties": {
+        "branch_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_case_id": {
+          "type": "string"
+        }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "started_at"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "schema_version": {
+      "const": "2.0"
+    },
+    "handoff_status": {
+      "const": "ready"
+    },
+    "checkpoint_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "target_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "ui_features_verified": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "readonly_network_evidence_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "policy_fingerprint": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^(sha256:)?[0-9a-f]{64}$"
+        }
+      ]
+    },
+    "auth_reference_digest": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^(sha256:)?[0-9a-f]{64}$"
+        }
+      ]
+    },
+    "host_verified": {
+      "const": true
+    },
+    "route_verified": {
+      "const": true
+    },
+    "authenticated_session_verified": {
+      "const": true
+    },
+    "ui_observations": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "verified_selectors",
+          "host_verified",
+          "route_verified",
+          "authenticated_session_verified"
+        ],
+        "properties": {
+          "verified_selectors": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "host_verified": {
+            "const": true
+          },
+          "route_verified": {
+            "const": true
+          },
+          "authenticated_session_verified": {
+            "const": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "network_evidence": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "evidence_ref",
+            "observed_at",
+            "session_id",
+            "run_id",
+            "method",
+            "source",
+            "status",
+            "path_digest",
+            "assertion_digest",
+            "business_success",
+            "request_matched",
+            "response_matched"
+          ],
+          "properties": {
+            "evidence_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "observed_at": {
+              "type": "string",
+              "minLength": 1
+            },
+            "session_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "run_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "method": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source": {
+              "const": "page-response"
+            },
+            "status": {
+              "type": "integer",
+              "minimum": 200,
+              "maximum": 299
+            },
+            "path_digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "assertion_digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "business_success": {
+              "const": true
+            },
+            "request_matched": {
+              "const": true
+            },
+            "response_matched": {
+              "const": true
+            }
+          }
+        }
+      ]
+    }
+  },
+  "required": [
+    "context_id",
+    "session_id",
+    "run_id",
+    "module_id",
+    "checkpoint_id",
+    "generated_at",
+    "expires_at",
+    "scope",
+    "case",
+    "branch",
+    "run",
+    "schema_version",
+    "handoff_status",
+    "checkpoint_version",
+    "target_digest",
+    "ui_features_verified",
+    "evidence_refs",
+    "readonly_network_evidence_ref",
+    "policy_fingerprint",
+    "auth_reference_digest",
+    "host_verified",
+    "route_verified",
+    "authenticated_session_verified",
+    "ui_observations",
+    "network_evidence"
+  ],
+  "$defs": {
+    "risk": {
+      "enum": [
+        "r0-read-only",
+        "r1-read-only-authenticated",
+        "r2-ui-write-test",
+        "r3-high-impact"
+      ]
+    }
+  }
+}

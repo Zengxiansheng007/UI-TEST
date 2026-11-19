@@ -1,0 +1,138 @@
+# Execution Contracts
+
+Read this reference when generating exploration steps, implementing verification/fallback, recording evidence, or classifying failures.
+
+## Exploration Plan
+
+Use a structure equivalent to:
+
+```json
+{
+  "schemaVersion": "1.0",
+  "goal": "Open a module list and verify its read-only state",
+  "baseUrl": "https://example.invalid/login",
+  "module": "example-module",
+  "policy": {
+    "readOnly": true,
+    "forbiddenActions": ["create", "run", "delete", "publish", "change permissions"]
+  },
+  "steps": [
+    {
+      "id": "E01",
+      "intent": "Open the target list",
+      "operation": "aiTap",
+      "target": "Target list menu item",
+      "expectedResult": "Target list page is visible",
+      "verify": {
+        "urlContains": "/target/list",
+        "selectedText": "Target list",
+        "visibleText": ["Target list", "Refresh"]
+      },
+      "evidence": {
+        "screenshot": "always",
+        "json": true
+      },
+      "fallback": {
+        "type": "playwright",
+        "locatorSource": "stable-attribute"
+      },
+      "risk": "auto"
+    }
+  ]
+}
+```
+
+Do not place real credentials, private URLs, tokens, or cookies in reusable examples.
+
+## Deterministic Verification
+
+Verify the consequence of an action, not the action call:
+
+| Midscene action | Required verification |
+|---|---|
+| `aiInput` | Read actual input value and compare exactly |
+| `aiTap` navigation | URL/route plus selected state or unique page content |
+| `aiTap` submit | API response plus UI result; downstream state when applicable |
+| `aiAssert` | DOM/state/API corroboration for critical pass/fail decisions |
+| `aiQuery` | Validate type, scope, and expected identifying fields |
+| `aiWaitFor` | Verify the terminal condition, not elapsed time |
+
+If Midscene returns `passed` but verification fails, classify `ai-recognition`, mark the step `degraded`, execute eligible fallback, and verify again.
+
+## Evidence Record
+
+Every step record should expose:
+
+```json
+{
+  "stepId": "E01",
+  "intent": "Open target list",
+  "status": "passed",
+  "executor": "midscene",
+  "startedAt": "ISO-8601",
+  "finishedAt": "ISO-8601",
+  "durationMs": 1000,
+  "verification": {},
+  "screenshotPath": "snapshots/E01-after.png",
+  "dataPath": "snapshots/E01.json",
+  "fallbackUsed": false,
+  "failureLayer": null,
+  "error": null
+}
+```
+
+Keep a report-level evidence index so Codex can locate every artifact from one JSON file.
+
+## Failure Taxonomy
+
+| Layer | Meaning | Typical evidence |
+|---|---|---|
+| `business` | Product behavior violates a clear requirement | UI/API/downstream contradiction |
+| `test-asset` | Plan, selector, wait, assertion, or fallback is wrong | error context and corrected replay |
+| `environment-data` | Access, service, account, test data, reset, or network issue | HTTP errors, unavailable state, data checks |
+| `requirement-ambiguity` | Expected behavior cannot be determined | conflicting or missing requirement |
+| `ai-recognition` | Model missed, misread, or falsely confirmed the UI | model output versus deterministic state |
+| `policy` | Action is unapproved or forbidden | safety rule and requested action |
+| `unknown` | Evidence is insufficient | explicit evidence gap |
+
+Choose one primary layer and optional contributing factors. Do not label test failures as business defects until test-asset, environment, and requirement causes have been excluded.
+
+## Memory Record
+
+Store:
+
+- strategy and scope;
+- preconditions and page/version clues;
+- observed failure;
+- root cause and repair;
+- deterministic proof;
+- success/failure counts;
+- last verified time;
+- status: `candidate`, `validated`, `deprecated`, or `blocked`.
+
+Never store credentials, cookies, raw tokens, personal data, or unrestricted screenshots in Memory.
+
+## Execution Governance Separation
+
+Read this section when determining completion status, interpreting pytest results, or reporting overall pass/fail for a formal UI-Test run.
+
+### 不可替代的分层状态
+
+| 层级 | 含义 | 不可替代关系 |
+|---|---|---|
+| pytest 阶段结果 | setup/call/teardown 的 passed/failed/error | 不升级为业务 write 成功；不替代人工验收 |
+| 业务 write state | `write_succeeded_verified` / `write_failed` / `write_succeeded_verification_failed` / `write_outcome_unknown` | 独立于 pytest 状态；由 R2RunGuard 在实际写点观测 |
+| finalization | RunResultV5/evidence object、单一commit manifest、receipt和terminal闭包 | commit/receipt前不得写passed terminal；孤立文件不构成提交 |
+| pytest session | PytestSessionResultV1记录最终session exit与node闭包 | 不修改RunResult、terminal或业务write state |
+| 外部PyCharm/人工验收 | PyCharmProcessEvidenceV1记录helper/exit/console摘要，PyCharmAcceptanceResultV1从文件读回绑定全部hash闭包 | 裸字典、RunResult/terminal不得自证；CLI/CI及post-run recovery不自动获得 |
+| 整体完成状态 | 聚合报告的最终 `passed` / `completed` | 必须在人工 A/B 真实 R2 均通过后才可为 passed/completed |
+
+### 执行门禁引用
+
+- 项目契约2.3、ExecutionContextV4、AttemptV2、指定用例及实际 runner_digest、来源与批准分离、R2跨进程串行和两级diagnostics/attempt边界的完整规则见[asset-governance.md](asset-governance.md#execution-context-governance)。旧项目 2.2、ExecutionContextV3、Approval V2 仅供审计。
+- 版本化Schema见`schemas/execution-context-v4.schema.json`、`execution-attempt-v2.schema.json`、`run-result-v5.schema.json`、`finalization-commit-v1.schema.json`、`run-finalization-receipt-v1.schema.json`、`pytest-session-result-v1.schema.json`、`pycharm-process-evidence-v1.schema.json`和`pycharm-acceptance-result-v1.schema.json`；来源分类和Run ID resolver仍见`scripts/ui_test_core/pycharm_runtime.py`。
+- `pre-submit qualification`保留qualification attempt/terminal与QualificationResult，但不得生成普通业务run要求的R2ApprovalRecord、RunResultV5、commit或receipt；普通run不得跳过事务化finalization。
+- 普通业务run顺序固定为：最终teardown TestReport → `finalization_started` → 项目候选 → content-addressed objects → 单一原子commit manifest → 成功receipt → `finalization_committed` → 唯一passed terminal。任一步失败均不得保留passed terminal。
+- finalizer异常、非法返回或Schema/闭包失败必须写脱敏failure receipt并将teardown改为失败；`report.longrepr`与TeamCity details必须包含稳定错误码和异常类的非空摘要，不得包含原始业务值、私有URL或凭据。
+- `pytest_sessionfinish`生成PytestSessionResultV1并记录最终exit；session exit非零、receipt缺失或`recovery_mode=post-run`时，外部AcceptanceResult必须拒绝`pycharm_integration/human_r2=passed`。
+- 人工PyCharm普通点击在2.3项目策略、显式指定的用例、test/R2和串行锁全部满足时，Approval V3继续使用机器值`approval_source=pycharm-project-policy`；CLI/CI显式批准继续使用`explicit-cli`，但两者都不能让RunResultV5自证人工验收。

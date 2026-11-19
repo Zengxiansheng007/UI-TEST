@@ -1,0 +1,22 @@
+{
+  "snapshot_id": "checkbox-run-1",
+  "session_id": "checkbox-session-1",
+  "run_id": "RUN-PUBLIC-001",
+  "captured_at": "2026-08-18T00:00:00Z",
+  "step_results": [
+    {
+      "step_id": "S01",
+      "status": "passed",
+      "evidence_refs": [
+        "example/S01"
+      ]
+    },
+    {
+      "step_id": "S02",
+      "status": "passed",
+      "evidence_refs": [
+        "example/S02"
+      ]
+    }
+  ]
+}

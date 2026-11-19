@@ -1,0 +1,12 @@
+__pycache__/
+.pytest_cache/
+*.pyc
+.env
+.scratch/
+.codex/
+execution-evidence/
+diagnostics/
+qualifications/
+.reuse-state/
+.reuse-candidates/
+examples/todomvc/cases/*/runs/

@@ -1,0 +1,9 @@
+[
+  {
+    "skill": "ui-test",
+    "source": "..",
+    "target": ".",
+    "file_count": 242,
+    "skill_md_sha256": "454cccfea8c995d663e15bc79e91259477f50a0ada3e02d82ee0e8e995c4c031"
+  }
+]

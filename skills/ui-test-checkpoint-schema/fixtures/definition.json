@@ -1,0 +1,29 @@
+{
+  "definition_ref": "checkbox-definition",
+  "definition_version": "1",
+  "checkpoint_id": "CP-checkboxes-ready",
+  "steps": [
+    {
+      "id": "S01",
+      "action": "open",
+      "risk": "R0",
+      "required": true,
+      "name": "open public checkbox page",
+      "verification": "checkbox page opens"
+    },
+    {
+      "id": "S02",
+      "action": "inspect",
+      "risk": "R0",
+      "required": true,
+      "name": "verify route and two UI features",
+      "verification": "route plus title and checkbox count"
+    }
+  ],
+  "applies_to": {
+    "environment": "public",
+    "module_path": [
+      "checkboxes"
+    ]
+  }
+}
