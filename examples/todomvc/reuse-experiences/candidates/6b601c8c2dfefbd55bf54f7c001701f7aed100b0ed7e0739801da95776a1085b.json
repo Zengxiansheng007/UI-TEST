@@ -1,0 +1,49 @@
+{
+  "scope": {
+    "project_group": "public-tca-todomvc-20261117",
+    "product": "todomvc",
+    "system": "web",
+    "module_path": [
+      "todos"
+    ],
+    "function": "basic",
+    "checkpoint": null,
+    "environment": "test",
+    "risk_level": "r2-ui-write-test",
+    "case_id": "TODO-P0-002",
+    "step_id": "COMPLETE"
+  },
+  "asset": {
+    "asset_id": "script.complete",
+    "version": 1,
+    "sha256": "804d6ef1132ce54b4548521670034e1c84c26f91a0c6ad1a9bd48f7a8233b555",
+    "symbol": "TodoPage.complete"
+  },
+  "build": "sha256:fd49ac24e1714f92e92a792b72b427e572d0f536db4d2c2eec8366c4d7d0022b",
+  "source": {
+    "run_id": "REUSE16-OBS-001",
+    "session_id": "SESSION-883D81EE5B2342D6968DB2E36D765A4B",
+    "attempt_ref": "attempts/80d098de38363ef2-3c15f56f989be084",
+    "step_id": "COMPLETE",
+    "evidence_refs": [
+      "reports/COMPLETE.png",
+      "reports/COMPLETE-selection.json",
+      "reports/script-use.json"
+    ],
+    "result_hash": "sha256:4d74fb683bfc914a1922f59b46f9b158454f837ec7260b1d113d6ecff3803c0a"
+  },
+  "pattern": "success",
+  "condition": "unique unchecked row matching the source input",
+  "strategy": "verify-unique-source-row-before-completing",
+  "action": "check-target-checkbox",
+  "expected": {
+    "checked": true,
+    "remaining": "0 items left"
+  },
+  "actual": {
+    "remaining_before": "1 item left",
+    "checked": true,
+    "remaining_after": "0 items left",
+    "clear_visible": true
+  }
+}

@@ -1,0 +1,28 @@
+# TodoMVC 项目入口
+
+收到源用例 ID 后，从 `asset-paths.json` 取该用例的 `branch_root`。该目录的 `source/source-case.json` 是原业务要求。`regression-runners` 存放对应的 pytest 节点，`ui-test.project.yaml` 给出项目环境。以下命令在本目录使用本机已有 Python 与依赖。
+
+```powershell
+$case = 'TODO-P0-002'
+$branch = (Get-Content asset-paths.json -Raw -Encoding utf8 | ConvertFrom-Json).$case.branch_root
+$source = Get-Content (Join-Path $branch 'source/source-case.json') -Raw -Encoding utf8 | ConvertFrom-Json
+$node = 'regression-runners/test_' + $case.ToLowerInvariant().Replace('-', '_') + '.py'
+$run = 'TODO-' + [guid]::NewGuid().ToString('N')
+
+$env:PYTHONDONTWRITEBYTECODE = '1'
+python -B -m pytest -q $node --ui-run-id $run --ui-r2-approved --ui-execution-origin codex-cli
+```
+
+`--ui-r2-approved` 表示本次任务已授权在公开 TodoMVC 可见页面执行源用例规定的操作。每次新执行分配新 ID。已有运行的结果和回执按原 ID 读回。
+
+```powershell
+$root = Join-Path $branch "runs/$run"
+$final = Join-Path $root 'finalization'
+$commit = Get-Content (Join-Path $final 'finalization-commit.json') -Raw -Encoding utf8 | ConvertFrom-Json
+$result = Get-Content (Join-Path $final $commit.run_result_ref) -Raw -Encoding utf8 | ConvertFrom-Json
+$result.step_results | ConvertTo-Json -Depth 6
+```
+
+逐步核对 V5 的状态、截图和 evidence_refs。使用明细中的 `asset_id/version/sha256` 指向本次实际入口，`actual` 为当前页面读数，`experiences` 关联采用策略、候选和限定启用决定。向请求方返回本次 run ID、原断言观察值、实际资产版本、复用明细及 V5 路径。如提交结果未知，读回该次预算和证据。
+
+The headed Windows example requires Python 3.11, pytest-playwright, Playwright Chromium, PowerShell 7 (pwsh on PATH), and the core Skill dependencies. Run from this directory. Public case inputs are included under cases/.

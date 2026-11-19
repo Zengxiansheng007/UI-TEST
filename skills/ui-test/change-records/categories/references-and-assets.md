@@ -10,6 +10,12 @@ See the linked change records.
 
 ## Detailed Records
 
+- [CR-20261119-016 · 探索经验和脚本复用](../entries/2026/2026-11/CR-20261119-016-strategy-learning.md)
+
+- [CR-20261119-015 · 用例资产选择](../entries/2026/2026-11/CR-20261119-015-case-asset-selection.md)
+
+- [CR-20261119-013 · TodoMVC 源用例导航证据](../entries/2026/2026-11/CR-20261119-013-navigation-evidence.md)
+
 
 - [CR-20261118-004 · Packet 3.0](../entries/2026/2026-11/CR-20261118-004-packet.md)
 - [CR-20261118-007 · 指定用例启动](../entries/2026/2026-11/CR-20261118-007-specified-runner.md)
