@@ -1,0 +1,72 @@
+schema_version: '2.3'
+scope:
+  project_group: public-tca-todomvc-20261117
+  project_group_name: 公开练习20261117
+  product: todomvc
+  product_name: TodoMVC
+  environment: test
+asset_governance:
+  execution_asset_root: D:\UI-Test
+  knowledge_root: D:\RAG
+  staging_root: D:\UI-Test\_tmp
+  forbidden_persistent_roots:
+  - C:\
+  layout_version: 1
+  levels:
+  - project_group
+  - product
+  - system
+  - module_path
+  - function
+  - case
+  - branch
+  - run
+  segment_naming: stable-id__display-name
+  asset_type_policy_version: ui-test.asset-types.v1
+systems:
+- system_id: web
+  display_name: Web
+  modules:
+  - module_id: todos
+    display_name: 待办事项
+    aliases:
+    - todos
+    module_path:
+    - module_id: todos
+      display_name: 待办事项
+    functions:
+    - function_id: basic
+      display_name: 基本操作
+    direct_route_ref: routes/todomvc.yaml
+runtime_value_index_ref: path:D:/UI-Test/_private/runtime-values/public-tca-todomvc-20261117/todomvc/test/runtime-value-index.yaml
+runtime_refs:
+  base_url: value:base_url
+checkpoint_runtime:
+  root_ref: checkpoints/todomvc.yaml
+knowledge_space:
+  knowledge_space_id: public-tca-todomvc-20261117
+  relative_path: public-tca-todomvc-20261117/todomvc
+wait_strategy:
+  strategy: visible
+semantic_post_signatures: []
+execution_policies: []
+credential_index_ref: path:D:/UI-Test/_private/runtime-values/public-tca-todomvc-20261117/todomvc/test/credential-index.yaml
+pycharm_manual_execution:
+  contract_version: 4
+  origin_detection: jetbrains-runner-path
+  entry_scope: specified-runner
+  r2_authorization: auto-test-only
+  run_scope: per-node
+  r2_parallelism: serial-project-environment
+  auto_generate_run_id: true
+  auto_approve_r2_visible_ui: true
+  finalization_contract: transaction-v1
+  run_result_contract: v5
+  session_result_contract: v1
+  acceptance_contract: external-exit-v1
+stage_write_policies:
+- case_id: TODO-P0-002
+  branch_id: primary
+  phase_ids:
+  - add
+  - complete

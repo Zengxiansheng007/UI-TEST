@@ -1,0 +1,30 @@
+{
+  "candidate_id": "6b601c8c2dfefbd55bf54f7c001701f7aed100b0ed7e0739801da95776a1085b",
+  "scope": {
+    "project_group": "public-tca-todomvc-20261117",
+    "product": "todomvc",
+    "system": "web",
+    "module_path": [
+      "todos"
+    ],
+    "function": "basic",
+    "checkpoint": null,
+    "environment": "test",
+    "risk_level": "r2-ui-write-test",
+    "case_id": "TODO-P0-002",
+    "step_id": "COMPLETE"
+  },
+  "validation": {
+    "run_id": "REUSE16-TRIAL-001",
+    "session_id": "SESSION-84080F2874AB40729BC47819D42677DB",
+    "attempt_ref": "attempts/b049320fe49a742d-3c15f56f989be084",
+    "step_id": "COMPLETE",
+    "evidence_refs": [
+      "reports/COMPLETE.png",
+      "reports/COMPLETE-selection.json",
+      "reports/script-use.json"
+    ],
+    "result_hash": "sha256:08f58f75a97f9710a451ba22a0d9b46bd24bd16ff9a5e7031fce72f6dbd33818"
+  },
+  "reason": "Independent scope-matched trial passed the original case assertions."
+}

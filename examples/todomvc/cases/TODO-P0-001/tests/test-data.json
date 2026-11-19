@@ -1,0 +1,23 @@
+{
+  "schema_version": "ui-test.test-data.v2",
+  "case_id": "TODO-P0-001",
+  "branch_id": "primary",
+  "data_revision": 1,
+  "parameters": {
+    "text": "Buy groceries",
+    "empty": "",
+    "count_added": "1 item left",
+    "count_completed": "0 items left",
+    "phase_add": "add",
+    "phase_complete": "complete"
+  },
+  "generation_rules": {},
+  "runtime_refs": [
+    "value:base_url"
+  ],
+  "metadata": {
+    "owner": "public-practice",
+    "manually_editable": true,
+    "description": "TCA数据版本=244fbbd138f3e6edbdfe79a81dbab9c70569f48750aa2ff93078e8eadd5125ca"
+  }
+}

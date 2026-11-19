@@ -1,0 +1,1517 @@
+{
+  "identity": {
+    "case_id": "TODO-P0-002",
+    "branch_id": "primary",
+    "source_hash": "sha256:808ade4cd272d28e4237605819b567b3285a0891173958b2c1b259010944dcf6",
+    "test_data_hash": "sha256:9a1505348ad1dab690f19038d6c5c91ee2dcf31007e72a5100bad800df910ebc",
+    "parameter_manifest_hash": "sha256:8351490e21dec2a91bb77acb8fdf38c9d34864e1f0e376dd40800c2e53c64634",
+    "runtime_material_digest": "sha256:8bcc785b56e7f392c2290e51909b5e9c6bdaa485954b963631407dcf0cf4e4c8",
+    "dependency_digest": "sha256:35892edbef8e1033d6b5bd9a0546fff726704632a90ea34c2d4d5e82fdbe45b7",
+    "page_module_registry_digest": "sha256:17059ac6f12b56811af625ea6e05f02476c5490edaf645682e1a79e6265ae8d8",
+    "module_coverage_digest": "sha256:4b6fad647da9a3ecc29bdb5896f6a1a15db5ecfcc5d28569ba77727857b9db30",
+    "config_fingerprint": "sha256:de255e35877f8b585be49c4d8eed9f7c503f7b3a8f88fccf0ec9898c0744c715",
+    "compiler_version": "2.0.0",
+    "renderer_version": "2.2.0"
+  },
+  "parameter_manifest": {
+    "schema_version": "ui-test.case-parameter-manifest.v2",
+    "case_id": "TODO-P0-002",
+    "branch_id": "primary",
+    "data_revision": 1,
+    "test_data_hash": "sha256:9a1505348ad1dab690f19038d6c5c91ee2dcf31007e72a5100bad800df910ebc",
+    "runtime_material_digest": "sha256:8bcc785b56e7f392c2290e51909b5e9c6bdaa485954b963631407dcf0cf4e4c8",
+    "parameters": [
+      {
+        "parameter_id": "text",
+        "label": "text",
+        "ref": "test-data:/parameters/text",
+        "source_type": "test-data",
+        "required": true,
+        "value": "Buy groceries"
+      },
+      {
+        "parameter_id": "empty",
+        "label": "empty",
+        "ref": "test-data:/parameters/empty",
+        "source_type": "test-data",
+        "required": true,
+        "value": ""
+      },
+      {
+        "parameter_id": "count_added",
+        "label": "count_added",
+        "ref": "test-data:/parameters/count_added",
+        "source_type": "test-data",
+        "required": true,
+        "value": "1 item left"
+      },
+      {
+        "parameter_id": "count_completed",
+        "label": "count_completed",
+        "ref": "test-data:/parameters/count_completed",
+        "source_type": "test-data",
+        "required": true,
+        "value": "0 items left"
+      },
+      {
+        "parameter_id": "phase_add",
+        "label": "phase_add",
+        "ref": "test-data:/parameters/phase_add",
+        "source_type": "test-data",
+        "required": true,
+        "value": "add"
+      },
+      {
+        "parameter_id": "phase_complete",
+        "label": "phase_complete",
+        "ref": "test-data:/parameters/phase_complete",
+        "source_type": "test-data",
+        "required": true,
+        "value": "complete"
+      },
+      {
+        "parameter_id": "base-url",
+        "label": "公开练习地址",
+        "ref": "value:base_url",
+        "source_type": "value",
+        "required": true,
+        "value": "https://demo.playwright.dev/todomvc/#/"
+      }
+    ],
+    "parameter_manifest_hash": "sha256:8351490e21dec2a91bb77acb8fdf38c9d34864e1f0e376dd40800c2e53c64634"
+  },
+  "case_ir": {
+    "schema_version": "ui-test.case-ir.v2",
+    "case_id": "TODO-P0-002",
+    "branch_id": "primary",
+    "case_version": 1,
+    "display_name": "完成一个待办",
+    "p0_suite_id": "PUBLIC-TODOMVC-P0",
+    "precondition_group": "flow.open-todomvc",
+    "flow_refs": [
+      "flow.open-todomvc"
+    ],
+    "source_hash": "sha256:808ade4cd272d28e4237605819b567b3285a0891173958b2c1b259010944dcf6",
+    "test_data_hash": "sha256:9a1505348ad1dab690f19038d6c5c91ee2dcf31007e72a5100bad800df910ebc",
+    "parameter_manifest_hash": "sha256:8351490e21dec2a91bb77acb8fdf38c9d34864e1f0e376dd40800c2e53c64634",
+    "scope": {
+      "project_group": "public-tca-todomvc-20261117",
+      "product": "todomvc",
+      "system": "web",
+      "module_path": [
+        "todos"
+      ],
+      "function": "basic"
+    },
+    "priority": "P0",
+    "risk_level": "R2",
+    "steps": [
+      {
+        "step_id": "OPEN",
+        "section": "setup",
+        "intent": "应用加载、输入框可见、列表为空",
+        "action": "flow",
+        "module_id": "page",
+        "parameter_ids": [
+          "base-url"
+        ],
+        "expected_result": "应用加载、输入框可见、列表为空",
+        "binding_ref": "flow.open-todomvc",
+        "evidence": [
+          "OPEN"
+        ],
+        "postconditions": [
+          {
+            "assertion_id": "A-OPEN",
+            "operator": "visible",
+            "expected_ref": "literal:true",
+            "evidence": [
+              "OPEN"
+            ]
+          }
+        ]
+      },
+      {
+        "step_id": "FILL",
+        "section": "feature",
+        "intent": "输入框回显待办文字",
+        "action": "fill",
+        "module_id": "new-todo",
+        "parameter_ids": [
+          "text"
+        ],
+        "expected_result": "输入框回显待办文字",
+        "binding_ref": "page.todomvc",
+        "evidence": [
+          "FILL"
+        ],
+        "postconditions": [
+          {
+            "assertion_id": "A-FILL",
+            "operator": "equals",
+            "expected_ref": "parameter:text",
+            "evidence": [
+              "FILL"
+            ]
+          }
+        ]
+      },
+      {
+        "step_id": "ADD",
+        "section": "feature",
+        "intent": "列表文字正确、输入清空、计数1",
+        "action": "submit",
+        "module_id": "new-todo",
+        "parameter_ids": [
+          "phase_add",
+          "text",
+          "empty",
+          "count_added"
+        ],
+        "expected_result": "列表文字正确、输入清空、计数1",
+        "binding_ref": "page.todomvc",
+        "evidence": [
+          "ADD"
+        ],
+        "postconditions": [
+          {
+            "assertion_id": "A-ADD",
+            "operator": "record-visible",
+            "expected_ref": "parameter:text",
+            "evidence": [
+              "ADD"
+            ]
+          }
+        ]
+      },
+      {
+        "step_id": "READY-COMPLETE",
+        "section": "feature",
+        "intent": "完成前目标唯一且未选中",
+        "action": "assert",
+        "module_id": "completion",
+        "parameter_ids": [
+          "text",
+          "count_added"
+        ],
+        "expected_result": "完成前目标唯一且未选中",
+        "binding_ref": "page.todomvc",
+        "evidence": [
+          "READY-COMPLETE"
+        ],
+        "postconditions": [
+          {
+            "assertion_id": "A-READY-COMPLETE",
+            "operator": "checked",
+            "expected_ref": "literal:false",
+            "evidence": [
+              "READY-COMPLETE"
+            ]
+          }
+        ]
+      },
+      {
+        "step_id": "COMPLETE",
+        "section": "feature",
+        "intent": "选中、计数0、Clear completed可见",
+        "action": "submit",
+        "module_id": "completion",
+        "parameter_ids": [
+          "phase_complete",
+          "text",
+          "count_completed"
+        ],
+        "expected_result": "选中、计数0、Clear completed可见",
+        "binding_ref": "page.todomvc",
+        "evidence": [
+          "COMPLETE"
+        ],
+        "postconditions": [
+          {
+            "assertion_id": "A-COMPLETE",
+            "operator": "checked",
+            "expected_ref": "literal:true",
+            "evidence": [
+              "COMPLETE"
+            ]
+          }
+        ]
+      }
+    ],
+    "dependency_refs": [
+      "flow.open-todomvc",
+      "page.todomvc"
+    ],
+    "module_coverage": [
+      {
+        "module_id": "completion",
+        "mode": "operate",
+        "step_id": "READY-COMPLETE",
+        "assertion_id": "A-READY-COMPLETE"
+      },
+      {
+        "module_id": "new-todo",
+        "mode": "operate",
+        "step_id": "FILL",
+        "assertion_id": "A-FILL"
+      }
+    ]
+  },
+  "resolved_ir": {
+    "schema_version": "ui-test.resolved-ir.v2",
+    "case_id": "TODO-P0-002",
+    "branch_id": "primary",
+    "source_hash": "sha256:808ade4cd272d28e4237605819b567b3285a0891173958b2c1b259010944dcf6",
+    "test_data_hash": "sha256:9a1505348ad1dab690f19038d6c5c91ee2dcf31007e72a5100bad800df910ebc",
+    "parameter_manifest_hash": "sha256:8351490e21dec2a91bb77acb8fdf38c9d34864e1f0e376dd40800c2e53c64634",
+    "dependency_digest": "sha256:35892edbef8e1033d6b5bd9a0546fff726704632a90ea34c2d4d5e82fdbe45b7",
+    "module_coverage": [
+      {
+        "module_id": "completion",
+        "mode": "operate",
+        "step_id": "READY-COMPLETE",
+        "assertion_id": "A-READY-COMPLETE"
+      },
+      {
+        "module_id": "new-todo",
+        "mode": "operate",
+        "step_id": "FILL",
+        "assertion_id": "A-FILL"
+      }
+    ],
+    "resolved_steps": [
+      {
+        "resolved_step_id": "RS-001",
+        "source_step_id": "OPEN",
+        "section": "setup",
+        "sequence": 1,
+        "intent": "应用加载、输入框可见、列表为空",
+        "action": "flow",
+        "module_id": "page",
+        "binding_ref": "flow.open-todomvc",
+        "parameters": [
+          {
+            "parameter_id": "base-url",
+            "label": "公开练习地址",
+            "ref": "value:base_url",
+            "source_type": "value",
+            "required": true,
+            "value": "https://demo.playwright.dev/todomvc/#/"
+          }
+        ],
+        "expected_result": "应用加载、输入框可见、列表为空",
+        "evidence": [
+          "OPEN"
+        ],
+        "postconditions": [
+          {
+            "assertion_id": "A-OPEN",
+            "operator": "visible",
+            "expected_ref": "literal:true",
+            "evidence": [
+              "OPEN"
+            ],
+            "expected_value": "true"
+          }
+        ]
+      },
+      {
+        "resolved_step_id": "RS-002",
+        "source_step_id": "FILL",
+        "section": "feature",
+        "sequence": 2,
+        "intent": "输入框回显待办文字",
+        "action": "fill",
+        "module_id": "new-todo",
+        "binding_ref": "page.todomvc",
+        "parameters": [
+          {
+            "parameter_id": "text",
+            "label": "text",
+            "ref": "test-data:/parameters/text",
+            "source_type": "test-data",
+            "required": true,
+            "value": "Buy groceries"
+          }
+        ],
+        "expected_result": "输入框回显待办文字",
+        "evidence": [
+          "FILL"
+        ],
+        "postconditions": [
+          {
+            "assertion_id": "A-FILL",
+            "operator": "equals",
+            "expected_ref": "parameter:text",
+            "evidence": [
+              "FILL"
+            ],
+            "expected_value": "Buy groceries"
+          }
+        ]
+      },
+      {
+        "resolved_step_id": "RS-003",
+        "source_step_id": "ADD",
+        "section": "feature",
+        "sequence": 3,
+        "intent": "列表文字正确、输入清空、计数1",
+        "action": "submit",
+        "module_id": "new-todo",
+        "binding_ref": "page.todomvc",
+        "parameters": [
+          {
+            "parameter_id": "phase_add",
+            "label": "phase_add",
+            "ref": "test-data:/parameters/phase_add",
+            "source_type": "test-data",
+            "required": true,
+            "value": "add"
+          },
+          {
+            "parameter_id": "text",
+            "label": "text",
+            "ref": "test-data:/parameters/text",
+            "source_type": "test-data",
+            "required": true,
+            "value": "Buy groceries"
+          },
+          {
+            "parameter_id": "empty",
+            "label": "empty",
+            "ref": "test-data:/parameters/empty",
+            "source_type": "test-data",
+            "required": true,
+            "value": ""
+          },
+          {
+            "parameter_id": "count_added",
+            "label": "count_added",
+            "ref": "test-data:/parameters/count_added",
+            "source_type": "test-data",
+            "required": true,
+            "value": "1 item left"
+          }
+        ],
+        "expected_result": "列表文字正确、输入清空、计数1",
+        "evidence": [
+          "ADD"
+        ],
+        "postconditions": [
+          {
+            "assertion_id": "A-ADD",
+            "operator": "record-visible",
+            "expected_ref": "parameter:text",
+            "evidence": [
+              "ADD"
+            ],
+            "expected_value": "Buy groceries"
+          }
+        ]
+      },
+      {
+        "resolved_step_id": "RS-004",
+        "source_step_id": "READY-COMPLETE",
+        "section": "feature",
+        "sequence": 4,
+        "intent": "完成前目标唯一且未选中",
+        "action": "assert",
+        "module_id": "completion",
+        "binding_ref": "page.todomvc",
+        "parameters": [
+          {
+            "parameter_id": "text",
+            "label": "text",
+            "ref": "test-data:/parameters/text",
+            "source_type": "test-data",
+            "required": true,
+            "value": "Buy groceries"
+          },
+          {
+            "parameter_id": "count_added",
+            "label": "count_added",
+            "ref": "test-data:/parameters/count_added",
+            "source_type": "test-data",
+            "required": true,
+            "value": "1 item left"
+          }
+        ],
+        "expected_result": "完成前目标唯一且未选中",
+        "evidence": [
+          "READY-COMPLETE"
+        ],
+        "postconditions": [
+          {
+            "assertion_id": "A-READY-COMPLETE",
+            "operator": "checked",
+            "expected_ref": "literal:false",
+            "evidence": [
+              "READY-COMPLETE"
+            ],
+            "expected_value": "false"
+          }
+        ]
+      },
+      {
+        "resolved_step_id": "RS-005",
+        "source_step_id": "COMPLETE",
+        "section": "feature",
+        "sequence": 5,
+        "intent": "选中、计数0、Clear completed可见",
+        "action": "submit",
+        "module_id": "completion",
+        "binding_ref": "page.todomvc",
+        "parameters": [
+          {
+            "parameter_id": "phase_complete",
+            "label": "phase_complete",
+            "ref": "test-data:/parameters/phase_complete",
+            "source_type": "test-data",
+            "required": true,
+            "value": "complete"
+          },
+          {
+            "parameter_id": "text",
+            "label": "text",
+            "ref": "test-data:/parameters/text",
+            "source_type": "test-data",
+            "required": true,
+            "value": "Buy groceries"
+          },
+          {
+            "parameter_id": "count_completed",
+            "label": "count_completed",
+            "ref": "test-data:/parameters/count_completed",
+            "source_type": "test-data",
+            "required": true,
+            "value": "0 items left"
+          }
+        ],
+        "expected_result": "选中、计数0、Clear completed可见",
+        "evidence": [
+          "COMPLETE"
+        ],
+        "postconditions": [
+          {
+            "assertion_id": "A-COMPLETE",
+            "operator": "checked",
+            "expected_ref": "literal:true",
+            "evidence": [
+              "COMPLETE"
+            ],
+            "expected_value": "true"
+          }
+        ]
+      }
+    ]
+  },
+  "outputs": {
+    "source-case.json": {
+      "schema_version": "ui-test.source-case.v2",
+      "case_id": "TODO-P0-002",
+      "branch_id": "primary",
+      "case_version": 1,
+      "title": "完成一个待办",
+      "display_name": "完成一个待办",
+      "priority": "P0",
+      "risk_level": "R2",
+      "scope": {
+        "project_group": "public-tca-todomvc-20261117",
+        "product": "todomvc",
+        "system": "web",
+        "module_path": [
+          "todos"
+        ],
+        "function": "basic"
+      },
+      "parameter_bindings": [
+        {
+          "parameter_id": "text",
+          "label": "text",
+          "ref": "test-data:/parameters/text"
+        },
+        {
+          "parameter_id": "empty",
+          "label": "empty",
+          "ref": "test-data:/parameters/empty"
+        },
+        {
+          "parameter_id": "count_added",
+          "label": "count_added",
+          "ref": "test-data:/parameters/count_added"
+        },
+        {
+          "parameter_id": "count_completed",
+          "label": "count_completed",
+          "ref": "test-data:/parameters/count_completed"
+        },
+        {
+          "parameter_id": "phase_add",
+          "label": "phase_add",
+          "ref": "test-data:/parameters/phase_add"
+        },
+        {
+          "parameter_id": "phase_complete",
+          "label": "phase_complete",
+          "ref": "test-data:/parameters/phase_complete"
+        },
+        {
+          "parameter_id": "base-url",
+          "label": "公开练习地址",
+          "ref": "value:base_url"
+        }
+      ],
+      "steps": [
+        {
+          "step_id": "OPEN",
+          "section": "setup",
+          "intent": "应用加载、输入框可见、列表为空",
+          "action": "flow",
+          "module_id": "page",
+          "parameter_ids": [
+            "base-url"
+          ],
+          "expected_result": "应用加载、输入框可见、列表为空",
+          "binding_ref": "flow.open-todomvc",
+          "evidence": [
+            "OPEN"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-OPEN",
+              "operator": "visible",
+              "expected_ref": "literal:true",
+              "evidence": [
+                "OPEN"
+              ]
+            }
+          ]
+        },
+        {
+          "step_id": "FILL",
+          "section": "feature",
+          "intent": "输入框回显待办文字",
+          "action": "fill",
+          "module_id": "new-todo",
+          "parameter_ids": [
+            "text"
+          ],
+          "expected_result": "输入框回显待办文字",
+          "binding_ref": "page.todomvc",
+          "evidence": [
+            "FILL"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-FILL",
+              "operator": "equals",
+              "expected_ref": "parameter:text",
+              "evidence": [
+                "FILL"
+              ]
+            }
+          ]
+        },
+        {
+          "step_id": "ADD",
+          "section": "feature",
+          "intent": "列表文字正确、输入清空、计数1",
+          "action": "submit",
+          "module_id": "new-todo",
+          "parameter_ids": [
+            "phase_add",
+            "text",
+            "empty",
+            "count_added"
+          ],
+          "expected_result": "列表文字正确、输入清空、计数1",
+          "binding_ref": "page.todomvc",
+          "evidence": [
+            "ADD"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-ADD",
+              "operator": "record-visible",
+              "expected_ref": "parameter:text",
+              "evidence": [
+                "ADD"
+              ]
+            }
+          ]
+        },
+        {
+          "step_id": "READY-COMPLETE",
+          "section": "feature",
+          "intent": "完成前目标唯一且未选中",
+          "action": "assert",
+          "module_id": "completion",
+          "parameter_ids": [
+            "text",
+            "count_added"
+          ],
+          "expected_result": "完成前目标唯一且未选中",
+          "binding_ref": "page.todomvc",
+          "evidence": [
+            "READY-COMPLETE"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-READY-COMPLETE",
+              "operator": "checked",
+              "expected_ref": "literal:false",
+              "evidence": [
+                "READY-COMPLETE"
+              ]
+            }
+          ]
+        },
+        {
+          "step_id": "COMPLETE",
+          "section": "feature",
+          "intent": "选中、计数0、Clear completed可见",
+          "action": "submit",
+          "module_id": "completion",
+          "parameter_ids": [
+            "phase_complete",
+            "text",
+            "count_completed"
+          ],
+          "expected_result": "选中、计数0、Clear completed可见",
+          "binding_ref": "page.todomvc",
+          "evidence": [
+            "COMPLETE"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-COMPLETE",
+              "operator": "checked",
+              "expected_ref": "literal:true",
+              "evidence": [
+                "COMPLETE"
+              ]
+            }
+          ]
+        }
+      ],
+      "dependency_refs": [
+        "flow.open-todomvc",
+        "page.todomvc"
+      ],
+      "p0_suite_id": "PUBLIC-TODOMVC-P0"
+    },
+    "test-data.json": {
+      "schema_version": "ui-test.test-data.v2",
+      "case_id": "TODO-P0-002",
+      "branch_id": "primary",
+      "data_revision": 1,
+      "parameters": {
+        "text": "Buy groceries",
+        "empty": "",
+        "count_added": "1 item left",
+        "count_completed": "0 items left",
+        "phase_add": "add",
+        "phase_complete": "complete"
+      },
+      "generation_rules": {},
+      "runtime_refs": [
+        "value:base_url"
+      ],
+      "metadata": {
+        "owner": "public-practice",
+        "manually_editable": true,
+        "description": "TCA数据版本=eabf9f5cc4fbabc19ad49f665a7b25bde8aa633369154bbfc97e6e797c105c00"
+      }
+    },
+    "case-ir.json": {
+      "schema_version": "ui-test.case-ir.v2",
+      "case_id": "TODO-P0-002",
+      "branch_id": "primary",
+      "case_version": 1,
+      "display_name": "完成一个待办",
+      "p0_suite_id": "PUBLIC-TODOMVC-P0",
+      "precondition_group": "flow.open-todomvc",
+      "flow_refs": [
+        "flow.open-todomvc"
+      ],
+      "source_hash": "sha256:808ade4cd272d28e4237605819b567b3285a0891173958b2c1b259010944dcf6",
+      "test_data_hash": "sha256:9a1505348ad1dab690f19038d6c5c91ee2dcf31007e72a5100bad800df910ebc",
+      "parameter_manifest_hash": "sha256:8351490e21dec2a91bb77acb8fdf38c9d34864e1f0e376dd40800c2e53c64634",
+      "scope": {
+        "project_group": "public-tca-todomvc-20261117",
+        "product": "todomvc",
+        "system": "web",
+        "module_path": [
+          "todos"
+        ],
+        "function": "basic"
+      },
+      "priority": "P0",
+      "risk_level": "R2",
+      "steps": [
+        {
+          "step_id": "OPEN",
+          "section": "setup",
+          "intent": "应用加载、输入框可见、列表为空",
+          "action": "flow",
+          "module_id": "page",
+          "parameter_ids": [
+            "base-url"
+          ],
+          "expected_result": "应用加载、输入框可见、列表为空",
+          "binding_ref": "flow.open-todomvc",
+          "evidence": [
+            "OPEN"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-OPEN",
+              "operator": "visible",
+              "expected_ref": "literal:true",
+              "evidence": [
+                "OPEN"
+              ]
+            }
+          ]
+        },
+        {
+          "step_id": "FILL",
+          "section": "feature",
+          "intent": "输入框回显待办文字",
+          "action": "fill",
+          "module_id": "new-todo",
+          "parameter_ids": [
+            "text"
+          ],
+          "expected_result": "输入框回显待办文字",
+          "binding_ref": "page.todomvc",
+          "evidence": [
+            "FILL"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-FILL",
+              "operator": "equals",
+              "expected_ref": "parameter:text",
+              "evidence": [
+                "FILL"
+              ]
+            }
+          ]
+        },
+        {
+          "step_id": "ADD",
+          "section": "feature",
+          "intent": "列表文字正确、输入清空、计数1",
+          "action": "submit",
+          "module_id": "new-todo",
+          "parameter_ids": [
+            "phase_add",
+            "text",
+            "empty",
+            "count_added"
+          ],
+          "expected_result": "列表文字正确、输入清空、计数1",
+          "binding_ref": "page.todomvc",
+          "evidence": [
+            "ADD"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-ADD",
+              "operator": "record-visible",
+              "expected_ref": "parameter:text",
+              "evidence": [
+                "ADD"
+              ]
+            }
+          ]
+        },
+        {
+          "step_id": "READY-COMPLETE",
+          "section": "feature",
+          "intent": "完成前目标唯一且未选中",
+          "action": "assert",
+          "module_id": "completion",
+          "parameter_ids": [
+            "text",
+            "count_added"
+          ],
+          "expected_result": "完成前目标唯一且未选中",
+          "binding_ref": "page.todomvc",
+          "evidence": [
+            "READY-COMPLETE"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-READY-COMPLETE",
+              "operator": "checked",
+              "expected_ref": "literal:false",
+              "evidence": [
+                "READY-COMPLETE"
+              ]
+            }
+          ]
+        },
+        {
+          "step_id": "COMPLETE",
+          "section": "feature",
+          "intent": "选中、计数0、Clear completed可见",
+          "action": "submit",
+          "module_id": "completion",
+          "parameter_ids": [
+            "phase_complete",
+            "text",
+            "count_completed"
+          ],
+          "expected_result": "选中、计数0、Clear completed可见",
+          "binding_ref": "page.todomvc",
+          "evidence": [
+            "COMPLETE"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-COMPLETE",
+              "operator": "checked",
+              "expected_ref": "literal:true",
+              "evidence": [
+                "COMPLETE"
+              ]
+            }
+          ]
+        }
+      ],
+      "dependency_refs": [
+        "flow.open-todomvc",
+        "page.todomvc"
+      ],
+      "module_coverage": [
+        {
+          "module_id": "completion",
+          "mode": "operate",
+          "step_id": "READY-COMPLETE",
+          "assertion_id": "A-READY-COMPLETE"
+        },
+        {
+          "module_id": "new-todo",
+          "mode": "operate",
+          "step_id": "FILL",
+          "assertion_id": "A-FILL"
+        }
+      ]
+    },
+    "resolved-ir.json": {
+      "schema_version": "ui-test.resolved-ir.v2",
+      "case_id": "TODO-P0-002",
+      "branch_id": "primary",
+      "source_hash": "sha256:808ade4cd272d28e4237605819b567b3285a0891173958b2c1b259010944dcf6",
+      "test_data_hash": "sha256:9a1505348ad1dab690f19038d6c5c91ee2dcf31007e72a5100bad800df910ebc",
+      "parameter_manifest_hash": "sha256:8351490e21dec2a91bb77acb8fdf38c9d34864e1f0e376dd40800c2e53c64634",
+      "dependency_digest": "sha256:35892edbef8e1033d6b5bd9a0546fff726704632a90ea34c2d4d5e82fdbe45b7",
+      "module_coverage": [
+        {
+          "module_id": "completion",
+          "mode": "operate",
+          "step_id": "READY-COMPLETE",
+          "assertion_id": "A-READY-COMPLETE"
+        },
+        {
+          "module_id": "new-todo",
+          "mode": "operate",
+          "step_id": "FILL",
+          "assertion_id": "A-FILL"
+        }
+      ],
+      "resolved_steps": [
+        {
+          "resolved_step_id": "RS-001",
+          "source_step_id": "OPEN",
+          "section": "setup",
+          "sequence": 1,
+          "intent": "应用加载、输入框可见、列表为空",
+          "action": "flow",
+          "module_id": "page",
+          "binding_ref": "flow.open-todomvc",
+          "parameters": [
+            {
+              "parameter_id": "base-url",
+              "label": "公开练习地址",
+              "ref": "value:base_url",
+              "source_type": "value",
+              "required": true,
+              "value": "https://demo.playwright.dev/todomvc/#/"
+            }
+          ],
+          "expected_result": "应用加载、输入框可见、列表为空",
+          "evidence": [
+            "OPEN"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-OPEN",
+              "operator": "visible",
+              "expected_ref": "literal:true",
+              "evidence": [
+                "OPEN"
+              ],
+              "expected_value": "true"
+            }
+          ]
+        },
+        {
+          "resolved_step_id": "RS-002",
+          "source_step_id": "FILL",
+          "section": "feature",
+          "sequence": 2,
+          "intent": "输入框回显待办文字",
+          "action": "fill",
+          "module_id": "new-todo",
+          "binding_ref": "page.todomvc",
+          "parameters": [
+            {
+              "parameter_id": "text",
+              "label": "text",
+              "ref": "test-data:/parameters/text",
+              "source_type": "test-data",
+              "required": true,
+              "value": "Buy groceries"
+            }
+          ],
+          "expected_result": "输入框回显待办文字",
+          "evidence": [
+            "FILL"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-FILL",
+              "operator": "equals",
+              "expected_ref": "parameter:text",
+              "evidence": [
+                "FILL"
+              ],
+              "expected_value": "Buy groceries"
+            }
+          ]
+        },
+        {
+          "resolved_step_id": "RS-003",
+          "source_step_id": "ADD",
+          "section": "feature",
+          "sequence": 3,
+          "intent": "列表文字正确、输入清空、计数1",
+          "action": "submit",
+          "module_id": "new-todo",
+          "binding_ref": "page.todomvc",
+          "parameters": [
+            {
+              "parameter_id": "phase_add",
+              "label": "phase_add",
+              "ref": "test-data:/parameters/phase_add",
+              "source_type": "test-data",
+              "required": true,
+              "value": "add"
+            },
+            {
+              "parameter_id": "text",
+              "label": "text",
+              "ref": "test-data:/parameters/text",
+              "source_type": "test-data",
+              "required": true,
+              "value": "Buy groceries"
+            },
+            {
+              "parameter_id": "empty",
+              "label": "empty",
+              "ref": "test-data:/parameters/empty",
+              "source_type": "test-data",
+              "required": true,
+              "value": ""
+            },
+            {
+              "parameter_id": "count_added",
+              "label": "count_added",
+              "ref": "test-data:/parameters/count_added",
+              "source_type": "test-data",
+              "required": true,
+              "value": "1 item left"
+            }
+          ],
+          "expected_result": "列表文字正确、输入清空、计数1",
+          "evidence": [
+            "ADD"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-ADD",
+              "operator": "record-visible",
+              "expected_ref": "parameter:text",
+              "evidence": [
+                "ADD"
+              ],
+              "expected_value": "Buy groceries"
+            }
+          ]
+        },
+        {
+          "resolved_step_id": "RS-004",
+          "source_step_id": "READY-COMPLETE",
+          "section": "feature",
+          "sequence": 4,
+          "intent": "完成前目标唯一且未选中",
+          "action": "assert",
+          "module_id": "completion",
+          "binding_ref": "page.todomvc",
+          "parameters": [
+            {
+              "parameter_id": "text",
+              "label": "text",
+              "ref": "test-data:/parameters/text",
+              "source_type": "test-data",
+              "required": true,
+              "value": "Buy groceries"
+            },
+            {
+              "parameter_id": "count_added",
+              "label": "count_added",
+              "ref": "test-data:/parameters/count_added",
+              "source_type": "test-data",
+              "required": true,
+              "value": "1 item left"
+            }
+          ],
+          "expected_result": "完成前目标唯一且未选中",
+          "evidence": [
+            "READY-COMPLETE"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-READY-COMPLETE",
+              "operator": "checked",
+              "expected_ref": "literal:false",
+              "evidence": [
+                "READY-COMPLETE"
+              ],
+              "expected_value": "false"
+            }
+          ]
+        },
+        {
+          "resolved_step_id": "RS-005",
+          "source_step_id": "COMPLETE",
+          "section": "feature",
+          "sequence": 5,
+          "intent": "选中、计数0、Clear completed可见",
+          "action": "submit",
+          "module_id": "completion",
+          "binding_ref": "page.todomvc",
+          "parameters": [
+            {
+              "parameter_id": "phase_complete",
+              "label": "phase_complete",
+              "ref": "test-data:/parameters/phase_complete",
+              "source_type": "test-data",
+              "required": true,
+              "value": "complete"
+            },
+            {
+              "parameter_id": "text",
+              "label": "text",
+              "ref": "test-data:/parameters/text",
+              "source_type": "test-data",
+              "required": true,
+              "value": "Buy groceries"
+            },
+            {
+              "parameter_id": "count_completed",
+              "label": "count_completed",
+              "ref": "test-data:/parameters/count_completed",
+              "source_type": "test-data",
+              "required": true,
+              "value": "0 items left"
+            }
+          ],
+          "expected_result": "选中、计数0、Clear completed可见",
+          "evidence": [
+            "COMPLETE"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-COMPLETE",
+              "operator": "checked",
+              "expected_ref": "literal:true",
+              "evidence": [
+                "COMPLETE"
+              ],
+              "expected_value": "true"
+            }
+          ]
+        }
+      ]
+    },
+    "case-parameter-manifest.json": {
+      "schema_version": "ui-test.case-parameter-manifest.v2",
+      "case_id": "TODO-P0-002",
+      "branch_id": "primary",
+      "data_revision": 1,
+      "test_data_hash": "sha256:9a1505348ad1dab690f19038d6c5c91ee2dcf31007e72a5100bad800df910ebc",
+      "runtime_material_digest": "sha256:8bcc785b56e7f392c2290e51909b5e9c6bdaa485954b963631407dcf0cf4e4c8",
+      "parameters": [
+        {
+          "parameter_id": "text",
+          "label": "text",
+          "ref": "test-data:/parameters/text",
+          "source_type": "test-data",
+          "required": true,
+          "value": "Buy groceries"
+        },
+        {
+          "parameter_id": "empty",
+          "label": "empty",
+          "ref": "test-data:/parameters/empty",
+          "source_type": "test-data",
+          "required": true,
+          "value": ""
+        },
+        {
+          "parameter_id": "count_added",
+          "label": "count_added",
+          "ref": "test-data:/parameters/count_added",
+          "source_type": "test-data",
+          "required": true,
+          "value": "1 item left"
+        },
+        {
+          "parameter_id": "count_completed",
+          "label": "count_completed",
+          "ref": "test-data:/parameters/count_completed",
+          "source_type": "test-data",
+          "required": true,
+          "value": "0 items left"
+        },
+        {
+          "parameter_id": "phase_add",
+          "label": "phase_add",
+          "ref": "test-data:/parameters/phase_add",
+          "source_type": "test-data",
+          "required": true,
+          "value": "add"
+        },
+        {
+          "parameter_id": "phase_complete",
+          "label": "phase_complete",
+          "ref": "test-data:/parameters/phase_complete",
+          "source_type": "test-data",
+          "required": true,
+          "value": "complete"
+        },
+        {
+          "parameter_id": "base-url",
+          "label": "公开练习地址",
+          "ref": "value:base_url",
+          "source_type": "value",
+          "required": true,
+          "value": "https://demo.playwright.dev/todomvc/#/"
+        }
+      ],
+      "parameter_manifest_hash": "sha256:8351490e21dec2a91bb77acb8fdf38c9d34864e1f0e376dd40800c2e53c64634"
+    },
+    "human.md": "<!-- do_not_edit: true -->\n<!-- build_fingerprint: sha256:fd49ac24e1714f92e92a792b72b427e572d0f536db4d2c2eec8366c4d7d0022b -->\n# 完成一个待办\n\n| 序号 | 操作 | 参数/数据 | 预期结果 |\n| --- | --- | --- | --- |\n| 1 | 应用加载、输入框可见、列表为空 | 公开练习地址：https://demo.playwright.dev/todomvc/#/ | 应用加载、输入框可见、列表为空；断言：A-OPEN visible true |\n| 2 | 输入框回显待办文字 | text：Buy groceries | 输入框回显待办文字；断言：A-FILL equals Buy groceries |\n| 3 | 列表文字正确、输入清空、计数1 | phase_add：add；text：Buy groceries；empty：；count_added：1 item left | 列表文字正确、输入清空、计数1；断言：A-ADD record-visible Buy groceries |\n| 4 | 完成前目标唯一且未选中 | text：Buy groceries；count_added：1 item left | 完成前目标唯一且未选中；断言：A-READY-COMPLETE checked false |\n| 5 | 选中、计数0、Clear completed可见 | phase_complete：complete；text：Buy groceries；count_completed：0 items left | 选中、计数0、Clear completed可见；断言：A-COMPLETE checked true |\n",
+    "midscene.json": {
+      "metadata": {
+        "source_case_id": "TODO-P0-002",
+        "branch_id": "primary",
+        "source_hash": "sha256:808ade4cd272d28e4237605819b567b3285a0891173958b2c1b259010944dcf6",
+        "test_data_hash": "sha256:9a1505348ad1dab690f19038d6c5c91ee2dcf31007e72a5100bad800df910ebc",
+        "parameter_manifest_hash": "sha256:8351490e21dec2a91bb77acb8fdf38c9d34864e1f0e376dd40800c2e53c64634",
+        "dependency_digest": "sha256:35892edbef8e1033d6b5bd9a0546fff726704632a90ea34c2d4d5e82fdbe45b7",
+        "config_fingerprint": "sha256:de255e35877f8b585be49c4d8eed9f7c503f7b3a8f88fccf0ec9898c0744c715",
+        "compiler_version": "2.0.0",
+        "renderer_version": "2.2.0",
+        "page_module_registry_digest": "sha256:17059ac6f12b56811af625ea6e05f02476c5490edaf645682e1a79e6265ae8d8",
+        "module_coverage_digest": "sha256:4b6fad647da9a3ecc29bdb5896f6a1a15db5ecfcc5d28569ba77727857b9db30",
+        "build_fingerprint": "sha256:fd49ac24e1714f92e92a792b72b427e572d0f536db4d2c2eec8366c4d7d0022b",
+        "do_not_edit": true
+      },
+      "steps": [
+        {
+          "resolved_step_id": "RS-001",
+          "source_step_id": "OPEN",
+          "section": "setup",
+          "sequence": 1,
+          "intent": "应用加载、输入框可见、列表为空",
+          "action": "flow",
+          "module_id": "page",
+          "binding_ref": "flow.open-todomvc",
+          "parameters": [
+            {
+              "parameter_id": "base-url",
+              "label": "公开练习地址",
+              "ref": "value:base_url",
+              "source_type": "value",
+              "required": true,
+              "value": "https://demo.playwright.dev/todomvc/#/"
+            }
+          ],
+          "expected_result": "应用加载、输入框可见、列表为空",
+          "evidence": [
+            "OPEN"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-OPEN",
+              "operator": "visible",
+              "expected_ref": "literal:true",
+              "evidence": [
+                "OPEN"
+              ],
+              "expected_value": "true"
+            }
+          ]
+        },
+        {
+          "resolved_step_id": "RS-002",
+          "source_step_id": "FILL",
+          "section": "feature",
+          "sequence": 2,
+          "intent": "输入框回显待办文字",
+          "action": "fill",
+          "module_id": "new-todo",
+          "binding_ref": "page.todomvc",
+          "parameters": [
+            {
+              "parameter_id": "text",
+              "label": "text",
+              "ref": "test-data:/parameters/text",
+              "source_type": "test-data",
+              "required": true,
+              "value": "Buy groceries"
+            }
+          ],
+          "expected_result": "输入框回显待办文字",
+          "evidence": [
+            "FILL"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-FILL",
+              "operator": "equals",
+              "expected_ref": "parameter:text",
+              "evidence": [
+                "FILL"
+              ],
+              "expected_value": "Buy groceries"
+            }
+          ]
+        },
+        {
+          "resolved_step_id": "RS-003",
+          "source_step_id": "ADD",
+          "section": "feature",
+          "sequence": 3,
+          "intent": "列表文字正确、输入清空、计数1",
+          "action": "submit",
+          "module_id": "new-todo",
+          "binding_ref": "page.todomvc",
+          "parameters": [
+            {
+              "parameter_id": "phase_add",
+              "label": "phase_add",
+              "ref": "test-data:/parameters/phase_add",
+              "source_type": "test-data",
+              "required": true,
+              "value": "add"
+            },
+            {
+              "parameter_id": "text",
+              "label": "text",
+              "ref": "test-data:/parameters/text",
+              "source_type": "test-data",
+              "required": true,
+              "value": "Buy groceries"
+            },
+            {
+              "parameter_id": "empty",
+              "label": "empty",
+              "ref": "test-data:/parameters/empty",
+              "source_type": "test-data",
+              "required": true,
+              "value": ""
+            },
+            {
+              "parameter_id": "count_added",
+              "label": "count_added",
+              "ref": "test-data:/parameters/count_added",
+              "source_type": "test-data",
+              "required": true,
+              "value": "1 item left"
+            }
+          ],
+          "expected_result": "列表文字正确、输入清空、计数1",
+          "evidence": [
+            "ADD"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-ADD",
+              "operator": "record-visible",
+              "expected_ref": "parameter:text",
+              "evidence": [
+                "ADD"
+              ],
+              "expected_value": "Buy groceries"
+            }
+          ]
+        },
+        {
+          "resolved_step_id": "RS-004",
+          "source_step_id": "READY-COMPLETE",
+          "section": "feature",
+          "sequence": 4,
+          "intent": "完成前目标唯一且未选中",
+          "action": "assert",
+          "module_id": "completion",
+          "binding_ref": "page.todomvc",
+          "parameters": [
+            {
+              "parameter_id": "text",
+              "label": "text",
+              "ref": "test-data:/parameters/text",
+              "source_type": "test-data",
+              "required": true,
+              "value": "Buy groceries"
+            },
+            {
+              "parameter_id": "count_added",
+              "label": "count_added",
+              "ref": "test-data:/parameters/count_added",
+              "source_type": "test-data",
+              "required": true,
+              "value": "1 item left"
+            }
+          ],
+          "expected_result": "完成前目标唯一且未选中",
+          "evidence": [
+            "READY-COMPLETE"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-READY-COMPLETE",
+              "operator": "checked",
+              "expected_ref": "literal:false",
+              "evidence": [
+                "READY-COMPLETE"
+              ],
+              "expected_value": "false"
+            }
+          ]
+        },
+        {
+          "resolved_step_id": "RS-005",
+          "source_step_id": "COMPLETE",
+          "section": "feature",
+          "sequence": 5,
+          "intent": "选中、计数0、Clear completed可见",
+          "action": "submit",
+          "module_id": "completion",
+          "binding_ref": "page.todomvc",
+          "parameters": [
+            {
+              "parameter_id": "phase_complete",
+              "label": "phase_complete",
+              "ref": "test-data:/parameters/phase_complete",
+              "source_type": "test-data",
+              "required": true,
+              "value": "complete"
+            },
+            {
+              "parameter_id": "text",
+              "label": "text",
+              "ref": "test-data:/parameters/text",
+              "source_type": "test-data",
+              "required": true,
+              "value": "Buy groceries"
+            },
+            {
+              "parameter_id": "count_completed",
+              "label": "count_completed",
+              "ref": "test-data:/parameters/count_completed",
+              "source_type": "test-data",
+              "required": true,
+              "value": "0 items left"
+            }
+          ],
+          "expected_result": "选中、计数0、Clear completed可见",
+          "evidence": [
+            "COMPLETE"
+          ],
+          "postconditions": [
+            {
+              "assertion_id": "A-COMPLETE",
+              "operator": "checked",
+              "expected_ref": "literal:true",
+              "evidence": [
+                "COMPLETE"
+              ],
+              "expected_value": "true"
+            }
+          ]
+        }
+      ]
+    },
+    "playwright-test.py": "# 生成元数据: {\"branch_id\":\"primary\",\"build_fingerprint\":\"sha256:fd49ac24e1714f92e92a792b72b427e572d0f536db4d2c2eec8366c4d7d0022b\",\"compiler_version\":\"2.0.0\",\"config_fingerprint\":\"sha256:de255e35877f8b585be49c4d8eed9f7c503f7b3a8f88fccf0ec9898c0744c715\",\"dependency_digest\":\"sha256:35892edbef8e1033d6b5bd9a0546fff726704632a90ea34c2d4d5e82fdbe45b7\",\"do_not_edit\":true,\"module_coverage_digest\":\"sha256:4b6fad647da9a3ecc29bdb5896f6a1a15db5ecfcc5d28569ba77727857b9db30\",\"page_module_registry_digest\":\"sha256:17059ac6f12b56811af625ea6e05f02476c5490edaf645682e1a79e6265ae8d8\",\"parameter_manifest_hash\":\"sha256:8351490e21dec2a91bb77acb8fdf38c9d34864e1f0e376dd40800c2e53c64634\",\"renderer_version\":\"2.2.0\",\"source_case_id\":\"TODO-P0-002\",\"source_hash\":\"sha256:808ade4cd272d28e4237605819b567b3285a0891173958b2c1b259010944dcf6\",\"test_data_hash\":\"sha256:9a1505348ad1dab690f19038d6c5c91ee2dcf31007e72a5100bad800df910ebc\"}\n# CASE_PARAMETER_MANIFEST 由 test-data.json 编译生成，禁止在本文件手工维护。\nimport pytest\n\npytestmark = [pytest.mark.p0, pytest.mark.ui_test, pytest.mark.r2]\n\nCASE_PARAMETER_MANIFEST = {'branch_id': 'primary',\n 'case_id': 'TODO-P0-002',\n 'data_revision': 1,\n 'parameter_manifest_hash': 'sha256:8351490e21dec2a91bb77acb8fdf38c9d34864e1f0e376dd40800c2e53c64634',\n 'parameters': [{'label': 'text',\n                 'parameter_id': 'text',\n                 'ref': 'test-data:/parameters/text',\n                 'required': True,\n                 'source_type': 'test-data',\n                 'value': 'Buy groceries'},\n                {'label': 'empty',\n                 'parameter_id': 'empty',\n                 'ref': 'test-data:/parameters/empty',\n                 'required': True,\n                 'source_type': 'test-data',\n                 'value': ''},\n                {'label': 'count_added',\n                 'parameter_id': 'count_added',\n                 'ref': 'test-data:/parameters/count_added',\n                 'required': True,\n                 'source_type': 'test-data',\n                 'value': '1 item left'},\n                {'label': 'count_completed',\n                 'parameter_id': 'count_completed',\n                 'ref': 'test-data:/parameters/count_completed',\n                 'required': True,\n                 'source_type': 'test-data',\n                 'value': '0 items left'},\n                {'label': 'phase_add',\n                 'parameter_id': 'phase_add',\n                 'ref': 'test-data:/parameters/phase_add',\n                 'required': True,\n                 'source_type': 'test-data',\n                 'value': 'add'},\n                {'label': 'phase_complete',\n                 'parameter_id': 'phase_complete',\n                 'ref': 'test-data:/parameters/phase_complete',\n                 'required': True,\n                 'source_type': 'test-data',\n                 'value': 'complete'},\n                {'label': '公开练习地址',\n                 'parameter_id': 'base-url',\n                 'ref': 'value:base_url',\n                 'required': True,\n                 'source_type': 'value',\n                 'value': 'https://demo.playwright.dev/todomvc/#/'}],\n 'runtime_material_digest': 'sha256:8bcc785b56e7f392c2290e51909b5e9c6bdaa485954b963631407dcf0cf4e4c8',\n 'schema_version': 'ui-test.case-parameter-manifest.v2',\n 'test_data_hash': 'sha256:9a1505348ad1dab690f19038d6c5c91ee2dcf31007e72a5100bad800df910ebc'}\n\nCASE_STEP_MANIFEST = [{'action': 'flow',\n  'binding_ref': 'flow.open-todomvc',\n  'evidence': ['OPEN'],\n  'expected_result': '应用加载、输入框可见、列表为空',\n  'intent': '应用加载、输入框可见、列表为空',\n  'module_id': 'page',\n  'parameters': [{'label': '公开练习地址',\n                  'parameter_id': 'base-url',\n                  'ref': 'value:base_url',\n                  'required': True,\n                  'source_type': 'value',\n                  'value': 'https://demo.playwright.dev/todomvc/#/'}],\n  'postconditions': [{'assertion_id': 'A-OPEN',\n                      'evidence': ['OPEN'],\n                      'expected_ref': 'literal:true',\n                      'expected_value': 'true',\n                      'operator': 'visible'}],\n  'resolved_step_id': 'RS-001',\n  'section': 'setup',\n  'sequence': 1,\n  'source_step_id': 'OPEN'},\n {'action': 'fill',\n  'binding_ref': 'page.todomvc',\n  'evidence': ['FILL'],\n  'expected_result': '输入框回显待办文字',\n  'intent': '输入框回显待办文字',\n  'module_id': 'new-todo',\n  'parameters': [{'label': 'text',\n                  'parameter_id': 'text',\n                  'ref': 'test-data:/parameters/text',\n                  'required': True,\n                  'source_type': 'test-data',\n                  'value': 'Buy groceries'}],\n  'postconditions': [{'assertion_id': 'A-FILL',\n                      'evidence': ['FILL'],\n                      'expected_ref': 'parameter:text',\n                      'expected_value': 'Buy groceries',\n                      'operator': 'equals'}],\n  'resolved_step_id': 'RS-002',\n  'section': 'feature',\n  'sequence': 2,\n  'source_step_id': 'FILL'},\n {'action': 'submit',\n  'binding_ref': 'page.todomvc',\n  'evidence': ['ADD'],\n  'expected_result': '列表文字正确、输入清空、计数1',\n  'intent': '列表文字正确、输入清空、计数1',\n  'module_id': 'new-todo',\n  'parameters': [{'label': 'phase_add',\n                  'parameter_id': 'phase_add',\n                  'ref': 'test-data:/parameters/phase_add',\n                  'required': True,\n                  'source_type': 'test-data',\n                  'value': 'add'},\n                 {'label': 'text',\n                  'parameter_id': 'text',\n                  'ref': 'test-data:/parameters/text',\n                  'required': True,\n                  'source_type': 'test-data',\n                  'value': 'Buy groceries'},\n                 {'label': 'empty',\n                  'parameter_id': 'empty',\n                  'ref': 'test-data:/parameters/empty',\n                  'required': True,\n                  'source_type': 'test-data',\n                  'value': ''},\n                 {'label': 'count_added',\n                  'parameter_id': 'count_added',\n                  'ref': 'test-data:/parameters/count_added',\n                  'required': True,\n                  'source_type': 'test-data',\n                  'value': '1 item left'}],\n  'postconditions': [{'assertion_id': 'A-ADD',\n                      'evidence': ['ADD'],\n                      'expected_ref': 'parameter:text',\n                      'expected_value': 'Buy groceries',\n                      'operator': 'record-visible'}],\n  'resolved_step_id': 'RS-003',\n  'section': 'feature',\n  'sequence': 3,\n  'source_step_id': 'ADD'},\n {'action': 'assert',\n  'binding_ref': 'page.todomvc',\n  'evidence': ['READY-COMPLETE'],\n  'expected_result': '完成前目标唯一且未选中',\n  'intent': '完成前目标唯一且未选中',\n  'module_id': 'completion',\n  'parameters': [{'label': 'text',\n                  'parameter_id': 'text',\n                  'ref': 'test-data:/parameters/text',\n                  'required': True,\n                  'source_type': 'test-data',\n                  'value': 'Buy groceries'},\n                 {'label': 'count_added',\n                  'parameter_id': 'count_added',\n                  'ref': 'test-data:/parameters/count_added',\n                  'required': True,\n                  'source_type': 'test-data',\n                  'value': '1 item left'}],\n  'postconditions': [{'assertion_id': 'A-READY-COMPLETE',\n                      'evidence': ['READY-COMPLETE'],\n                      'expected_ref': 'literal:false',\n                      'expected_value': 'false',\n                      'operator': 'checked'}],\n  'resolved_step_id': 'RS-004',\n  'section': 'feature',\n  'sequence': 4,\n  'source_step_id': 'READY-COMPLETE'},\n {'action': 'submit',\n  'binding_ref': 'page.todomvc',\n  'evidence': ['COMPLETE'],\n  'expected_result': '选中、计数0、Clear completed可见',\n  'intent': '选中、计数0、Clear completed可见',\n  'module_id': 'completion',\n  'parameters': [{'label': 'phase_complete',\n                  'parameter_id': 'phase_complete',\n                  'ref': 'test-data:/parameters/phase_complete',\n                  'required': True,\n                  'source_type': 'test-data',\n                  'value': 'complete'},\n                 {'label': 'text',\n                  'parameter_id': 'text',\n                  'ref': 'test-data:/parameters/text',\n                  'required': True,\n                  'source_type': 'test-data',\n                  'value': 'Buy groceries'},\n                 {'label': 'count_completed',\n                  'parameter_id': 'count_completed',\n                  'ref': 'test-data:/parameters/count_completed',\n                  'required': True,\n                  'source_type': 'test-data',\n                  'value': '0 items left'}],\n  'postconditions': [{'assertion_id': 'A-COMPLETE',\n                      'evidence': ['COMPLETE'],\n                      'expected_ref': 'literal:true',\n                      'expected_value': 'true',\n                      'operator': 'checked'}],\n  'resolved_step_id': 'RS-005',\n  'section': 'feature',\n  'sequence': 5,\n  'source_step_id': 'COMPLETE'}]\n\n@pytest.mark.case_id('TODO-P0-002')\n@pytest.mark.branch_id('primary')\ndef test_todo_p0_002_primary(ui_test_runtime):\n    # 运行时必须先校验参数身份，再由项目场景消费清单。\n    ui_test_runtime.execute_case(case_id='TODO-P0-002', branch_id='primary', parameter_manifest=CASE_PARAMETER_MANIFEST, step_manifest=CASE_STEP_MANIFEST)\n",
+    "compile-receipt.json": {
+      "schema_version": "ui-test.compile-receipt.v2",
+      "case_id": "TODO-P0-002",
+      "branch_id": "primary",
+      "source_hash": "sha256:808ade4cd272d28e4237605819b567b3285a0891173958b2c1b259010944dcf6",
+      "test_data_hash": "sha256:9a1505348ad1dab690f19038d6c5c91ee2dcf31007e72a5100bad800df910ebc",
+      "parameter_manifest_hash": "sha256:8351490e21dec2a91bb77acb8fdf38c9d34864e1f0e376dd40800c2e53c64634",
+      "runtime_material_digest": "sha256:8bcc785b56e7f392c2290e51909b5e9c6bdaa485954b963631407dcf0cf4e4c8",
+      "dependency_digest": "sha256:35892edbef8e1033d6b5bd9a0546fff726704632a90ea34c2d4d5e82fdbe45b7",
+      "page_module_registry_digest": "sha256:17059ac6f12b56811af625ea6e05f02476c5490edaf645682e1a79e6265ae8d8",
+      "module_coverage_digest": "sha256:4b6fad647da9a3ecc29bdb5896f6a1a15db5ecfcc5d28569ba77727857b9db30",
+      "config_fingerprint": "sha256:de255e35877f8b585be49c4d8eed9f7c503f7b3a8f88fccf0ec9898c0744c715",
+      "compiler_version": "2.0.0",
+      "renderer_version": "2.2.0",
+      "build_fingerprint": "sha256:fd49ac24e1714f92e92a792b72b427e572d0f536db4d2c2eec8366c4d7d0022b",
+      "artifact_names": [
+        "case-ir.json",
+        "case-parameter-manifest.json",
+        "compile-receipt.json",
+        "human.md",
+        "midscene.json",
+        "playwright-test.py",
+        "resolved-ir.json",
+        "source-case.json",
+        "test-data.json"
+      ]
+    }
+  },
+  "manifest": {
+    "schema_version": "ui-test.case-manifest.v2",
+    "case_id": "TODO-P0-002",
+    "branch_id": "primary",
+    "build_fingerprint": "sha256:fd49ac24e1714f92e92a792b72b427e572d0f536db4d2c2eec8366c4d7d0022b",
+    "source_hash": "sha256:808ade4cd272d28e4237605819b567b3285a0891173958b2c1b259010944dcf6",
+    "test_data_hash": "sha256:9a1505348ad1dab690f19038d6c5c91ee2dcf31007e72a5100bad800df910ebc",
+    "parameter_manifest_hash": "sha256:8351490e21dec2a91bb77acb8fdf38c9d34864e1f0e376dd40800c2e53c64634",
+    "runtime_material_digest": "sha256:8bcc785b56e7f392c2290e51909b5e9c6bdaa485954b963631407dcf0cf4e4c8",
+    "dependency_digest": "sha256:35892edbef8e1033d6b5bd9a0546fff726704632a90ea34c2d4d5e82fdbe45b7",
+    "page_module_registry_digest": "sha256:17059ac6f12b56811af625ea6e05f02476c5490edaf645682e1a79e6265ae8d8",
+    "module_coverage_digest": "sha256:4b6fad647da9a3ecc29bdb5896f6a1a15db5ecfcc5d28569ba77727857b9db30",
+    "config_fingerprint": "sha256:de255e35877f8b585be49c4d8eed9f7c503f7b3a8f88fccf0ec9898c0744c715",
+    "generator_version": "2.0.0",
+    "renderer_version": "2.2.0",
+    "artifacts": {
+      "case-ir.json": "sha256:b0e432e5b73aed900ca049cb742e6737b58d5202f8916850d6f3ee5b48932c41",
+      "case-parameter-manifest.json": "sha256:c582cf9ce436146db56ce2acaf231481239744bf816b632cfa7a5d2c62c2643b",
+      "compile-receipt.json": "sha256:6a729b9aad918a24f1292796c65a184574b443aaffb55646bc68981280426d6c",
+      "human.md": "sha256:b613982bcd650e64c17be6743a7e628216fa19862f36994231200074c4448b69",
+      "midscene.json": "sha256:8e33b0aa51a6064f90f2503280df32f7038a02bee1c9ee8bd598d5a432281d93",
+      "playwright-test.py": "sha256:2afcfa38d9d887a5712b6b301ecc26c9a392b7664c1ca781dc6e9584d482b9fb",
+      "resolved-ir.json": "sha256:2e0a9af4cc804adfbfe8fa260477cb05e68dc0bea98c5a41dd3eb76239989921",
+      "source-case.json": "sha256:808ade4cd272d28e4237605819b567b3285a0891173958b2c1b259010944dcf6",
+      "test-data.json": "sha256:9a1505348ad1dab690f19038d6c5c91ee2dcf31007e72a5100bad800df910ebc"
+    }
+  }
+}

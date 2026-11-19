@@ -2,6 +2,22 @@
 
 ## Latest Changes
 
+- [CR-20261119-020 · #12 集成修复的逐步暂停及环境证据](entries/2026/2026-11/CR-20261119-020-integration-failures.md)
+
+- [CR-20261119-019 · 两行定位修复与新版复用](entries/2026/2026-11/CR-20261119-019-scoped-locator-repair.md)
+
+- [CR-20261119-016 · 探索经验和脚本复用](entries/2026/2026-11/CR-20261119-016-strategy-learning.md)
+
+- [CR-20261119-018 · 固定版本与并发决定](entries/2026/2026-11/CR-20261119-018-atomic-revisions.md)
+
+- [CR-20261119-017 · 失败回执与预算](entries/2026/2026-11/CR-20261119-017-failure-receipts.md)
+
+- [CR-20261119-015 · 用例资产选择](entries/2026/2026-11/CR-20261119-015-case-asset-selection.md)
+
+- [CR-20261119-014 · Project asset discovery](entries/2026/2026-11/CR-20261119-014-project-discovery.md)
+
+- [CR-20261119-013 · TodoMVC 源用例导航证据](entries/2026/2026-11/CR-20261119-013-navigation-evidence.md)
+
 - [CR-20261118-009 · Passive network evidence](entries/2026/2026-11/CR-20261118-009-passive-network.md)
 
 

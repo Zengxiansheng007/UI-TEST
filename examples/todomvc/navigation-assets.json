@@ -1,0 +1,12 @@
+{
+  "assets": {
+    "flow.open-todomvc": {
+      "symbol": "TodoPage.open",
+      "sha256": "804d6ef1132ce54b4548521670034e1c84c26f91a0c6ad1a9bd48f7a8233b555",
+      "source": "todomvc_page.py",
+      "version": 1,
+      "enabled": true,
+      "recovery_source": "versions/flow.open-todomvc/1/todomvc_page.py"
+    }
+  }
+}

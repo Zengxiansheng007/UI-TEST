@@ -2,6 +2,12 @@
 
 Use this contract when a UI-Test run should learn from execution or consume a previously approved experience.
 
+## Runnable project strategies
+
+When a project records strategy use, open its normal pytest entry and source case. Read the committed V5 step's `strategy_use_ref` and verify `strategy_use_hash`. Use the reviewed adapter's actual observation, action, condition, expected result and sanitized evidence references. Record a candidate with `python -m ui_test_core.strategy_learning PROJECT RUN_ROOT STEP` using this Skill's scripts on PYTHONPATH. The command prints its content identity.
+
+For independent qualification, run the original case in a new session under the existing action grant, selecting the project's candidate-trial option. Inspect the new V5 and call the same command with its run directory and `--qualify CANDIDATE_ID`. A successful trial must show actual adoption of the successful strategy or exclusion of the failed strategy while passing the original assertions. Future ordinary runs consult the project files in `reuse-experiences` for the same build, asset identity and exact step scope. A case without a checkpoint preserves the explicit null in the project selection scope.
+
 ## Scope identity
 
 Every experience and every lookup must carry independent, non-empty fields:

@@ -10,6 +10,8 @@ See the linked change records.
 
 ## Detailed Records
 
+- [CR-20261119-015 · 用例资产选择](../entries/2026/2026-11/CR-20261119-015-case-asset-selection.md)
+
 
 - [CR-20261118-004 · Packet 3.0](../entries/2026/2026-11/CR-20261118-004-packet.md)
 - [CR-20261118-007 · 指定用例启动](../entries/2026/2026-11/CR-20261118-007-specified-runner.md)

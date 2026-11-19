@@ -1,0 +1,123 @@
+{
+  "directory": ".",
+  "exclude_paths": [
+    "conftest.py",
+    "project_runtime.py",
+    "regression-runners",
+    "versions",
+    "execution-evidence"
+  ],
+  "assets": {
+    "flow.open-todomvc": {
+      "symbol": "TodoPage.open",
+      "sha256": "804d6ef1132ce54b4548521670034e1c84c26f91a0c6ad1a9bd48f7a8233b555",
+      "source": "todomvc_page.py",
+      "version": 1,
+      "enabled": true,
+      "recovery_source": "versions/flow.open-todomvc/1/todomvc_page.py",
+      "kind": "navigation",
+      "dependencies": [],
+      "steps": [
+        "OPEN"
+      ],
+      "conditions": {
+        "environment": "test"
+      },
+      "paused_scopes": [],
+      "inputs": [
+        "page"
+      ],
+      "side_effects": "navigation",
+      "owner": {
+        "project_group": "public-tca-todomvc-20261117",
+        "product": "todomvc"
+      },
+      "prerequisites": [
+        "page_available"
+      ]
+    },
+    "locator.rows": {
+      "symbol": "TodoPage.__init__.rows",
+      "sha256": "804d6ef1132ce54b4548521670034e1c84c26f91a0c6ad1a9bd48f7a8233b555",
+      "source": "todomvc_page.py",
+      "version": 1,
+      "enabled": true,
+      "recovery_source": "versions/flow.open-todomvc/1/todomvc_page.py",
+      "kind": "locator",
+      "dependencies": [],
+      "steps": [
+        "OPEN",
+        "READY-COMPLETE",
+        "COMPLETE"
+      ],
+      "conditions": {
+        "environment": "test"
+      },
+      "paused_scopes": [],
+      "inputs": [
+        "page"
+      ],
+      "side_effects": "read",
+      "owner": {
+        "project_group": "public-tca-todomvc-20261117",
+        "product": "todomvc"
+      }
+    },
+    "component.ready": {
+      "symbol": "TodoPage.ready_complete",
+      "sha256": "804d6ef1132ce54b4548521670034e1c84c26f91a0c6ad1a9bd48f7a8233b555",
+      "source": "todomvc_page.py",
+      "version": 1,
+      "enabled": true,
+      "recovery_source": "versions/flow.open-todomvc/1/todomvc_page.py",
+      "kind": "component",
+      "dependencies": [
+        "locator.rows"
+      ],
+      "steps": [
+        "READY-COMPLETE",
+        "COMPLETE"
+      ],
+      "conditions": {
+        "environment": "test"
+      },
+      "paused_scopes": [],
+      "inputs": [
+        "page"
+      ],
+      "side_effects": "read",
+      "owner": {
+        "project_group": "public-tca-todomvc-20261117",
+        "product": "todomvc"
+      }
+    },
+    "script.complete": {
+      "symbol": "TodoPage.complete",
+      "action": "check-target-checkbox",
+      "sha256": "804d6ef1132ce54b4548521670034e1c84c26f91a0c6ad1a9bd48f7a8233b555",
+      "source": "todomvc_page.py",
+      "version": 1,
+      "enabled": true,
+      "recovery_source": "versions/flow.open-todomvc/1/todomvc_page.py",
+      "kind": "script",
+      "dependencies": [
+        "locator.rows"
+      ],
+      "steps": [
+        "COMPLETE"
+      ],
+      "conditions": {
+        "environment": "test"
+      },
+      "paused_scopes": [],
+      "inputs": [
+        "page", "counter"
+      ],
+      "side_effects": "UI write",
+      "owner": {
+        "project_group": "public-tca-todomvc-20261117",
+        "product": "todomvc"
+      }
+    }
+  }
+}

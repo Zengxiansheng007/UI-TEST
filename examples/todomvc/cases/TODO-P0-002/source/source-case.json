@@ -1,0 +1,194 @@
+{
+  "schema_version": "ui-test.source-case.v2",
+  "case_id": "TODO-P0-002",
+  "branch_id": "primary",
+  "case_version": 1,
+  "title": "完成一个待办",
+  "display_name": "完成一个待办",
+  "priority": "P0",
+  "risk_level": "R2",
+  "scope": {
+    "project_group": "public-tca-todomvc-20261117",
+    "product": "todomvc",
+    "system": "web",
+    "module_path": [
+      "todos"
+    ],
+    "function": "basic"
+  },
+  "parameter_bindings": [
+    {
+      "parameter_id": "text",
+      "label": "text",
+      "ref": "test-data:/parameters/text"
+    },
+    {
+      "parameter_id": "empty",
+      "label": "empty",
+      "ref": "test-data:/parameters/empty"
+    },
+    {
+      "parameter_id": "count_added",
+      "label": "count_added",
+      "ref": "test-data:/parameters/count_added"
+    },
+    {
+      "parameter_id": "count_completed",
+      "label": "count_completed",
+      "ref": "test-data:/parameters/count_completed"
+    },
+    {
+      "parameter_id": "phase_add",
+      "label": "phase_add",
+      "ref": "test-data:/parameters/phase_add"
+    },
+    {
+      "parameter_id": "phase_complete",
+      "label": "phase_complete",
+      "ref": "test-data:/parameters/phase_complete"
+    },
+    {
+      "parameter_id": "base-url",
+      "label": "公开练习地址",
+      "ref": "value:base_url"
+    }
+  ],
+  "steps": [
+    {
+      "step_id": "OPEN",
+      "section": "setup",
+      "intent": "应用加载、输入框可见、列表为空",
+      "action": "flow",
+      "module_id": "page",
+      "parameter_ids": [
+        "base-url"
+      ],
+      "expected_result": "应用加载、输入框可见、列表为空",
+      "binding_ref": "flow.open-todomvc",
+      "evidence": [
+        "OPEN"
+      ],
+      "postconditions": [
+        {
+          "assertion_id": "A-OPEN",
+          "operator": "visible",
+          "expected_ref": "literal:true",
+          "evidence": [
+            "OPEN"
+          ]
+        }
+      ]
+    },
+    {
+      "step_id": "FILL",
+      "section": "feature",
+      "intent": "输入框回显待办文字",
+      "action": "fill",
+      "module_id": "new-todo",
+      "parameter_ids": [
+        "text"
+      ],
+      "expected_result": "输入框回显待办文字",
+      "binding_ref": "page.todomvc",
+      "evidence": [
+        "FILL"
+      ],
+      "postconditions": [
+        {
+          "assertion_id": "A-FILL",
+          "operator": "equals",
+          "expected_ref": "parameter:text",
+          "evidence": [
+            "FILL"
+          ]
+        }
+      ]
+    },
+    {
+      "step_id": "ADD",
+      "section": "feature",
+      "intent": "列表文字正确、输入清空、计数1",
+      "action": "submit",
+      "module_id": "new-todo",
+      "parameter_ids": [
+        "phase_add",
+        "text",
+        "empty",
+        "count_added"
+      ],
+      "expected_result": "列表文字正确、输入清空、计数1",
+      "binding_ref": "page.todomvc",
+      "evidence": [
+        "ADD"
+      ],
+      "postconditions": [
+        {
+          "assertion_id": "A-ADD",
+          "operator": "record-visible",
+          "expected_ref": "parameter:text",
+          "evidence": [
+            "ADD"
+          ]
+        }
+      ]
+    },
+    {
+      "step_id": "READY-COMPLETE",
+      "section": "feature",
+      "intent": "完成前目标唯一且未选中",
+      "action": "assert",
+      "module_id": "completion",
+      "parameter_ids": [
+        "text",
+        "count_added"
+      ],
+      "expected_result": "完成前目标唯一且未选中",
+      "binding_ref": "page.todomvc",
+      "evidence": [
+        "READY-COMPLETE"
+      ],
+      "postconditions": [
+        {
+          "assertion_id": "A-READY-COMPLETE",
+          "operator": "checked",
+          "expected_ref": "literal:false",
+          "evidence": [
+            "READY-COMPLETE"
+          ]
+        }
+      ]
+    },
+    {
+      "step_id": "COMPLETE",
+      "section": "feature",
+      "intent": "选中、计数0、Clear completed可见",
+      "action": "submit",
+      "module_id": "completion",
+      "parameter_ids": [
+        "phase_complete",
+        "text",
+        "count_completed"
+      ],
+      "expected_result": "选中、计数0、Clear completed可见",
+      "binding_ref": "page.todomvc",
+      "evidence": [
+        "COMPLETE"
+      ],
+      "postconditions": [
+        {
+          "assertion_id": "A-COMPLETE",
+          "operator": "checked",
+          "expected_ref": "literal:true",
+          "evidence": [
+            "COMPLETE"
+          ]
+        }
+      ]
+    }
+  ],
+  "dependency_refs": [
+    "flow.open-todomvc",
+    "page.todomvc"
+  ],
+  "p0_suite_id": "PUBLIC-TODOMVC-P0"
+}
