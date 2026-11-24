@@ -172,12 +172,16 @@ def classify_execution_origin(
 
 
 def _policy_enabled(config: Mapping[str, Any]) -> bool:
-    if config.get("schema_version") != "2.3":
+    if config.get("schema_version") not in {"2.3", "2.4"}:
         return False
     policy = config.get("pycharm_manual_execution")
     if not isinstance(policy, Mapping):
         return False
-    return all(policy.get(key) == value for key, value in _PYCHARM_POLICY.items())
+    expected = _PYCHARM_POLICY
+    if config["schema_version"] == "2.4":
+        expected = {**expected, "session_result_contract": "v2", "contract_version": 5}
+        del expected["r2_parallelism"]
+    return all(policy.get(key) == value for key, value in expected.items())
 
 
 def resolve_pycharm_run_context(
@@ -196,10 +200,11 @@ def resolve_pycharm_run_context(
     process_argv: Sequence[str] | None = None,
     now: datetime | None = None,
     unique_suffix: str | None = None,
+    controller_origin: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """解析每个测试节点的来源、Run ID与候选批准，不消费R2写许可。"""
 
-    origin = classify_execution_origin(  # 来源分类与授权计算保持分离。
+    origin = controller_origin or classify_execution_origin(  # Worker inherits controller process provenance.
         argv=argv,
         orig_argv=orig_argv,
         environ=environ,

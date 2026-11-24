@@ -1,5 +1,7 @@
 # V5 report entry requirements
 
+- [CR-20261124-138 · 阶段交付复核修复](../entries/2026/2026-11/CR-20261124-138-stage-publication-review.md)
+
 | Date | Change ID | Section | Change Type | Summary | Status |
 |---|---|---|---|---|---|
 | 2026-11-18 | [CR-20261118-003](../entries/2026/2026-11/CR-20261118-003-v5-report.md) | V5 report entry requirements | Contract update | Consume canonical V5 | Locally verified |
@@ -20,6 +22,10 @@ Track core-skill-md changes for this candidate Skill.
 | 2026-08-22 | CR-20260822-001 | core-skill-md | changed | Require canonical RunResult v2 and make reports read-only hash-preserving projections. | validated |
 
 ## Detailed Records
+
+### CR-20261120-025 - Session report
+
+Guide reviewers to the controller session entry and the caller's process observation. [Change and validation](../entries/2026/2026-11/CR-20261120-025-session-report.md)
 
 ### CR-20260822-001 - ui-test-asset-governance
 

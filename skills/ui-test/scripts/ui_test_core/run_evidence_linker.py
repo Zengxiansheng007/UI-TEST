@@ -305,6 +305,19 @@ def verify_run_result_v4_links(
 # ---------------------------------------------------------------------------
 
 
+def build_read_only_boundary(context: Mapping[str, Any]) -> dict[str, Any]:
+    """Bind zero submissions to this R0 attempt and its selected runner."""
+    if context["risk_level"] != "r0-read-only" or context["approved"] or context["config_summary"].get("stage_write_budget"):
+        raise RunEvidenceLinkError("E_READ_ONLY_BOUNDARY_INVALID")
+    identity = ("session_id", "run_id", "node_id", "case_id", "branch_id", "attempt_ref",
+                "runner_digest", "project_config_digest", "environment", "risk_level")
+    return {
+        **{field: context[field] for field in identity},
+        "schema_version": "ui-test.read-only-boundary.v1",
+        "allowed_action": "read-only", "max_submit_count": 0,
+    }
+
+
 def build_run_result_v5(
     *,
     run_root: str | Path,
@@ -331,6 +344,7 @@ def build_run_result_v5(
     cleanup_status: str = "not_applicable",
     stage_write_budget: dict[str, Any] | None = None,
     phase_results: list[dict[str, Any]] | None = None,
+    risk_level: str | None = None,
 ) -> dict[str, Any]:
     """构建不含PyCharm/人工自证字段的RunResultV5。"""
     root = io_path(run_root)
@@ -350,9 +364,14 @@ def build_run_result_v5(
         set(pytest_phase_status) == {"setup", "call", "teardown"}
         and all(pytest_phase_status.get(name) == "passed" for name in ("setup", "call", "teardown"))
     )
-    if overall_status == "passed" and not (
-        all_phases_passed and write_state == "write_succeeded_verified" and submit_count == expected_count
-    ):
+    read_only = risk_level == "r0-read-only"
+    if risk_level not in (None, "r0-read-only", "r2-ui-write-test"):
+        raise RunEvidenceLinkError("E_RUN_RESULT_RISK_LEVEL_INVALID")
+    if read_only and (write_state != "not_attempted" or submit_count != 0
+                      or stage_write_budget is not None or phase_results is not None):
+        raise RunEvidenceLinkError("E_READ_ONLY_WRITE_STATE_INVALID")
+    writes_verified = write_state == "write_succeeded_verified" and submit_count == expected_count
+    if overall_status == "passed" and not (all_phases_passed and (read_only or writes_verified)):
         raise RunEvidenceLinkError("E_RUN_RESULT_V5_PASSED_WITHOUT_COMPLETE_EVIDENCE")
     snapshot = _verified_snapshot(path)
     if snapshot["run_id"] != run_id or snapshot["case_id"] != case_id or snapshot["branch_id"] != branch_id:
@@ -387,6 +406,8 @@ def build_run_result_v5(
         "cleanup_status": cleanup_status,
         "business_cleanup_attempted": False,
     }
+    if read_only:
+        result["risk_level"] = risk_level
     if stage_write_budget is not None:
         result["stage_write_budget"] = copy.deepcopy(stage_write_budget)
         result["phase_results"] = copy.deepcopy(phase_results)

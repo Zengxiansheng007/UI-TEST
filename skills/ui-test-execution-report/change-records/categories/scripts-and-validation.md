@@ -1,32 +1,15 @@
-# Generator, artifact checker and CLI tests
+# scripts-and-validation
 
-| Date | Change ID | Section | Change Type | Summary | Status |
-|---|---|---|---|---|---|
-| 2026-11-18 | [CR-20261118-003](../entries/2026/2026-11/CR-20261118-003-v5-report.md) | Generator, artifact checker and CLI tests | Contract update | Consume canonical V5 | Locally verified |
-
-
----
-
-# Scripts And Validation Change Ledger
+- [CR-20261124-139 · 单次报告归档隔离](../entries/2026/2026-11/CR-20261124-139-single-run-isolation.md)
 
 ## Purpose
 
-Track scripts-and-validation changes for this candidate Skill.
+记录本类别的变更。
 
 ## Outline
 
-| Date | Change ID | Section | Change Type | Summary | Status |
-|---|---|---|---|---|---|
-| 2026-08-22 | CR-20260822-001 | scripts-and-validation | changed | Require canonical RunResult v2 and make reports read-only hash-preserving projections. | validated |
+- [CR-20261124-138 · 阶段交付复核修复](../entries/2026/2026-11/CR-20261124-138-stage-publication-review.md)
 
 ## Detailed Records
 
-### CR-20260822-001 - ui-test-asset-governance
-
-- Section changed: scripts-and-validation.
-- Before: the copied global baseline predated the approved asset-governance requirements.
-- After: Require canonical RunResult v2 and make reports read-only hash-preserving projections.
-- Why: close the approved UI-Test asset-governance requirements.
-- Impact: candidate package only; no global installation.
-- Validation: candidate quality, behavior and sensitive-data checks.
-- Detail record: `../entries/2026/2026-08/CR-20260822-001-ui-test-asset-governance.md`.
+- [CR-20261124-138 · 阶段交付复核修复](../entries/2026/2026-11/CR-20261124-138-stage-publication-review.md)

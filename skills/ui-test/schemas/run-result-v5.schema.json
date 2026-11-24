@@ -253,6 +253,9 @@
           }
         }
       }
+    },
+    "risk_level": {
+      "const": "r0-read-only"
     }
   },
   "allOf": [
@@ -278,9 +281,6 @@
                 "const": "passed"
               }
             }
-          },
-          "write_state": {
-            "const": "write_succeeded_verified"
           }
         }
       }
@@ -303,25 +303,7 @@
           "required": [
             "phase_results"
           ]
-        },
-        "allOf": [
-          {
-            "if": {
-              "properties": {
-                "overall_status": {
-                  "const": "passed"
-                }
-              }
-            },
-            "then": {
-              "properties": {
-                "submit_count": {
-                  "const": 1
-                }
-              }
-            }
-          }
-        ]
+        }
       }
     },
     {
@@ -334,6 +316,47 @@
         "required": [
           "phase_results"
         ]
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "risk_level"
+        ]
+      },
+      "then": {
+        "properties": {
+          "write_state": {
+            "const": "not_attempted"
+          },
+          "submit_count": {
+            "const": 0
+          }
+        },
+        "not": {
+          "required": [
+            "stage_write_budget"
+          ]
+        }
+      },
+      "else": {
+        "if": {
+          "properties": {
+            "overall_status": {
+              "const": "passed"
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "write_state": {
+              "const": "write_succeeded_verified"
+            },
+            "submit_count": {
+              "minimum": 1
+            }
+          }
+        }
       }
     }
   ],

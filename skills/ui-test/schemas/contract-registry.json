@@ -61,13 +61,16 @@
     {"contract_id": "ui-test.pycharm-governance-readiness.v1", "path": "schemas/pycharm-governance-readiness-v1.schema.json", "status": "active"},
     {"contract_id": "ui-test.project.v2.2", "path": "schemas/ui-test-project-v2.2.schema.json", "status": "deprecated"},
     {"contract_id": "ui-test.project.v2.3", "path": "schemas/ui-test-project-v2.3.schema.json", "status": "active"},
+    {"contract_id": "ui-test.project.v2.4", "path": "schemas/ui-test-project-v2.4.schema.json", "status": "active"},
     {"contract_id": "ui-test.execution-context.v3", "path": "schemas/execution-context-v3.schema.json", "status": "deprecated"},
     {"contract_id": "ui-test.execution-context.v4", "path": "schemas/execution-context-v4.schema.json", "status": "active"},
+    {"contract_id": "ui-test.execution-context.v5", "path": "schemas/execution-context-v5.schema.json", "status": "active"},
     {"contract_id": "ui-test.execution-attempt.v2", "path": "schemas/execution-attempt-v2.schema.json", "status": "active"},
     {"contract_id": "ui-test.run-result.v5", "path": "schemas/run-result-v5.schema.json", "status": "active"},
     {"contract_id": "ui-test.finalization-commit.v1", "path": "schemas/finalization-commit-v1.schema.json", "status": "active"},
     {"contract_id": "ui-test.run-finalization-receipt.v1", "path": "schemas/run-finalization-receipt-v1.schema.json", "status": "active"},
     {"contract_id": "ui-test.pytest-session-result.v1", "path": "schemas/pytest-session-result-v1.schema.json", "status": "active"},
+    {"contract_id": "ui-test.pytest-session-result.v2", "path": "schemas/pytest-session-result-v2.schema.json", "status": "active"},
     {"contract_id": "ui-test.pycharm-process-evidence.v1", "path": "schemas/pycharm-process-evidence-v1.schema.json", "status": "active"},
     {"contract_id": "ui-test.pycharm-acceptance-result.v1", "path": "schemas/pycharm-acceptance-result-v1.schema.json", "status": "active"}
   ]

@@ -1,3 +1,4 @@
+import hashlib
 import json
 import subprocess
 import sys
@@ -8,7 +9,28 @@ import pytest
 PACKAGE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PACKAGE.parent / "ui-test" / "scripts"))
 from ui_test_core.run_evidence_linker import canonical_hash
-from ui_test_core.path_utils import io_path
+from ui_test_core.path_utils import canonical_display_path, io_path
+
+
+@pytest.mark.parametrize("first", ["diagnostic", "stage"])
+def test_cli_modes_preserve_each_others_artifacts(tmp_path, first):
+    second = "stage" if first == "diagnostic" else "diagnostic"
+    snapshots = {}
+    for mode in (first, second, first, second):
+        command = [sys.executable, str(PACKAGE / "scripts/generate_report.py"), "--input",
+                   str(PACKAGE / "assets/sample-run.json"), "--output-root", str(tmp_path)]
+        if mode == "diagnostic":
+            command.append("--diagnostic")
+        delivery = json.loads(subprocess.check_output(command))
+        paths = {Path(delivery[k]) for k in ("report_html", "execution_summary", "evidence_index", "run_result")}
+        assert delivery["report_url"] == canonical_display_path(delivery["report_html"]).as_uri()
+        digests = {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
+        assert digests == snapshots.setdefault(mode, digests)
+        for items in snapshots.values():
+            assert all(hashlib.sha256(p.read_bytes()).hexdigest() == saved for p, saved in items.items())
+    assert snapshots[first].keys().isdisjoint(snapshots[second])
+    assert all("stage-reports" in path.parts for path in snapshots["stage"])
+    assert all("stage-reports" not in path.parts for path in snapshots["diagnostic"])
 
 
 @pytest.mark.parametrize("mode", ["passed", "failed", "v2", "unknown", "hash", "missing", "identity", "invalid-pass", "missing-snapshot"])
@@ -38,6 +60,8 @@ def test_report_cli(tmp_path, mode):
     run = subprocess.run([sys.executable, str(PACKAGE / "scripts/generate_report.py"), "--input", str(source), "--output-root", str(output)], capture_output=True)
     if mode in ["passed", "failed"]:
         assert run.returncode == 0, run.stderr
+        html = next(io_path(output).rglob("report.html")).read_text(encoding="utf8")
+        assert "Playwright 正式执行报告" in html and 'aria-label="用例与关键节点"' in html
         summary = json.loads(next(io_path(output).rglob("execution-summary.json")).read_text(encoding="utf8"))
         assert summary["status"] == mode
         assert summary["external_acceptance"] == summary["artifact_commit"] == "not_provided"

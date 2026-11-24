@@ -104,14 +104,18 @@ def validate_pycharm_acceptance_chain(
     non_objects = [name for name, document in named_documents.items() if not isinstance(document, Mapping)]
     if non_objects:
         return ["chain-document-not-object:" + name for name in sorted(non_objects)]
+    session_v2 = pytest_session_result.get("schema_version") == "ui-test.pytest-session-result.v2"
+    context_v5 = execution_context.get("schema_version") == "ui-test.execution-context.v5"
+    if session_v2 != context_v5:
+        issues.append("context-session-version-mismatch")
     schema_documents = (
         (run_result, "run-result-v5.schema.json", "run-result-schema"),
         (finalization_commit, "finalization-commit-v1.schema.json", "commit-schema"),
         (finalization_receipt, "run-finalization-receipt-v1.schema.json", "receipt-schema"),
-        (pytest_session_result, "pytest-session-result-v1.schema.json", "session-schema"),
+        (pytest_session_result, "pytest-session-result-v2.schema.json" if session_v2 else "pytest-session-result-v1.schema.json", "session-schema"),
         (acceptance_result, "pycharm-acceptance-result-v1.schema.json", "acceptance-schema"),
         (approval_record, "r2-approval-record-v3.schema.json", "approval-schema"),
-        (execution_context, "execution-context-v4.schema.json", "context-schema"),
+        (execution_context, "execution-context-v5.schema.json" if context_v5 else "execution-context-v4.schema.json", "context-schema"),
         (process_evidence, "pycharm-process-evidence-v1.schema.json", "process-evidence-schema"),
     )
     for document, schema, code in schema_documents:
@@ -235,6 +239,7 @@ def validate_pycharm_acceptance_chain(
     if acceptance_result.get("overall_status") == "passed":
         passed_requirements = (
             run_result.get("overall_status") == "passed",
+            run_result.get("write_state") == "write_succeeded_verified",
             finalization_commit.get("status") == "committed",
             finalization_receipt.get("status") == "committed",
             finalization_receipt.get("recovery_mode") == "none",
@@ -285,6 +290,7 @@ def _build_pycharm_acceptance_result(
     passed = all(
         (
             run_result.get("overall_status") == "passed",
+            run_result.get("write_state") == "write_succeeded_verified",
             finalization_commit.get("status") == "committed",
             finalization_receipt.get("status") == "committed",
             finalization_receipt.get("recovery_mode") == "none",

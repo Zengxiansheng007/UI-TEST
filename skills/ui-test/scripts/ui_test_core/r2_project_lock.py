@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import hashlib  # 派生不暴露私有值的锁名称。
+import json  # 无歧义编码完整节点集合。
 import os  # 检测平台和读取环境变量用于xdist检测。
 import sys  # 确认平台。
 from typing import Any, Mapping
@@ -68,7 +69,7 @@ else:
 _LOCK_PREFIX = "Local\\UIT-R2-"  # PyCharm进程位于同一登录会话；避免扩大到其他用户会话的可预测全局对象。
 
 
-def _derive_lock_name(*, project_group: str, product: str, environment: str) -> str:
+def _derive_lock_name(*, project_group: str, product: str, environment: str, node_ids: tuple[str, ...] = ()) -> str:
     """从项目配置scope派生不暴露私有值的锁名称。
 
     仅使用project_group、product、environment三个已验证配置字段，
@@ -86,6 +87,8 @@ def _derive_lock_name(*, project_group: str, product: str, environment: str) -> 
         product.strip().lower(),
         environment.strip().lower(),
     ))
+    if node_ids:
+        normalized += "\x00" + json.dumps(sorted(set(node_ids)), ensure_ascii=True)  # 相同节点集合协调同一把锁。
     digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
     return f"{_LOCK_PREFIX}{digest}"
 
@@ -106,12 +109,12 @@ class R2ProjectLock:
 
     __slots__ = ("_lock_name", "_handle", "_held")
 
-    def __init__(self, *, project_group: str, product: str, environment: str) -> None:
+    def __init__(self, *, project_group: str, product: str, environment: str, node_ids: tuple[str, ...] = ()) -> None:
         """从已验证项目配置scope创建锁；不接受任意锁名。"""
         self._lock_name: str = _derive_lock_name(
             project_group=project_group,
             product=product,
-            environment=environment,
+            environment=environment, node_ids=node_ids,
         )
         self._handle: Any = None  # Windows HANDLE，None表示未持有。
         self._held: bool = False
@@ -201,7 +204,7 @@ class R2ProjectLock:
 # ---------------------------------------------------------------------------
 
 
-def create_r2_project_lock(*, config: Mapping[str, Any]) -> R2ProjectLock:
+def create_r2_project_lock(*, config: Mapping[str, Any], node_ids: tuple[str, ...] = ()) -> R2ProjectLock:
     """从已验证v2.1项目配置创建R2锁。
 
     锁scope从配置的scope字段读取（project_group、product、environment），
@@ -218,7 +221,7 @@ def create_r2_project_lock(*, config: Mapping[str, Any]) -> R2ProjectLock:
     return R2ProjectLock(
         project_group=project_group,
         product=product,
-        environment=environment,
+        environment=environment, node_ids=node_ids,
     )
 
 
@@ -231,7 +234,7 @@ def detect_xdist_parallel(*, config: Any = None, environ: Mapping[str, str] | No
     """检测pytest-xdist并行执行环境。
 
     检测PYTEST_XDIST_WORKER、PYTEST_XDIST_WORKER_COUNT环境变量
-    以及pytest numprocesses选项。R2并行在锁前报E_R2_PARALLEL_FORBIDDEN。
+    以及pytest numprocesses选项。该检测只描述运行方式。
     """
     env = environ if environ is not None else os.environ
     # 环境变量检测：xdist worker存在时一定并行。

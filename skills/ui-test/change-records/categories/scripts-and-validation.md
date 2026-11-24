@@ -1,14 +1,30 @@
 # scripts-and-validation
 
+- [CR-20261124-138 · 阶段交付复核修复](../entries/2026/2026-11/CR-20261124-138-stage-publication-review.md)
+
 ## Purpose
 
 Changes affecting scripts-and-validation.
 
 ## Outline
 
+- [CR-20261120-031 · 原始事务与未知执行接续](../entries/2026/2026-11/CR-20261120-031-authoritative-session.md)
+
+- [CR-20261120-022](../entries/2026/2026-11/CR-20261120-022-formal-concurrency.md) · 执行进程领取 attempt 并归档输出。定向恢复取得执行锁后复核绑定的目标、终态及提交回执。
+
+- CR-20261120-026 · 入口与共享待办示例、决定复用函数及针对性测试。
+
 See the linked change records.
 
 ## Detailed Records
+
+### CR-20261120-031 · 原始事务与未知执行接续
+
+ui-test core verifies the owner-bound transaction and node identity. The dispatcher retains an unknown run, waits for physical process exit and applies its serial scopes and concrete conflicts to later nodes. Both modes recheck a cached pass on re-entry. Concrete serial scopes now appear with the decision reference. [Details](../entries/2026/2026-11/CR-20261120-031-authoritative-session.md)
+
+### CR-20261120-022 · 正式执行
+
+执行进程领取 attempt 并归档输出。定向恢复取得执行锁后复核绑定的目标、终态及提交回执。 变更依据、前后行为及验证见[详细记录](../entries/2026/2026-11/CR-20261120-022-formal-concurrency.md)。
 
 - [CR-20261119-020 · #12 集成修复的逐步暂停及环境证据](../entries/2026/2026-11/CR-20261119-020-integration-failures.md)
 
@@ -116,3 +132,30 @@ Track deterministic runtime, compiler, validator and test changes.
 - Impact: completion remains blocked with accurate machine-readable semantics.
 - Validation: completion compatibility and deferred-state regression tests.
 - Detail record: `../entries/2026/2026-08/CR-20260822-009-deferred-migration-completion-status.md`.
+
+### CR-20261120-026 · 编写前核对共享状态
+
+正式脚本派发前核对用户消息、批次节点和具体冲突。 验证及范围见[详细变更记录](../entries/2026/2026-11/CR-20261120-026-shared-state.md)。
+
+### CR-20261120-028 · 人工并行与显式串行
+
+- 变更了正常 pytest 入口的显式范围、重投保护与结果投影。
+- [变更详情](../entries/2026/2026-11/CR-20261120-028-manual-concurrency.md)
+
+### CR-20261120-029 · Codex 明确指令并行
+
+- [变更详情](../entries/2026/2026-11/CR-20261120-029-codex-parallel.md)记录指令范围、冲突复用、派发与逐例验收。
+
+### CR-20261124-032 · 正式执行的阶段报告
+
+pytest controller 和 Codex 整批收尾核对已提交的会话与各用例 V5，再交付一个离线链接。 [详情](../entries/2026/2026-11/CR-20261124-032-formal-stage-delivery.md)
+
+- [CR-20261124-034 · 阶段报告离线审阅](../entries/2026/2026-11/CR-20261124-034-stage-reading.md)
+
+- [CR-20261124-035 · 运行中采集步骤截图](../entries/2026/2026-11/CR-20261124-035-stage-capture.md)
+
+- [CR-20261124-037 · 阶段异常与尝试归属](../entries/2026/2026-11/CR-20261124-037-stage-outcomes.md)
+
+- [CR-20261124-135 · R0 正式断言、V5 与零提交收据](../entries/2026/2026-11/CR-20261124-135-read-only-finalization.md)
+
+- [CR-20261124-036 · 代表图与来源](../entries/2026/2026-11/CR-20261124-036-representative-images.md)

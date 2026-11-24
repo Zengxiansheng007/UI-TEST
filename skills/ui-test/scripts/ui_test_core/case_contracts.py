@@ -33,9 +33,29 @@ def validate_document(document: Any, schema_name: str) -> list[dict[str, str]]:
         {"code": "SCHEMA_VALIDATION_FAILED", "path": "/" + "/".join(str(part) for part in error.absolute_path), "message": error.message}
         for error in sorted(validator.iter_errors(document), key=lambda item: list(item.absolute_path))
     ]
-    if not issues and schema_name in {"run-result-v5.schema.json", "r2-approval-record-v3.schema.json", "execution-context-v4.schema.json", "resolved-test-data.schema.json"}:
+    if not issues and schema_name in {"run-result-v5.schema.json", "r2-approval-record-v3.schema.json", "execution-context-v4.schema.json", "execution-context-v5.schema.json", "resolved-test-data.schema.json"}:
         from .stage_write_budget import embedded_budget_issues
         issues.extend(embedded_budget_issues(document, schema_name))
+    if schema_name == "pytest-session-result-v2.schema.json" and isinstance(document, dict):
+        if document.get("session_status") == "passed" and document.get("denied_duplicate_nodes"):
+            issues.append({"code": "E_SESSION_INCONSISTENT_PASS", "path": "/denied_duplicate_nodes",
+                           "message": "A session with refused duplicate dispatches cannot pass"})
+        if issues:
+            return issues  # 其余语义检查要求已通过结构校验。
+        nodes = [row["node_id"] for row in document["nodes"]]
+        if sorted(nodes) != sorted(document["expected_nodes"]):
+            issues.append({"code": "E_SESSION_EXPECTED_NODES_MISMATCH", "path": "/nodes",
+                           "message": "Every expected node must have one disposition"})
+        run_ids = [row["run_id"] for row in document["nodes"] if "run_id" in row]
+        if document["session_status"] == "passed" and len(run_ids) != len(set(run_ids)):
+            issues.append({"code": "E_SESSION_REUSED_RUN_ID", "path": "/nodes",
+                           "message": "Different nodes require distinct run IDs"})
+        if document["session_status"] == "passed" and (
+            document.get("collection_consistent") is False or document.get("worker_errors")
+            or document.get("unexpected_nodes")
+        ):
+            issues.append({"code": "E_SESSION_INCONSISTENT_PASS", "path": "/session_status",
+                           "message": "A passed session requires consistent collection and dispatch"})
     return issues
 
 

@@ -19,14 +19,14 @@ pytest_plugins=['pytester']
 def budget(phases=None):
     return make_budget({'case_id':CASE,'branch_id':BRANCH,'phase_ids':phases or ['basic','detail','submit']})
 
-def session(tmp_path,stage_budget):
+def session(tmp_path,stage_budget,run_id='RUN-STAGES'):
     data={'schema_version':'ui-test.test-data.v2','case_id':CASE,'branch_id':BRANCH,'data_revision':1,'parameters':{'value':'fixture'},'generation_rules':{},'runtime_refs':[],'metadata':{}}
     path=tmp_path/'test-data.json'
     path.parent.mkdir(parents=True,exist_ok=True)
     path.write_text(json.dumps(data),encoding='utf-8')
     manifest={'case_id':CASE,'branch_id':BRANCH,'test_data_hash':canonical_hash(data),'parameters':[{'parameter_id':'value','ref':'test-data:/parameters/value','source_type':'test-data','value':'fixture'}]}
     manifest['parameter_manifest_hash']=canonical_hash(manifest)
-    value=ExecutionDataSession(run_id='RUN-STAGES',build_fingerprint=H,test_data_path=path,parameter_manifest=manifest,stage_write_budget=stage_budget)
+    value=ExecutionDataSession(run_id=run_id,build_fingerprint=H,test_data_path=path,parameter_manifest=manifest,stage_write_budget=stage_budget)
     value.start()
     value.seal_snapshot(tmp_path/'reports/resolved-test-data.json')
     return value
@@ -189,7 +189,8 @@ def test_stage_qualification_rejects_drive_relative_path(tmp_path):
     with pytest.raises(StageBudgetError):
         validate_stage_qualification(q,steps=s,budget=b,build_fingerprint=H,root=tmp_path)
 
-def test_failed_staged_pytest_has_failed_canonical_result_and_receipt(pytester):
+@pytest.mark.parametrize("count", [1, 2])
+def test_failed_staged_pytest_has_failed_canonical_result_and_receipt(pytester, count):
     fixture_path=Path(__file__).with_name('test_pytest_runtime_plugin.py')
     spec=importlib.util.spec_from_file_location('stage_failure_fixture',fixture_path)
     module=importlib.util.module_from_spec(spec)
@@ -205,17 +206,17 @@ from scripts.ui_test_core.run_evidence_linker import build_run_result_v5,build_e
 def pytest_ui_test_project_config_path():
     return r"{cfg}"
 def pytest_ui_test_finalization_target_v1(run_id,node_id,attempt_store):
-    return {{'run_root':r"{root}"}}
+    return {{'run_root':str(Path(r"{root}")/run_id)}}
 def pytest_ui_test_build_finalization_candidate_v1(run_id,node_id,transaction_id,pre_terminal_events_hash,pytest_phase_status,attempt_store):
     ctx=attempt_store.read_execution_context(run_id=run_id,node_id=node_id)
     ref,digest=attempt_store.read_execution_context_ref_and_hash(run_id=run_id,node_id=node_id)
-    root=Path(r"{root}")
+    root=Path(r"{root}")/run_id
     rows=json.loads((root/'pending.json').read_text())
     b=ctx['config_summary']['stage_write_budget']
     approval={{'schema_version':'ui-test.r2-approval-record.v3','approval_id':'APR-STAGES','approval_source':ctx['approval_source'],'run_id':run_id,'node_id':node_id,'case_id':ctx['case_id'],'branch_id':ctx['branch_id'],'environment':'test','allowed_action':ctx['branch_id'],'channel':'visible-ui','max_submit_count':3,'decision':'approved','credential_values_persisted':False,'reusable_across_runs':False,'risk_level':ctx['risk_level'],'runner_digest':ctx['runner_digest'],'stage_write_budget':b}}
     approval['boundary_hash']=canonical_hash({{k:approval[k] for k in ('run_id','case_id','environment','allowed_action','channel','max_submit_count')}})
     (root/'approval-record.json').write_text(json.dumps(approval))
-    rr=build_run_result_v5(run_root=root,snapshot_path=root/'reports/resolved-test-data.json',transaction_id=transaction_id,session_id=ctx['session_id'],execution_context_ref=ref,execution_context_hash=digest,attempt_ref=ctx['attempt_ref'],pre_terminal_events_hash=pre_terminal_events_hash,approval_ref='approval-record.json',approval_hash=canonical_hash(approval),run_id=run_id,node_id=node_id,case_id=ctx['case_id'],branch_id=ctx['branch_id'],pytest_phase_status=dict(pytest_phase_status),overall_status='failed',write_state='write_failed',submit_count=1,stage_write_budget=b,phase_results=rows)
+    rr=build_run_result_v5(run_root=root,snapshot_path=root/'reports/resolved-test-data.json',transaction_id=transaction_id,session_id=ctx['session_id'],execution_context_ref=ref,execution_context_hash=digest,attempt_ref=ctx['attempt_ref'],pre_terminal_events_hash=pre_terminal_events_hash,approval_ref='approval-record.json',approval_hash=canonical_hash(approval),run_id=run_id,node_id=node_id,case_id=ctx['case_id'],branch_id=ctx['branch_id'],pytest_phase_status=dict(pytest_phase_status),overall_status='failed',write_state='write_failed',submit_count=1,step_results=[{{'step_id':'CHECK-SAVED-ROW','status':'failed','evidence_refs':[]}}],stage_write_budget=b,phase_results=rows)
     return {{'run_result':rr,'evidence_index':build_evidence_index_v2(rr,run_result_ref='objects/'+'0'*64+'.json')}}
 '''
     pytester.makeconftest(conftest)
@@ -229,17 +230,47 @@ from test_stage_write_budget import session
 @pytest.mark.case_id('CASE-STAGES')
 @pytest.mark.branch_id('main')
 @pytest.mark.r2
-def test_case(ui_test_execution_context):
-    root=Path(r"{root}")
-    value=session(root,ui_test_execution_context.config_summary['stage_write_budget'])
+@pytest.mark.parametrize("case", list(range({count})))
+def test_case(case, ui_test_execution_context):
+    root=Path(r"{root}")/ui_test_execution_context.run_id
+    value=session(root,ui_test_execution_context.config_summary['stage_write_budget'],ui_test_execution_context.run_id)
     value.authorize_business_write('basic').consume()
     value.record_business_write_result('basic','write_failed')
     (root/'pending.json').write_text(json.dumps(value.phase_results))
     assert False,'simulated business failure; no UI executed'
 ''')
-    outcome=pytester.runpytest_subprocess(str(runner),'-q','--ui-run-id','RUN-STAGES','--ui-r2-approved','--ui-execution-origin','codex-cli')
-    outcome.assert_outcomes(failed=1)
-    committed=FinalizationTransaction(root).read_committed()
+    identity=['--ui-run-id','RUN-STAGES'] if count == 1 else ['--ui-batch-id','BATCH-STAGES']
+    outcome=pytester.runpytest_subprocess(str(runner),'-q',*identity,'--ui-r2-approved','--ui-execution-origin','codex-cli')
+    outcome.assert_outcomes(failed=count)
+    report, = list((pytester.path/"evidence").rglob("report.html"))
+    assert report.resolve().as_uri() in outcome.stdout.str()
+    document = report.read_text(encoding="utf8")
+    from scripts.ui_test_core.stage_delivery import publish_session
+    session_file, = (pytester.path / "evidence/sessions").glob("*.json")
+    delivered = publish_session(session_file)
+    assert delivered["report_url"] == report.resolve().as_uri()
+    summary = json.loads(Path(delivered["execution_summary"]).read_text(encoding="utf8"))
+    by_node = {case["node_id"]: case for case in summary["cases"]}
+    for entry in json.loads(session_file.read_text(encoding="utf8"))["nodes"]:
+        node = entry["node_id"]
+        closure = FinalizationTransaction(root / entry["run_id"]).read_committed()
+        original = closure["run_result"]
+        assert by_node[node]["run_result_hash"] == original["run_result_hash"]
+        assert by_node[node]["attempt_ref"] == original["attempt_ref"]
+        assert by_node[node]["status"] == original["overall_status"] == "failed"
+        assert f'href="#case-{len(by_node)}"' in document
+        assert node in document and "CHECK-SAVED-ROW" in document
+    sealed = session_file.read_bytes()
+    tampered = json.loads(sealed)
+    tampered["nodes"][0]["terminal_hash"] = H
+    tampered.pop("session_result_hash")
+    tampered["session_result_hash"] = canonical_hash(tampered)
+    session_file.write_text(json.dumps(tampered), encoding="utf8")
+    with pytest.raises(ValueError, match="E_STAGE_NODE_EVIDENCE_CONFLICT"):
+        publish_session(session_file)
+    session_file.write_bytes(sealed)
+    assert report.read_text(encoding="utf8") == document
+    committed=FinalizationTransaction(next(root.iterdir())).read_committed()
     assert committed['run_result']['overall_status']=='failed'
     assert committed['run_result']['submit_count']==1
     terminal=json.loads(next((pytester.path/'evidence/attempts').glob('*/terminal.json')).read_text())

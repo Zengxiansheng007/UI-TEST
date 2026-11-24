@@ -2,12 +2,16 @@
 
 ## Latest Changes
 
+- [CR-20261120-028 · 编写正式脚本前复核探索观察和断言。](entries/2026/2026-11/CR-20261120-028-shared-state.md)
+
 - [CR-20261118-009 · Passive network evidence](entries/2026/2026-11/CR-20261118-009-passive-network.md)
 
 - [CR-20261118-004 · Packet 3.0](entries/2026/2026-11/CR-20261118-004-packet.md)
 - [CR-20261118-008 · 分阶段提交](entries/2026/2026-11/CR-20261118-008-staged-submit.md)
 
 ## Category Index
+
+- [downstream-and-handoff](categories/downstream-and-handoff.md)
 
 - [core-skill-md](categories/core-skill-md.md)
 

@@ -13,12 +13,18 @@ import json  # 稳定序列化记录内容。
 import os  # 检测文件存在性和独占创建。
 import re  # 校验摘要格式。
 import uuid  # 为并发diagnostics生成不冲突的独占记录名。
+from contextlib import contextmanager
 from datetime import datetime  # 可注入的时间函数。
 from pathlib import Path  # 受控evidence_root下的目录操作。
 from typing import Any, Callable, Mapping, Sequence
 
 import rfc8785  # RFC 8785规范JSON序列化，确保摘要稳定。
 from jsonschema import Draft202012Validator  # 投影返回前执行正式Schema校验。
+
+
+from .file_lock import exclusive_file_lock
+from .path_utils import canonical_display_path
+from .strict_json import load_strict_json
 
 
 # ---------------------------------------------------------------------------
@@ -178,6 +184,94 @@ class ExecutionAttemptStore:
         """按run/node稳定标识创建目录路径。"""
         # node_id可能包含斜杠或特殊字符，用摘要绑定节点但不暴露长路径。
         return self._evidence_root / "attempts" / derive_attempt_directory_name(run_id=run_id, node_id=node_id)
+
+    @contextmanager
+    def attempt_ownership(self, *, run_id: str, node_id: str, recovery: bool = False):
+        """Claim a fresh attempt, or try the original owner's existing lock."""
+        directory = self._attempt_dir(run_id=run_id, node_id=node_id)
+        if not recovery:
+            try:
+                directory.mkdir(parents=True, exist_ok=False)  # Never attach a new owner to old evidence.
+            except FileExistsError as exc:
+                raise ExecutionAttemptStoreError("E_ATTEMPT_START_ALREADY_EXISTS") from exc
+        with exclusive_file_lock(directory / "owner.lock", blocking=False, existing_only=recovery):
+            yield
+
+    @staticmethod
+    def _target_digest(run_root: str | Path) -> str:
+        return _sha256_text(os.path.normcase(str(canonical_display_path(Path(run_root).resolve()))))
+
+    def bind_run_target(self, *, run_id: str, node_id: str, run_root: str | Path) -> None:
+        """Called only by the executing owner with the project's resolved target."""
+        marker = self._attempt_dir(run_id=run_id, node_id=node_id) / "owner-target.sha256"
+        with marker.open("x", encoding="ascii") as stream:
+            stream.write(self._target_digest(run_root))  # The machine path remains private.
+        base = self._evidence_root.resolve()
+        target = Path(run_root).resolve()
+        # An explicit project may keep attempts and business runs on separate volumes.
+        anchor = Path(target.anchor) / base.relative_to(base.anchor)
+        locator = dict(relative=os.path.relpath(target, anchor), evidence_root_hash=self._target_digest(base),
+                       target_hash=self._target_digest(target))
+        if target.drive != base.drive:
+            locator["volume"] = target.drive
+        with marker.with_name("owner-location.json").open("x", encoding="utf-8") as stream:
+            json.dump(locator, stream)
+
+    def session_run_target(self, *, run_id: str, node_id: str) -> Path:
+        """Find the exact local owner or the complete transaction inside a portable archive."""
+        base = canonical_display_path(self._evidence_root.resolve())
+        attempt = self._attempt_dir(run_id=run_id, node_id=node_id)
+        portable = base / "runs" / run_id
+        if Path(run_id).name != run_id or run_id in (".", ".."):
+            raise ExecutionAttemptStoreError("E_SESSION_RUN_TARGET_MISMATCH")
+        locator_file = attempt / "owner-location.json"
+        if locator_file.is_file():
+            location = load_strict_json(locator_file)
+            if (attempt / "owner-target.sha256").read_text(encoding="ascii") != location["target_hash"]:
+                raise ExecutionAttemptStoreError("E_SESSION_RUN_TARGET_MISMATCH")
+            if location["evidence_root_hash"] != self._target_digest(base):
+                # A relocated bundle must include its own canonical runs/<run_id> closure.
+                if portable.resolve().is_relative_to(base):
+                    return portable
+                raise ExecutionAttemptStoreError("E_SESSION_RUN_TARGET_MISMATCH")
+            anchor = base
+            if "volume" in location:
+                anchor = Path(location["volume"] + os.sep) / base.relative_to(base.anchor)
+            candidates = [anchor / location["relative"]]
+        else:
+            # Older portable bundles use an archive-local runs tree and may retain the source owner's path hash.
+            # Select that layout even when incomplete. A project beside an archive cannot supply its missing files.
+            if (base / "runs").is_dir():
+                if portable.resolve().is_relative_to(base):
+                    return portable
+                raise ExecutionAttemptStoreError("E_SESSION_RUN_TARGET_MISMATCH")
+            # Only the project's standard evidence store may use its sibling business directories.
+            if base.name != "execution-evidence":
+                raise ExecutionAttemptStoreError("E_SESSION_RUN_TARGET_MISMATCH")
+            from .project_config import load_project_config
+            project = base.parent
+            config_path = project / "ui-test.project.yaml"
+            if not config_path.resolve().is_relative_to(project):
+                raise ExecutionAttemptStoreError("E_SESSION_RUN_TARGET_MISMATCH")
+            fingerprint = load_project_config(config_path, purpose="inventory")["config_fingerprint"]
+            if load_strict_json(attempt / "attempt-start.json").get("project_config_digest") != fingerprint:
+                raise ExecutionAttemptStoreError("E_SESSION_RUN_TARGET_MISMATCH")
+            candidates = [base.parent / "runs" / run_id]
+            context = attempt / "execution-context.json"
+            if context.is_file():
+                case = load_strict_json(context)["case_id"]
+                if Path(case).name == case and case not in (".", ".."):
+                    candidates.append(base.parent / "cases" / case / "runs" / run_id)
+            candidates = [candidate for candidate in candidates if candidate.resolve().is_relative_to(project)]
+        for candidate in candidates:
+            if self.matches_run_target(run_id=run_id, node_id=node_id, run_root=candidate):
+                return candidate
+        raise ExecutionAttemptStoreError("E_SESSION_RUN_TARGET_MISMATCH")
+
+    def matches_run_target(self, *, run_id: str, node_id: str, run_root: str | Path) -> bool:
+        marker = self._attempt_dir(run_id=run_id, node_id=node_id) / "owner-target.sha256"
+        return (Path(run_root).is_dir() and marker.is_file()
+                and marker.read_text(encoding="ascii") == self._target_digest(run_root))
 
     def _attempt_dir_by_name(self, attempt_dir_name: str) -> Path:
         """只接受内部SHA派生目录名，供不持有原始标识的恢复扫描使用。"""
@@ -524,6 +618,9 @@ class ExecutionAttemptStore:
             "is_unique_terminal": True,
             "recorded_at": timestamp,
         }
+        if "session_id" in start:
+            record["session_id"] = start["session_id"]
+            record["attempt_id"] = start["attempt_id"]
         if code:
             record["code"] = code
         if detail:
@@ -703,6 +800,7 @@ class ExecutionAttemptStore:
             raise ExecutionAttemptStoreError("E_EXECUTION_CONTEXT_V2_HISTORICAL_READ_ONLY")
         context_schema_name = {
             "ui-test.execution-context.v2": "execution-context-v2.schema.json",
+            "ui-test.execution-context.v5": "execution-context-v5.schema.json",
             "ui-test.execution-context.v4": "execution-context-v4.schema.json",
         }.get(context_version)
         if context_schema_name is None:

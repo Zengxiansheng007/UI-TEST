@@ -454,7 +454,7 @@ class TestUnfinishedAndRecovery:
         assert any(e["event_type"] == "unfinished" for e in projection["events"])
         assert "terminal" not in projection  # unfinished不得伪造unresolved terminal。
 
-    def test_recovery_append_unresolved(self, tmp_path: Path) -> None:
+    def test_legacy_inventory_keeps_unknown_attempt_read_only(self, tmp_path: Path) -> None:
         # 恢复器追加unresolved恢复事件
         from scripts.ui_test_core.execution_attempt_store import ExecutionAttemptStore
         from scripts.ui_test_core.attempt_recovery import AttemptRecovery
@@ -484,15 +484,8 @@ class TestUnfinishedAndRecovery:
         assert result["total_scanned"] >= 1
         assert len(result["unresolved_attempts"]) >= 1
 
-        # 验证历史hash可能改变（因为追加了恢复事件），但原始事件未被修改
-        events = store.read_events(run_id="UIT-015", node_id="test_node")
-        # 原始事件仍然存在（追加式不覆盖）
-        assert len(events) >= 0  # 可能有0个事件
-
-        # 恢复事件存在
-        recovery_events = store.read_recovery_events(run_id="UIT-015", node_id="test_node")
-        assert len(recovery_events) >= 1
-        assert recovery_events[-1]["event_type"] == "unresolved"
+        assert store.compute_attempt_hash(run_id="UIT-015", node_id="test_node") == original_hash
+        assert store.read_recovery_events(run_id="UIT-015", node_id="test_node") == []
         projection = store.project_attempt(run_id="UIT-015", node_id="test_node", case_id="CASE-001", branch_id="BRANCH-A")
         assert "terminal" not in projection
 
@@ -614,10 +607,8 @@ class TestUnfinishedAndRecovery:
             recorded_pid=99999,
             recorded_host="old-host",
         )
-        assert result["recovery_type"] == "interrupted"
-        recovery_events = store.read_recovery_events(run_id="UIT-020", node_id="test_node")
-        assert len(recovery_events) >= 1
-        assert recovery_events[-1]["event_type"] == "interrupted"
+        assert result["recovery_type"] == "unresolved"  # PID evidence alone cannot claim a legacy attempt.
+        assert not store.read_recovery_events(run_id="UIT-020", node_id="test_node")
 
     def test_recovery_with_pid_check_unresolved(self, tmp_path: Path) -> None:
         # PID确认进程仍存活时追加unresolved

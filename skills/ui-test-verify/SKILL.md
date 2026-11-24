@@ -31,6 +31,8 @@ Prove whether an explored UI flow actually succeeded using deterministic checks 
 5. If Midscene failed, apply bounded fallback and record cause.
 6. Output `next_action: collect-evidence` or `next_action: review`.
 
+Before generating the formal script, reconcile the exploration evidence with both cases’ assertions using the [main Skill’s shared-state procedure](../ui-test/SKILL.md). Attach the object, both actions, affected assertion and evidence references to the script handoff. Continue authoring and default serial execution. When parallel execution is requested, give the main task the exact affected nodes and any matching acceptance message reference. Preserve the business assertion.
+
 ## Validation
 
 - Each action has a concrete verifier.

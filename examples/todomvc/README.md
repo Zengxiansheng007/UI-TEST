@@ -25,4 +25,6 @@ $result.step_results | ConvertTo-Json -Depth 6
 
 逐步核对 V5 的状态、截图和 evidence_refs。使用明细中的 `asset_id/version/sha256` 指向本次实际入口，`actual` 为当前页面读数，`experiences` 关联采用策略、候选和限定启用决定。向请求方返回本次 run ID、原断言观察值、实际资产版本、复用明细及 V5 路径。如提交结果未知，读回该次预算和证据。
 
-The headed Windows example requires Python 3.11, pytest-playwright, Playwright Chromium, PowerShell 7 (pwsh on PATH), and the core Skill dependencies. Run from this directory. Public case inputs are included under cases/.
+The headed Windows example requires Python 3.11, pytest-playwright, Playwright Chromium, and the core Skill dependencies. Run from this directory. Public case inputs are included under cases/.
+
+复制正式样例时请保留整个 `examples/todomvc/` 目录，包括与 `project_runtime.py` 同级的 `window_observation.py`。窗口观察使用当前 Python 解释器及 Windows 原生 API，核对当前 runner、Playwright 驱动、浏览器进程与可见窗口的归属。两个运行即使打开同名页面也分别记录 HWND。探测失败会在首次业务提交前终止。

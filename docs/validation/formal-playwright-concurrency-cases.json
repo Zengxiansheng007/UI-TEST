@@ -1,0 +1,721 @@
+{
+  "clock": "Unix epoch microseconds, same host; trace wallTime + event monotonic time - context monotonicTime",
+  "business_url": "https://demo.playwright.dev/todomvc/#/",
+  "nodes": [
+    "regression-runners/test_todo_p0_001.py::test_todo_p0_001_primary[chromium]",
+    "regression-runners/test_todo_p0_002.py::test_todo_p0_002_primary[chromium]"
+  ],
+  "modes": {
+    "pycharm": {
+      "source_sha256": "e4a31d0534ea0a7d125adc9402c1f6dfaf1934494d2faa134e1a32cf2f5fe052",
+      "recorded_source_commit": "9e88413bfdcb7939e485c990408b8e60edb8882f",
+      "signed_overlap_us": 15883964,
+      "rows": [
+        {
+          "case_id": "TODO-P0-001",
+          "node_id": "regression-runners/test_todo_p0_001.py::test_todo_p0_001_primary[chromium]",
+          "session_id": "SESSION-CB2931EFD11D4DC8A13E09380F4CFAE3",
+          "run_id": "T28-IDE-A-03",
+          "attempt_ref": "attempts/87110d6ec3aa0ae7-9897df3ef428199f",
+          "entry_origin": "pycharm",
+          "channel": "single-process",
+          "approval": "pycharm-project-policy",
+          "start_epoch_us": 1795178001424459,
+          "end_epoch_us": 1795178021647741,
+          "trace_calls": [
+            "call@19",
+            "call@67"
+          ],
+          "assertion_count": 9,
+          "process_pid": 29996,
+          "process_start_epoch_ns": 1795177839034507700,
+          "observed_exit_epoch_ns": 1795178042296455000,
+          "process_exit": 0,
+          "terminal_at": "2026-11-20T12:34:01.407680Z",
+          "submit_count": 1,
+          "steps": [
+            "OPEN",
+            "FILL",
+            "ADD"
+          ],
+          "sha256": {
+            "session": "aa92df4741dc775bdcc1ef2f9b81c3182603afcc486cd5ca5a86926f11a8f276",
+            "execution_context": "af9948e2e915a9506b0c94354676cdd89aa7ee4d78a9a5f55cd4bc7b04a0a673",
+            "v5": "bc5d9da13e69173c0359a674167bfbd265e9042204a0cd578acf01ba1dc6a3d4",
+            "evidence_index": "9f847ca26211eb446842647eed1f2c5375e82e65ee5c07262c2c33eb97386963",
+            "commit": "af257a80a6520bf7293d24c53ba90d1ef0be7d60f9545a953d5df5d9b4481cb9",
+            "receipt": "9d012e301def482248ac8ad39460d092ffaa627ad746e6b22f8bf5ad423db846",
+            "terminal": "bdd78d4e24457be7ab38bf03e9098f2dcbb91acccd4331f18c90977683c7bcff",
+            "trace": "e542aa12d9ac434122dd0ab4db28cd5ea627ff8a77d5cc769a92d2e4f1127f06",
+            "exit": "444283e9d77877163e2140dac09203e2bbea8967ac641b8049a8d06017e62b57",
+            "window": "8fbf68c07f976a7ef7a2213c5f7f04f115f37fd75e47c03333087d22e82e52bb",
+            "network": "e7d424b23df4c1e6616b43798c23421bf10b975da42814c799fd63f791d0c1de"
+          },
+          "screenshot_sha256": {
+            "OPEN": "f7561ffee0f395148c47395410063097996b7bd06dff9f9eb7cb96d8a916c6a5",
+            "FILL": "bfdde5e3d5d19b7677f3f3a56d77fe54aae9138dd77703422caec53c3109c9d2",
+            "ADD": "ee9732b8255fcd809986acbda732789bf96f3453aaba4e5b2ad29ebcbac6b41e"
+          },
+          "session_result_hash": "sha256:2a74467d81a97fbee3759471dbd86d2e62bd8b4b14ae226bec754f86a9065318",
+          "receipt_hash": "sha256:9d012e301def482248ac8ad39460d092ffaa627ad746e6b22f8bf5ad423db846",
+          "terminal_hash": "sha256:039d8232940c3ab23fe2408ab68e9fa7205d5c240b7942b889301e73497f1dfd"
+        },
+        {
+          "case_id": "TODO-P0-002",
+          "node_id": "regression-runners/test_todo_p0_002.py::test_todo_p0_002_primary[chromium]",
+          "session_id": "SESSION-32ABF6357D20415AAB293C4861CEC4FE",
+          "run_id": "T28-IDE-B-03",
+          "attempt_ref": "attempts/f0e8e9ec04a6d97e-3c15f56f989be084",
+          "entry_origin": "pycharm",
+          "channel": "single-process",
+          "approval": "pycharm-project-policy",
+          "start_epoch_us": 1795178005763777,
+          "end_epoch_us": 1795178026930254,
+          "trace_calls": [
+            "call@19",
+            "call@107"
+          ],
+          "assertion_count": 22,
+          "process_pid": 31412,
+          "process_start_epoch_ns": 1795177982981604900,
+          "observed_exit_epoch_ns": 1795178042067157200,
+          "process_exit": 0,
+          "terminal_at": "2026-11-20T12:34:01.396494Z",
+          "submit_count": 2,
+          "steps": [
+            "OPEN",
+            "FILL",
+            "ADD",
+            "READY-COMPLETE",
+            "COMPLETE"
+          ],
+          "sha256": {
+            "session": "421e137c98395439e08e3cea638077072c270b33911bfecfb88e488ecc725221",
+            "execution_context": "dc27ed633ec10a931e6058b214beadaa25a08c82978aadd8844d0cafc7599c1a",
+            "v5": "51b5de3d485b1e618f782278f22b603e8c34664d6bc014a0b8a01df3f180dc2b",
+            "evidence_index": "94951c0bcf52b9a338864d2bc4b14e58095017f2271d028c62b36d2ef84729c8",
+            "commit": "de9039b001a8550fa3f71da865f90eb2497a87863eb56c21962da42d5705522f",
+            "receipt": "47e0dd6c5baea0d20f7a417d2032a96484031082811e12afb769a018e0f23cd4",
+            "terminal": "7fd760e77102d5826dcf25e5e0c1540aecee60ef8520b94d61928c29805a0af3",
+            "trace": "0eb31bdec130745362874ea35748af9ed34c20f49fa5f7cdabad4f6451ea7242",
+            "exit": "444283e9d77877163e2140dac09203e2bbea8967ac641b8049a8d06017e62b57",
+            "window": "0eacb0ae02b79e53fc712db8347c97776418131239281a223322843aebb94da0",
+            "network": "0e3bd5fba5a7dc6431036a9c370a4536612e6dfa6bd224c4208090b85b96ded1"
+          },
+          "screenshot_sha256": {
+            "OPEN": "f7561ffee0f395148c47395410063097996b7bd06dff9f9eb7cb96d8a916c6a5",
+            "FILL": "bfdde5e3d5d19b7677f3f3a56d77fe54aae9138dd77703422caec53c3109c9d2",
+            "ADD": "ee9732b8255fcd809986acbda732789bf96f3453aaba4e5b2ad29ebcbac6b41e",
+            "READY-COMPLETE": "ee9732b8255fcd809986acbda732789bf96f3453aaba4e5b2ad29ebcbac6b41e",
+            "COMPLETE": "4dc8d13eb03f00a1df4c2d0dc71ed5e62066b44196cf3c9223caed435456b316"
+          },
+          "session_result_hash": "sha256:d62ff03c0ecdf05970fd1f4e8695bc3b1cc1ad7011dabc383724b5e3c9d2f815",
+          "receipt_hash": "sha256:47e0dd6c5baea0d20f7a417d2032a96484031082811e12afb769a018e0f23cd4",
+          "terminal_hash": "sha256:4fbdcddf6c3724874f95ed2867198c6c41136f327e9b8e7034c4cce6fb89192b"
+        }
+      ]
+    },
+    "cli": {
+      "source_sha256": "6bb5ea30722f611dcb0259219ab22f8fdfa021259f104d0b2c7d2a9667f37ce1",
+      "recorded_source_commit": "90591ec757fa28df68cd906ee225c45d7c0cf8c5",
+      "signed_overlap_us": 9694899,
+      "rows": [
+        {
+          "case_id": "TODO-P0-001",
+          "node_id": "regression-runners/test_todo_p0_001.py::test_todo_p0_001_primary[chromium]",
+          "session_id": "SESSION-8A904C52E9DB420BAD59D8D037C38E46",
+          "run_id": "T28-CLI-A-1",
+          "attempt_ref": "attempts/ce8aaeb1c7fee9b5-9897df3ef428199f",
+          "entry_origin": "cli",
+          "channel": "single-process",
+          "approval": "explicit-cli",
+          "start_epoch_us": 1795159930666825,
+          "end_epoch_us": 1795159941950732,
+          "trace_calls": [
+            "call@19",
+            "call@65"
+          ],
+          "assertion_count": 9,
+          "process_pid": 19496,
+          "process_start_epoch_ns": 1795159894822953600,
+          "observed_exit_epoch_ns": 1795159953139151700,
+          "process_exit": 0,
+          "terminal_at": "2026-11-20T07:32:32.543062Z",
+          "submit_count": 1,
+          "steps": [
+            "OPEN",
+            "FILL",
+            "ADD"
+          ],
+          "sha256": {
+            "session": "ba90175dfa4f1d5e7cc195e7d95d8098a403e3c70bf760c22f81d525ba1b63cf",
+            "execution_context": "2cf5c851e3107548dfd4a0174e988804cc196a4e2eefb2a956d911f1d2ba57dc",
+            "v5": "fccb8f86078f5bf302ced87acefb64943af60a7ba10fc6573981741d056f4ff6",
+            "evidence_index": "9edda70f19e05722ac7eea11ada98066bde46076a7e214b7d73d7d9c24781e8e",
+            "commit": "eb33e39499eba056b48600ab79ea49af96f90d0a92032a809785fec1eed16295",
+            "receipt": "1c02810f0d52215fa540981feaecf052e0555d5da60433033d649f7a3f639132",
+            "terminal": "efefcbf3d956b7fe2b05e69864833becf2bc22a69b7cf491ce121abf2e7aa581",
+            "trace": "777d088f23bb51f86c432975a37da0ba83cd01c431a279e5b65fd94758050b83",
+            "exit": "332dc5ab5e2f8b1ffa2bf2f694e42747d098f50ad8fc94ba469007eeb71defb3",
+            "window": "a706d291e2063ca6638fe2628059e6a8d37610ad2988ce436780693ad1c51bfd",
+            "network": "e7d424b23df4c1e6616b43798c23421bf10b975da42814c799fd63f791d0c1de"
+          },
+          "screenshot_sha256": {
+            "OPEN": "f7561ffee0f395148c47395410063097996b7bd06dff9f9eb7cb96d8a916c6a5",
+            "FILL": "bfdde5e3d5d19b7677f3f3a56d77fe54aae9138dd77703422caec53c3109c9d2",
+            "ADD": "ee9732b8255fcd809986acbda732789bf96f3453aaba4e5b2ad29ebcbac6b41e"
+          },
+          "session_result_hash": "sha256:54693f8381c76acd2bd7c88788061696ca18c09ecd8f6460d71b54d78cbedb08",
+          "receipt_hash": "sha256:1c02810f0d52215fa540981feaecf052e0555d5da60433033d649f7a3f639132",
+          "terminal_hash": "sha256:4d7db69441e3819e55da13531caeb4839aacef0c81cea16075b3ed5c3f10a86a"
+        },
+        {
+          "case_id": "TODO-P0-002",
+          "node_id": "regression-runners/test_todo_p0_002.py::test_todo_p0_002_primary[chromium]",
+          "session_id": "SESSION-F8BE1131A744410193AAE6379288BB3E",
+          "run_id": "T28-CLI-A-2",
+          "attempt_ref": "attempts/06f82dcd80058b72-3c15f56f989be084",
+          "entry_origin": "cli",
+          "channel": "single-process",
+          "approval": "explicit-cli",
+          "start_epoch_us": 1795159932255833,
+          "end_epoch_us": 1795159945222221,
+          "trace_calls": [
+            "call@19",
+            "call@105"
+          ],
+          "assertion_count": 22,
+          "process_pid": 21588,
+          "process_start_epoch_ns": 1795159894893825800,
+          "observed_exit_epoch_ns": 1795159953590839100,
+          "process_exit": 0,
+          "terminal_at": "2026-11-20T07:32:33.032937Z",
+          "submit_count": 2,
+          "steps": [
+            "OPEN",
+            "FILL",
+            "ADD",
+            "READY-COMPLETE",
+            "COMPLETE"
+          ],
+          "sha256": {
+            "session": "6aead329298573810ea4e6f2015d28d2e3ff4b37004343513a442baaf90ec79e",
+            "execution_context": "94a1c12c8306c5d4d8c85d63360562a1325bb5f7e9fccd55947d8350133eb429",
+            "v5": "e026f1b1033b3bec4f705bc221696fe7ae7de2b74d25cfbaa593303518012ac5",
+            "evidence_index": "462c115498cbb84fdc49f814228167753358994cb7a7a183e25a89f55ca852fe",
+            "commit": "11baa6d47f2b2f2879d9bfa092def0efa5304ef942286adaf426b306cccd3851",
+            "receipt": "08dd61b2ecdf720aa75875f60d0a01130e26f8e53d2f129e40850874835d78c4",
+            "terminal": "0d5a30d013c866494ce12a77d5cc2061e7806f136d57e13b08ee56ea62091326",
+            "trace": "37a8fb7ced634d40da8d24e6d5bf026befc173d98a33f6a6f7e5de3c3207a956",
+            "exit": "332dc5ab5e2f8b1ffa2bf2f694e42747d098f50ad8fc94ba469007eeb71defb3",
+            "window": "a706d291e2063ca6638fe2628059e6a8d37610ad2988ce436780693ad1c51bfd",
+            "network": "0e3bd5fba5a7dc6431036a9c370a4536612e6dfa6bd224c4208090b85b96ded1"
+          },
+          "screenshot_sha256": {
+            "OPEN": "f7561ffee0f395148c47395410063097996b7bd06dff9f9eb7cb96d8a916c6a5",
+            "FILL": "bfdde5e3d5d19b7677f3f3a56d77fe54aae9138dd77703422caec53c3109c9d2",
+            "ADD": "ee9732b8255fcd809986acbda732789bf96f3453aaba4e5b2ad29ebcbac6b41e",
+            "READY-COMPLETE": "ee9732b8255fcd809986acbda732789bf96f3453aaba4e5b2ad29ebcbac6b41e",
+            "COMPLETE": "d5461f60e155781851f80b68072b8a35836e19af7e378079fde3403c6e78853a"
+          },
+          "session_result_hash": "sha256:c3998ca6b51004ae91ffb32c368c2c965dab078539f718b671794775e5d633f8",
+          "receipt_hash": "sha256:08dd61b2ecdf720aa75875f60d0a01130e26f8e53d2f129e40850874835d78c4",
+          "terminal_hash": "sha256:88aca96d4da5ac108f296b5e6d4b2f09ce1e2aadb44701dd46bfcec0f02fe3f1"
+        }
+      ]
+    },
+    "xdist": {
+      "source_sha256": "f57f8a145fc7d9430e5f145ff809c5c32e7d38803de33da84b114814fc453b26",
+      "recorded_source_commit": "390d813fcbd556c8e02928aa152dbf1cd30f6273",
+      "signed_overlap_us": 13702157,
+      "rows": [
+        {
+          "case_id": "TODO-P0-001",
+          "node_id": "regression-runners/test_todo_p0_001.py::test_todo_p0_001_primary[chromium]",
+          "session_id": "SESSION-886A98C4610B4D88A1697089103ABB60",
+          "run_id": "UIT-F71A81DBC6EB28C58BC5ACB76488BBAF",
+          "attempt_ref": "attempts/2c833f7a233435d0-9897df3ef428199f",
+          "entry_origin": "cli",
+          "channel": "xdist-worker",
+          "approval": "explicit-cli",
+          "start_epoch_us": 1795160049276849,
+          "end_epoch_us": 1795160065863086,
+          "trace_calls": [
+            "call@19",
+            "call@65"
+          ],
+          "assertion_count": 9,
+          "process_pid": 35148,
+          "process_start_epoch_ns": 1795160013070437400,
+          "observed_exit_epoch_ns": 1795160084036089000,
+          "process_exit": 0,
+          "terminal_at": "2026-11-20T07:34:38.118550Z",
+          "submit_count": 1,
+          "steps": [
+            "OPEN",
+            "FILL",
+            "ADD"
+          ],
+          "sha256": {
+            "session": "2dc96d9ec7af467b66709e79708a15a566609f9c20332fa15cf116cb17cab698",
+            "execution_context": "4a6137a607b54b2f6c64728fc0bacd1503211d74d25d495ce74cf2a39ddb9ded",
+            "v5": "68c4e16d5f4964e8d50f6744a78d5b29b355bf6c0bf3052e0392c1e3b8c4a8fe",
+            "evidence_index": "55a90513e0f0836ec0c1a4571a80806dcba2d3af5c8a3a4795a29ef910026c54",
+            "commit": "f8df1f49982269217b9b7a3e7c9e8ce160209bbed07b1831df01240d55245ae4",
+            "receipt": "4fe96b21235b6a93dedde13ddc5786771dab85305ea0a4f2317c469d01ebc677",
+            "terminal": "d5e020521c8ae8d658536f6f2d5e7784b2bbbf98b01ad36f2cfb0a6c9c281920",
+            "trace": "c89073707369c870e53b4c502f3ce93bd77184cc1f4c5a76e2263f43561d6a30",
+            "exit": "91f0d40adb75f9bb8b11ecf7b59b7e9d42a146c983691ad3a7218b67855cb2ae",
+            "window": "d3d39ccf3eb3d5ce0a8729df11b6a7e9f8df7eb8cd6b0674d9750b884ea1bebc",
+            "network": "e7d424b23df4c1e6616b43798c23421bf10b975da42814c799fd63f791d0c1de"
+          },
+          "screenshot_sha256": {
+            "OPEN": "f7561ffee0f395148c47395410063097996b7bd06dff9f9eb7cb96d8a916c6a5",
+            "FILL": "bfdde5e3d5d19b7677f3f3a56d77fe54aae9138dd77703422caec53c3109c9d2",
+            "ADD": "ee9732b8255fcd809986acbda732789bf96f3453aaba4e5b2ad29ebcbac6b41e"
+          },
+          "session_result_hash": "sha256:f228dbd5c385c81282f779990d42ee45a94560aefa0dd98a26292cd717c425e1",
+          "receipt_hash": "sha256:4fe96b21235b6a93dedde13ddc5786771dab85305ea0a4f2317c469d01ebc677",
+          "terminal_hash": "sha256:93e7b5565d473542683c1d62eb15d03e3135c30d4abe964a7723e8552af936c2"
+        },
+        {
+          "case_id": "TODO-P0-002",
+          "node_id": "regression-runners/test_todo_p0_002.py::test_todo_p0_002_primary[chromium]",
+          "session_id": "SESSION-886A98C4610B4D88A1697089103ABB60",
+          "run_id": "UIT-C86792CAAE176D79A53EA39B21A3D59F",
+          "attempt_ref": "attempts/2c7a675d705b844b-3c15f56f989be084",
+          "entry_origin": "cli",
+          "channel": "xdist-worker",
+          "approval": "explicit-cli",
+          "start_epoch_us": 1795160052160929,
+          "end_epoch_us": 1795160069290922,
+          "trace_calls": [
+            "call@19",
+            "call@105"
+          ],
+          "assertion_count": 22,
+          "process_pid": 35148,
+          "process_start_epoch_ns": 1795160013070437400,
+          "observed_exit_epoch_ns": 1795160084036089000,
+          "process_exit": 0,
+          "terminal_at": "2026-11-20T07:34:37.799708Z",
+          "submit_count": 2,
+          "steps": [
+            "OPEN",
+            "FILL",
+            "ADD",
+            "READY-COMPLETE",
+            "COMPLETE"
+          ],
+          "sha256": {
+            "session": "2dc96d9ec7af467b66709e79708a15a566609f9c20332fa15cf116cb17cab698",
+            "execution_context": "88a179699c1647d5770a151c2f0a728f2cc26f31f301a850d4d440944d73c0c2",
+            "v5": "3f26822fcec57b67d6593425e3cef5042c22a700fdc67b7f10b34f20cd8d18e1",
+            "evidence_index": "e3fc02fd3c4b799bc3cd5088e728daf00d8971317d8184504a064a401657c8e6",
+            "commit": "42a7b487e19fab83122600173f83c15213ebc511b5ed64abde7efbbe2d2910c4",
+            "receipt": "43233962c5f6a5d8cba417fcdab51a8f5f5071a0891e4a76346ea28604842576",
+            "terminal": "8ad0b7d2950a5e0a77e677b03cced21e8ac6d4f2b356b842436bc9d8bd6e2759",
+            "trace": "283c2e1c5569fa55b8da05f8813927ef3321c6e9da89f724e88da01d14534e75",
+            "exit": "91f0d40adb75f9bb8b11ecf7b59b7e9d42a146c983691ad3a7218b67855cb2ae",
+            "window": "d3d39ccf3eb3d5ce0a8729df11b6a7e9f8df7eb8cd6b0674d9750b884ea1bebc",
+            "network": "0e3bd5fba5a7dc6431036a9c370a4536612e6dfa6bd224c4208090b85b96ded1"
+          },
+          "screenshot_sha256": {
+            "OPEN": "f7561ffee0f395148c47395410063097996b7bd06dff9f9eb7cb96d8a916c6a5",
+            "FILL": "bfdde5e3d5d19b7677f3f3a56d77fe54aae9138dd77703422caec53c3109c9d2",
+            "ADD": "ee9732b8255fcd809986acbda732789bf96f3453aaba4e5b2ad29ebcbac6b41e",
+            "READY-COMPLETE": "ee9732b8255fcd809986acbda732789bf96f3453aaba4e5b2ad29ebcbac6b41e",
+            "COMPLETE": "d5461f60e155781851f80b68072b8a35836e19af7e378079fde3403c6e78853a"
+          },
+          "session_result_hash": "sha256:f228dbd5c385c81282f779990d42ee45a94560aefa0dd98a26292cd717c425e1",
+          "receipt_hash": "sha256:43233962c5f6a5d8cba417fcdab51a8f5f5071a0891e4a76346ea28604842576",
+          "terminal_hash": "sha256:6871cb8a8421ac2f6a84e1a0eb842012ffaeaddfee3811e7d901276347b595b4"
+        }
+      ]
+    },
+    "codex-serial": {
+      "source_sha256": "3efd230d28e5953ea87499077e0ead4938aec691f9576675ae5f048be50ed39e",
+      "recorded_source_commit": null,
+      "signed_overlap_us": -82856199,
+      "rows": [
+        {
+          "case_id": "TODO-P0-001",
+          "node_id": "regression-runners/test_todo_p0_001.py::test_todo_p0_001_primary[chromium]",
+          "session_id": "SESSION-DF032937C0734B13A3A10DBB911A2494",
+          "run_id": "UIT-8b5ae74542ed49c8867a736af03237a7",
+          "attempt_ref": "attempts/55ff43ab2ee4c0c1-9897df3ef428199f",
+          "entry_origin": "codex-cli",
+          "channel": "single-process",
+          "approval": "explicit-cli",
+          "start_epoch_us": 1795159234968407,
+          "end_epoch_us": 1795159246643910,
+          "trace_calls": [
+            "call@19",
+            "call@65"
+          ],
+          "assertion_count": 9,
+          "process_pid": 6016,
+          "process_start_epoch_ns": 1795159215009961900,
+          "observed_exit_epoch_ns": 1795159289471502100,
+          "process_exit": 0,
+          "terminal_at": "2026-11-20T07:21:28.942874Z",
+          "submit_count": 1,
+          "steps": [
+            "OPEN",
+            "FILL",
+            "ADD"
+          ],
+          "sha256": {
+            "session": "1bfa875ef815fa50e7efca9167eeb0323bef2eb22eb477783e2b277ff7160d7e",
+            "execution_context": "1181efde2af83a37ab80337a478051055022117d01b48b51cf9c48c71b72549e",
+            "v5": "d1116dd35cdcc228cf07389d853417a0e00835e24b5d7e9e35789f44bb3b61cf",
+            "evidence_index": "85c14a168db9d0584c23ecfae84ccd96e42021502d004e62e483b3aebc120829",
+            "commit": "de84ff26229f2eaa66dca4d7fae5197b18a5345653083e881592c9f9691a717d",
+            "receipt": "2208bb94ab6c7ca7195c3b7d8e18aefee38ef9b12b14aacd6747f7aa90d8b728",
+            "terminal": "6051b273b8201ead7e67a15f57e3f5bca04793c27ed630a2bd4b6847cef3f4db",
+            "trace": "938c989a7a482fc498abad68b289e820c2aa940b3297b7af28f7d4b5e59e482b",
+            "exit": "751813691a61b43ef6bbd50561e74ae2b1ffc47cb8aba76c449a7ce79e256487",
+            "window": "91a5c565530136b265e4ea107a2944035626d94f952174f847794120f538162d",
+            "network": "e7d424b23df4c1e6616b43798c23421bf10b975da42814c799fd63f791d0c1de"
+          },
+          "screenshot_sha256": {
+            "OPEN": "f7561ffee0f395148c47395410063097996b7bd06dff9f9eb7cb96d8a916c6a5",
+            "FILL": "bfdde5e3d5d19b7677f3f3a56d77fe54aae9138dd77703422caec53c3109c9d2",
+            "ADD": "ee9732b8255fcd809986acbda732789bf96f3453aaba4e5b2ad29ebcbac6b41e"
+          },
+          "session_result_hash": "sha256:2b544c5f0c00a41d58703dc51af6d399e38fca5e6a2050168411931b9ff3d445",
+          "receipt_hash": "sha256:2208bb94ab6c7ca7195c3b7d8e18aefee38ef9b12b14aacd6747f7aa90d8b728",
+          "terminal_hash": "sha256:72320b097f412bfe7c8d4d62acbc2c1404104220b2667d6d98859c591815cbff"
+        },
+        {
+          "case_id": "TODO-P0-002",
+          "node_id": "regression-runners/test_todo_p0_002.py::test_todo_p0_002_primary[chromium]",
+          "session_id": "SESSION-0E25AFEE830E4BB399CE068218AC1AB7",
+          "run_id": "UIT-731be188e2634d9f8feebb9c3043dfee",
+          "attempt_ref": "attempts/171da1e52479023a-3c15f56f989be084",
+          "entry_origin": "codex-cli",
+          "channel": "single-process",
+          "approval": "explicit-cli",
+          "start_epoch_us": 1795159329500109,
+          "end_epoch_us": 1795159341622149,
+          "trace_calls": [
+            "call@19",
+            "call@105"
+          ],
+          "assertion_count": 22,
+          "process_pid": 31972,
+          "process_start_epoch_ns": 1795159292045230100,
+          "observed_exit_epoch_ns": 1795159348706406400,
+          "process_exit": 0,
+          "terminal_at": "2026-11-20T07:22:28.190907Z",
+          "submit_count": 2,
+          "steps": [
+            "OPEN",
+            "FILL",
+            "ADD",
+            "READY-COMPLETE",
+            "COMPLETE"
+          ],
+          "sha256": {
+            "session": "9802359dd6598659c6ee1fbdd5df735bd9ca43f9c1ac6dfcc6d66ce697f0c55f",
+            "execution_context": "a506eb031ac22d38500c5f6bdcef225f7307af6e14549ea0fb6b9523cc6e83b6",
+            "v5": "b927f51477393256e112487a6c8203189c50e25f1a37ad70c2d9db715ca05a6f",
+            "evidence_index": "673ec4c0037abe882a2bb8d5a1d6dfe1f79ba69bcd86bf2ae7b52b359679e08b",
+            "commit": "93a48210983f28b96e999ad1908a258436d9f9eb2e6fa1c5a6eacc2e463b2a02",
+            "receipt": "e8b4784bb1e2c852d936822fcc6ef231d18864681067692ad52688256edaee3e",
+            "terminal": "483d894eae0d92434e2cae6774811b713ad11a3d41e481d143e05769eda63dde",
+            "trace": "037b718d8136ad0f2e2dfb9ceaef44f1a9fa49c6d7a31bcf9f1f1ff8387c9d87",
+            "exit": "352f2e6b6254f03aab399ec4484f1f0f41eb93e10241a9a759f291888f9b30c0",
+            "window": "e0b5c8e15235857daa39efe85519a0dc19adb8ca144d7f9c412f24320954c818",
+            "network": "0e3bd5fba5a7dc6431036a9c370a4536612e6dfa6bd224c4208090b85b96ded1"
+          },
+          "screenshot_sha256": {
+            "OPEN": "f7561ffee0f395148c47395410063097996b7bd06dff9f9eb7cb96d8a916c6a5",
+            "FILL": "bfdde5e3d5d19b7677f3f3a56d77fe54aae9138dd77703422caec53c3109c9d2",
+            "ADD": "ee9732b8255fcd809986acbda732789bf96f3453aaba4e5b2ad29ebcbac6b41e",
+            "READY-COMPLETE": "ee9732b8255fcd809986acbda732789bf96f3453aaba4e5b2ad29ebcbac6b41e",
+            "COMPLETE": "d5461f60e155781851f80b68072b8a35836e19af7e378079fde3403c6e78853a"
+          },
+          "session_result_hash": "sha256:80b05a223530be51aef75d622e8c8122a3c12fd5079143cf9d50b7682c145c70",
+          "receipt_hash": "sha256:e8b4784bb1e2c852d936822fcc6ef231d18864681067692ad52688256edaee3e",
+          "terminal_hash": "sha256:afd9edcbe19d25e7dbae3fec6e0cad1355758fcf9c545cd4c66d1afaa350948a"
+        }
+      ]
+    },
+    "codex-parallel": {
+      "source_sha256": "120f9a1a049f921d66da006fd397299731104157bebe441653623ae717d0348d",
+      "recorded_source_commit": "1eae5523b2fcb85ba3280fff7cc3db68647c26f7",
+      "signed_overlap_us": 20023920,
+      "rows": [
+        {
+          "case_id": "TODO-P0-001",
+          "node_id": "regression-runners/test_todo_p0_001.py::test_todo_p0_001_primary[chromium]",
+          "session_id": "SESSION-D21D0A4FDE51483D912C9E6B6DA7E5BE",
+          "run_id": "UIT-4FB29FAB879994E772FF9122307D449D",
+          "attempt_ref": "attempts/8c92361e1b5e9382-9897df3ef428199f",
+          "entry_origin": "codex-cli",
+          "channel": "xdist-worker",
+          "approval": "explicit-cli",
+          "start_epoch_us": 1795179391947003,
+          "end_epoch_us": 1795179411970923,
+          "trace_calls": [
+            "call@19",
+            "call@67"
+          ],
+          "assertion_count": 9,
+          "process_pid": 9304,
+          "process_start_epoch_ns": 1795179345259165600,
+          "observed_exit_epoch_ns": 1795179435790566500,
+          "process_exit": 0,
+          "terminal_at": "2026-11-20T12:57:14.093157Z",
+          "submit_count": 1,
+          "steps": [
+            "OPEN",
+            "FILL",
+            "ADD"
+          ],
+          "sha256": {
+            "session": "af05a9b474065ac3b507eeca1a42cc2f82de5f21de3fb6c6b70842a2bce13a11",
+            "execution_context": "6fc9a3bd2185ff0632e4d8344f6878ad203135cafa6c95867cd09c922ee5b430",
+            "v5": "8c40b1c94ff51f287f181643352bf10376c36f6ec6725d3fc8974082b19a0361",
+            "evidence_index": "dc6756a57318c315deb5263acb4ce53ea43bdf0991b3bc55036688b902e439a6",
+            "commit": "43e5e46e7149f193ab12535a381f1ba27eee279cb5c1d7cf314f14fb710f2b58",
+            "receipt": "d23282adc64274cd1860eb198eeec61a7fc78901310d849dfaeb72a7fc58ad62",
+            "terminal": "2042255e9e40d0306b62cb50b36fd5b6523f81612120508f8970bb82f60001ef",
+            "trace": "545db59035439c838709e11f3015b5bd79c77fa7d21b797b237ce60b781f581b",
+            "exit": "ca40c38d9b98467870b92391980a4a2657cc7fb0e37e22b9a9b9a74b41fe199b",
+            "window": "53f813f3fe0f0072cfdbce199788b94db334c4eed942297314beeb781e8baa27",
+            "network": "e7d424b23df4c1e6616b43798c23421bf10b975da42814c799fd63f791d0c1de"
+          },
+          "screenshot_sha256": {
+            "OPEN": "f7561ffee0f395148c47395410063097996b7bd06dff9f9eb7cb96d8a916c6a5",
+            "FILL": "bfdde5e3d5d19b7677f3f3a56d77fe54aae9138dd77703422caec53c3109c9d2",
+            "ADD": "ee9732b8255fcd809986acbda732789bf96f3453aaba4e5b2ad29ebcbac6b41e"
+          },
+          "session_result_hash": "sha256:014dd6a5e3bcb19e48468824ed2d1b4fe22e1db09a965d44f9b9cf506cb4847a",
+          "receipt_hash": "sha256:d23282adc64274cd1860eb198eeec61a7fc78901310d849dfaeb72a7fc58ad62",
+          "terminal_hash": "sha256:4e74b5b61b26e0fe14e91f22ebf74e107cbab5a0be4fccc277ff01b1420dbc2d"
+        },
+        {
+          "case_id": "TODO-P0-002",
+          "node_id": "regression-runners/test_todo_p0_002.py::test_todo_p0_002_primary[chromium]",
+          "session_id": "SESSION-D21D0A4FDE51483D912C9E6B6DA7E5BE",
+          "run_id": "UIT-8471E5078957462219560FD1910D40B4",
+          "attempt_ref": "attempts/b72bb01aa46b9e4a-3c15f56f989be084",
+          "entry_origin": "codex-cli",
+          "channel": "xdist-worker",
+          "approval": "explicit-cli",
+          "start_epoch_us": 1795179391098502,
+          "end_epoch_us": 1795179419857856,
+          "trace_calls": [
+            "call@19",
+            "call@107"
+          ],
+          "assertion_count": 22,
+          "process_pid": 9304,
+          "process_start_epoch_ns": 1795179345259165600,
+          "observed_exit_epoch_ns": 1795179435790566500,
+          "process_exit": 0,
+          "terminal_at": "2026-11-20T12:57:14.466228Z",
+          "submit_count": 2,
+          "steps": [
+            "OPEN",
+            "FILL",
+            "ADD",
+            "READY-COMPLETE",
+            "COMPLETE"
+          ],
+          "sha256": {
+            "session": "af05a9b474065ac3b507eeca1a42cc2f82de5f21de3fb6c6b70842a2bce13a11",
+            "execution_context": "75e86de3afee412b62621e5b6ba025485bc32e468cdee9f10f979f3f5ecfe769",
+            "v5": "cb222275c0edbc820ad2cfa889bbc86c549b95b364d01199c92b7b48bc26c2b8",
+            "evidence_index": "b5bac533c6a269d5f2805e1d7ccc775311a3eb4cec945d582e4d6f00e98ed72a",
+            "commit": "64b528ce8bc1167790a4c8a6de62327bd84fc14232f7ce8c105d7c199ad709cf",
+            "receipt": "c989b42eff3e1cf6919e88f07140109699acadfbf09bb9fc1959e60348225ea2",
+            "terminal": "7de15a2c1406f21b07cca32e7d4bb479044b3813110cef87d54c4db265d817d0",
+            "trace": "3cea35c6bc5a63d3e59f874b0c46d5b4cc16ef9e2e25a8d3e343aa4cad91f048",
+            "exit": "ca40c38d9b98467870b92391980a4a2657cc7fb0e37e22b9a9b9a74b41fe199b",
+            "window": "0f1da16d81affffa1c06391eca006df92a078a7c2d4a5c4a1f596e7f51ffb844",
+            "network": "0e3bd5fba5a7dc6431036a9c370a4536612e6dfa6bd224c4208090b85b96ded1"
+          },
+          "screenshot_sha256": {
+            "OPEN": "f7561ffee0f395148c47395410063097996b7bd06dff9f9eb7cb96d8a916c6a5",
+            "FILL": "bfdde5e3d5d19b7677f3f3a56d77fe54aae9138dd77703422caec53c3109c9d2",
+            "ADD": "ee9732b8255fcd809986acbda732789bf96f3453aaba4e5b2ad29ebcbac6b41e",
+            "READY-COMPLETE": "7f7f2dddc192e59b508aef64e0fde987c85738da4dcdb54da2ae4729137f0c77",
+            "COMPLETE": "4dc8d13eb03f00a1df4c2d0dc71ed5e62066b44196cf3c9223caed435456b316"
+          },
+          "session_result_hash": "sha256:014dd6a5e3bcb19e48468824ed2d1b4fe22e1db09a965d44f9b9cf506cb4847a",
+          "receipt_hash": "sha256:c989b42eff3e1cf6919e88f07140109699acadfbf09bb9fc1959e60348225ea2",
+          "terminal_hash": "sha256:2be565825d7524634c19a2208e5022a1e3566c5544434c8946f2703345581eab"
+        }
+      ]
+    }
+  },
+  "supporting_artifacts": {
+    "AC2 task/agent/process isolation and recovery": {
+      "archive_ref": "t27/verified-recovery.json",
+      "sha256": "9fb8c6ca1ebda7efaf2871b21a5ebb0374abb1da56f657cbe4bb3cf4c107743c"
+    },
+    "AC3 fresh independent non-business serial task": {
+      "archive_ref": "t29proof/serial/verified.json",
+      "sha256": "6700227dbc8749ca5130b5dffd68a40a290117c79085ac7cb0b5bd645787cd1c"
+    },
+    "AC3/4 frozen dispatcher and conflicts, 51 tests": {
+      "archive_ref": "t29/final.xml",
+      "sha256": "59b15f47b625b80a06271edb81516c1f7c4ac6378e55cd0537742c2e8f7389e7"
+    },
+    "AC4/5 blocked scopes and approval/budget rules": {
+      "archive_ref": "t28/green.xml",
+      "sha256": "39ba49d082402815b39684f91a0a27eb19e62c5d55cfe5e72a2b02f203d44676"
+    },
+    "AC4 occupied scope from CLI on both schemas": {
+      "archive_ref": "t28/busy-verified.json",
+      "sha256": "1db71e3b006bf4f6062743e9959f1f21b2f4f0f0b267ba5d3209d0cbc74c064c"
+    },
+    "AC5 live neighbor and real browser cleanup": {
+      "archive_ref": "t24/verified-browser.xml",
+      "sha256": "f29d36d2cf202124caafc03cefc1dbe1df434ca457522061b88b5052e73cbb73"
+    },
+    "AC5 twice-run same node and replacement-worker isolation": {
+      "archive_ref": "t24/v5-1c2382/proof.json",
+      "sha256": "5acd3901bd42ab084a47144180b4444ff5f8aa17bb32bf8cd248cb67952187dd"
+    },
+    "AC5 first and second archived run (1)": {
+      "archive_ref": "t24/v5-1c2382/snapshot-1.json",
+      "sha256": "53ca8dc4d027c463803ecc648ef7c88c709b592094196d45a070e469042ba7ae"
+    },
+    "AC5 first and second archived run (2)": {
+      "archive_ref": "t24/v5-1c2382/snapshot-2.json",
+      "sha256": "debf3927b167d695828c2d5c75e48ade7f1ac6d64dee269cb7ebeefb1210332c"
+    },
+    "AC5 interrupted and successful session report outcomes": {
+      "archive_ref": "t25report/forward/results.jsonl",
+      "sha256": "a7d0572b72c08aea6b40511ee6bbec8ac9596b665849fb997d5859ef046e0be4"
+    },
+    "AC5 duplicate dispatch report": {
+      "archive_ref": "t28/duplicate-report/sessions/467d20838a1b5dd0e9bc/session-summary.json",
+      "sha256": "ef3d30449bd6dd47b81ea375dbdca9cfde41a0a2d73415fbf056c0627a3b4d54"
+    },
+    "AC5 process crash, repeat delivery and original peer": {
+      "archive_ref": "t30/crash-observations.json",
+      "sha256": "cbd4758d3748d97fc8ba3d095ae9ddfcd3914d9235d359a6fe9d26414c257ae9"
+    },
+    "AC5 version 2.3 and 2.4 single-case results": {
+      "archive_ref": "t23/verification.json",
+      "sha256": "634c012982e57e1283df4db0c9458948c9fdeeb42140d47b7d70a1edaed9e9e7"
+    },
+    "AC4/5 original context V4/session V1 and conflict tests, 17 tests": {
+      "archive_ref": "t30/legacy-conflict.xml",
+      "sha256": "dded32d737369357dfb58373cb34cf7eca1f32aa2f4d6a5443c49d0fa7dc68e5"
+    },
+    "Preserved PyCharm sample without overlap": {
+      "archive_ref": "t28ide/batch02/result-01.json",
+      "sha256": "d87b11e35fc709e08cf87a35a0750397f396465ff173e6796e8d15bd87e55100"
+    },
+    "Preserved PyCharm window-observation failure": {
+      "archive_ref": "t28ide/batch02/result-02-failed.json",
+      "sha256": "fbff749991d736d0272bc2ccf54a378d3f6478b46eaf3e77e8c5aff272342e25"
+    },
+    "Preserved initial and subsequent serial task outcomes": {
+      "archive_ref": "t27/serial-task.json",
+      "sha256": "e6617a7e8830950526db9fd103e8b6644c5915a95e51a956d38eb07b4cb613f8"
+    }
+  },
+  "ac3_follow_up": {
+    "batch_id": "AC3-FRESH-R2-SERIAL",
+    "mode": "serial",
+    "source_commit": "17a6b5ae0e76e4e1a4f8caa10f194b9a3b18ed9f",
+    "source_sha256": "c3762cc3777547664d792e6e68ca550a702cb34203ac1f9c40b3561df0e2f13d",
+    "previous_batch": "T29-P",
+    "previous_source_sha256": "120f9a1a049f921d66da006fd397299731104157bebe441653623ae717d0348d",
+    "previous_exit_epoch_ns": 1795179436229171900,
+    "dispatcher_start_epoch_ns": 1795185014351161700,
+    "dispatcher_exit": 0,
+    "process_gap_ns": 2046068100,
+    "business_gap_us": 14640433,
+    "rows": [
+      {
+        "node_id": "regression-runners/test_todo_p0_001.py::test_todo_p0_001_primary[chromium]",
+        "run_id": "UIT-6f1fb5b24427452785a20ac6de7dabda",
+        "session_id": "SESSION-7A2F1FAFFC864842B46C7D18FE416D68",
+        "process_start_epoch_ns": 1795185018350039500,
+        "terminal_epoch_us": 1795185038410163,
+        "observed_exit_epoch_ns": 1795185039024534600,
+        "process_exit": 0,
+        "start_epoch_us": 1795185028475097,
+        "end_epoch_us": 1795185034108715,
+        "trace_calls": [
+          "call@19",
+          "call@67"
+        ],
+        "assertion_count": 9,
+        "ui_actions": [
+          "press"
+        ],
+        "submit_count": 1,
+        "receipt_hash": "sha256:56dddcdcbdc895d9019b3feee9e07fda260fb90252315e7a9a0a1961a21cb9b0",
+        "terminal_hash": "sha256:14203a03a6e2b2f0bc9abb2e27fc5a8a2f466fd17e2aa172dda7ea77401187dd",
+        "session_result_hash": "sha256:468c81a5c5b4add7885bc25dadff9cd3946b5f6397271e5050e05d78b65f712d",
+        "sha256": {
+          "exit.json": "c32300a4dba1f5809fba72dde6aa6ff81b85026d8de1558c4fe21a970ada1b2c",
+          "SESSION-7A2F1FAFFC864842B46C7D18FE416D68.json": "a22413d56eae1cba8eeb50f0ff72d2034e2bdad24a9da352e7c20f12cbee3aeb",
+          "terminal.json": "4787df37b86b07976dc6aa0caa14bbd81df8c31090c29cd6c57313951149d95a",
+          "execution-context.json": "4b8a9642070e2bdac654f5871b14cc1c81bbc46a15c36cfe98558d6a9908e1bf",
+          "approval-record.json": "b1ccbd86e051919d8cd06bd709ea6cf7bd84d48a46e7fdd6553f1b3d013958fd",
+          "window-observation.json": "ccb2fa6f7f94f218bdb051d3aa611252a1c41b6a39cbbadab905460be4d08f5f",
+          "network-observation.json": "e7d424b23df4c1e6616b43798c23421bf10b975da42814c799fd63f791d0c1de",
+          "trace.zip": "7f3946b97646bccf93dd7ae923f09090fcb3156aa3a0705815417d3e8dc0a306",
+          "finalization-commit.json": "2913810896d8dd117489763e27f861250b9790c0d9001a5c6621a4a9f94c7fee",
+          "47d32ac1123dad7c359f273ef69719afe05c85492449128fbf334dc1b04214f6.json": "47d32ac1123dad7c359f273ef69719afe05c85492449128fbf334dc1b04214f6",
+          "finalization-receipt.json": "56dddcdcbdc895d9019b3feee9e07fda260fb90252315e7a9a0a1961a21cb9b0",
+          "OPEN.png": "f7561ffee0f395148c47395410063097996b7bd06dff9f9eb7cb96d8a916c6a5",
+          "FILL.png": "bfdde5e3d5d19b7677f3f3a56d77fe54aae9138dd77703422caec53c3109c9d2",
+          "ADD.png": "ee9732b8255fcd809986acbda732789bf96f3453aaba4e5b2ad29ebcbac6b41e"
+        }
+      },
+      {
+        "node_id": "regression-runners/test_todo_p0_002.py::test_todo_p0_002_primary[chromium]",
+        "run_id": "UIT-b734ae1fc1804eeeb22895b5a7fbf3da",
+        "session_id": "SESSION-13A27627398F43F292673A3AB93F394D",
+        "process_start_epoch_ns": 1795185041070602700,
+        "terminal_epoch_us": 1795185060054603,
+        "observed_exit_epoch_ns": 1795185060270172600,
+        "process_exit": 0,
+        "start_epoch_us": 1795185048749148,
+        "end_epoch_us": 1795185056934211,
+        "trace_calls": [
+          "call@19",
+          "call@107"
+        ],
+        "assertion_count": 22,
+        "ui_actions": [
+          "press",
+          "check"
+        ],
+        "submit_count": 2,
+        "receipt_hash": "sha256:0d76c6d572bbb0b19bb06e1cd2732f1ed19f2c6af6e7e9aa5b0483d2c0f54d5a",
+        "terminal_hash": "sha256:c954bac1c3a1b2b0c06e3c3b26d0d9eb458ae09e458cc468450763662f40db63",
+        "session_result_hash": "sha256:91ff54ef3d2c1f9feffd125bf4b0eef93caebc0ac82831450a489f93d7c88e19",
+        "sha256": {
+          "exit.json": "57e72e2cc5a67e4feee6c571d3ee7294f7e6a94484ff05b1374cb92d56b7391d",
+          "SESSION-13A27627398F43F292673A3AB93F394D.json": "f4c97737d6dc9156e069a8d10cf3d2237c1c5e429af41ec01d2aa347f059ed45",
+          "terminal.json": "d2d7795695e6b9e29f432e2838979015d21866779e17c09d357d9130efa204ab",
+          "execution-context.json": "f69b46da707eb625f4084dcfc9a11da3cd630070ea9ce01d9c21a5577af693e6",
+          "approval-record.json": "5fd66d6ba793b25fec51bf86887cd8f5a8eeae610767663efd82dea426ec340a",
+          "window-observation.json": "ffd3760604bb54a9f18214f586ce2f761b8cbe120bcd81ef36795399a54830b4",
+          "network-observation.json": "0e3bd5fba5a7dc6431036a9c370a4536612e6dfa6bd224c4208090b85b96ded1",
+          "trace.zip": "3d690a222184515b85a0d116196d7891a07347de0af87cf84c8d0114950637b6",
+          "finalization-commit.json": "d229475c9b5fb246695390afb58a07314490b37d8a939b82ab520555828b5af3",
+          "deb1b014789bb809f0699eaffb9f648ac14742f7bac1adf5d045481db5efae4c.json": "deb1b014789bb809f0699eaffb9f648ac14742f7bac1adf5d045481db5efae4c",
+          "finalization-receipt.json": "0d76c6d572bbb0b19bb06e1cd2732f1ed19f2c6af6e7e9aa5b0483d2c0f54d5a",
+          "OPEN.png": "f7561ffee0f395148c47395410063097996b7bd06dff9f9eb7cb96d8a916c6a5",
+          "FILL.png": "bfdde5e3d5d19b7677f3f3a56d77fe54aae9138dd77703422caec53c3109c9d2",
+          "ADD.png": "ee9732b8255fcd809986acbda732789bf96f3453aaba4e5b2ad29ebcbac6b41e",
+          "READY-COMPLETE.png": "ee9732b8255fcd809986acbda732789bf96f3453aaba4e5b2ad29ebcbac6b41e",
+          "COMPLETE.png": "4dc8d13eb03f00a1df4c2d0dc71ed5e62066b44196cf3c9223caed435456b316"
+        }
+      }
+    ]
+  }
+}

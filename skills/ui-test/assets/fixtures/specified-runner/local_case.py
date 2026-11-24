@@ -1,3 +1,4 @@
+from dataclasses import asdict
 import json
 import os
 from pathlib import Path
@@ -9,6 +10,7 @@ from playwright.sync_api import sync_playwright
 
 from scripts.ui_test_core.case_contracts import canonical_hash
 from scripts.ui_test_core.execution_data_session import ExecutionDataSession
+from scripts.ui_test_core.stage_capture import capture_step
 from scripts.ui_test_core.module_ready import ModuleReadyObserver, consume_ready_context
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
@@ -94,6 +96,7 @@ def run_case(ctx):
             assert consume_ready_context(ready, page=page, packet=packet, session_id=ctx.session_id, config=config)["ok"]
             (root / "module-ready.json").write_text(json.dumps(ready), encoding="utf-8")
             assert page.locator("#identity").inner_text() == "Signed in as local tester"
+            steps = []
             try:
                 for index, phase in enumerate(phases):
                     assert requests.count(("POST", "/submit")) == index
@@ -101,23 +104,37 @@ def run_case(ctx):
                     value = data["parameters"]["title"] + (f" {phase}" if phase else "")
                     page.locator("#title").fill(value)
                     assert page.locator("#title").input_value() == value
+                    step = dict(step_id=phase or "save", action="Save " + value, status="failed")
+                    steps.append(step)
+                    def capture(point, observation):
+                        return capture_step(page, step, context=asdict(ctx), run_root=root, point=point,
+                                            object_ref=value, observation=observation)
+                    capture("pre_submit", "Title contains " + value)
                     permit = session.authorize_business_write(phase)
                     with page.expect_response(lambda r: r.url.endswith("/submit") and r.request.method == "POST") as observed:
                         permit.consume()
                         page.locator("#submit").click()
                     assert observed.value.request.post_data == value
                     assert observed.value.json()["saved"]
+                    receipt = "Server accepted " + value
+                    page.get_by_text(receipt, exact=True).wait_for()
+                    capture("receipt", receipt)
                     page.get_by_text("Saved", exact=True).wait_for()
+                    capture("final", "Saved result visible for " + value)
+                    step["status"] = "passed"
                     assert requests.count(("POST", "/submit")) == index + 1
                     session.record_business_write_result(phase, "write_succeeded_verified")
-                page.screenshot(path=str(root / "saved.png"))
+            except Exception:
+                if steps and steps[-1]["status"] != "passed":
+                    capture("timeout", "Stopped awaiting the expected save state")
+                raise
             finally:
                 rows = session.phase_results
                 attempted = [row for row in rows if row["submit_count"]]
                 (root / "observed.json").write_text(json.dumps({
                     "submit_count": len(attempted), "phase_results": rows,
                     "write_state": attempted[-1]["write_state"] if attempted else "not_attempted",
-                    "requests": requests,
+                    "requests": requests, "steps": steps,
                 }))
         finally:
             browser.close()

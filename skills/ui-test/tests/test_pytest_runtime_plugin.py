@@ -5,6 +5,8 @@ v2.0 阻断、active mismatch（预留）、CLI 无 ID 和 PyCharm 来源。验�
 中文注释；不运行测试或输出敏感形状。
 """
 
+import os
+import json
 import textwrap
 from pathlib import Path
 
@@ -23,6 +25,198 @@ def _force_pytester_utf8(monkeypatch: pytest.MonkeyPatch) -> None:
 # ---------------------------------------------------------------------------
 
 _SKILL_ROOT = Path(__file__).resolve().parents[1]  # pytester子进程需要显式导入当前候选Skill。
+
+
+@pytest.mark.parametrize("workers", [[], ["-n", "2"]], ids=["serial", "xdist"])
+def test_formal_parameter_batch(pytester, workers, monkeypatch):
+    if workers:
+        pytest.importorskip("xdist")
+    _write_conftest_with_config(pytester, _V21_CONFIG_YAML)
+    pytester.makepyfile(test_batch="""
+        import pytest
+        def test_ordinary(): pass
+        @pytest.mark.parametrize("value", [1, 2])
+        @pytest.mark.ui_test
+        @pytest.mark.case_id("CASE-A")
+        @pytest.mark.branch_id("BRANCH-A")
+        @pytest.mark.r0
+        def test_node(value, ui_test_execution_context):
+            assert ui_test_execution_context.node_id.endswith(f"[{value}]")
+    """)
+    result = pytester.runpytest_subprocess("test_batch.py", *workers, "--ui-batch-id", "BATCH-A")
+    result.assert_outcomes(passed=3)
+    summary_path, = (pytester.path / "evidence/sessions").glob("*.json")
+    summary = json.loads(summary_path.read_text())
+    assert summary["expected_nodes"] == [f"test_batch.py::test_node[{n}]" for n in (1, 2)]
+    assert summary["session_status"] == "passed" and summary["pytest_exitstatus"] == result.ret
+    assert summary["batch_id"] == "BATCH-A"
+    assert len({row["run_id"] for row in summary["nodes"]}) == 2
+    for row in summary["nodes"]:
+        terminal = pytester.path / "evidence" / row["terminal_ref"]
+        assert terminal.is_file()
+    from types import SimpleNamespace
+    monkeypatch.syspath_prepend(str(_SKILL_ROOT))
+    from scripts.ui_test_core.session_evidence import FormalSession
+    state = FormalSession()
+    row = summary["nodes"][0]
+    state.observe_collection([row["node_id"]], [row["node_id"]])
+    for phase in ("setup", "call", "teardown"):
+        report = SimpleNamespace(nodeid=row["node_id"], when=phase, outcome="passed")
+        if phase == "teardown":
+            report.ui_test_node = row
+        state.pytest_runtest_logreport(report)
+    state.pytest_runtest_logreport(report)
+    root = pytester.path / "evidence"
+    assert state.reconcile(root, summary["session_id"]) == [row]
+    report.ui_test_node = {**row, "terminal_hash": "sha256:" + "0" * 64}
+    state.pytest_runtest_logreport(report)
+    assert state.reconcile(root, summary["session_id"])[0]["missing_reason"] == "conflicting-deliveries"
+
+
+@pytest.mark.parametrize("setup_report_delivered", [True, False])
+def test_duplicate_refusal_does_not_erase_started_crashed_attempt(tmp_path, setup_report_delivered):
+    from types import SimpleNamespace
+    from scripts.ui_test_core.session_evidence import FormalSession
+
+    node = "test_duplicate.py::test_original"
+    state = FormalSession()
+    state.observe_collection([node], [node])
+    if setup_report_delivered:
+        state.pytest_runtest_logreport(SimpleNamespace(nodeid=node, when="setup", outcome="passed",
+                                                      ui_test_run_id="RUN-ORIGINAL"))
+    for fields in [dict(when="setup", outcome="failed", ui_test_not_executed="E_ATTEMPT_START_ALREADY_EXISTS"),
+                   dict(when="???", outcome="failed")]:
+        state.pytest_runtest_logreport(SimpleNamespace(nodeid=node, **fields))
+    row, = state.reconcile(tmp_path, "SESSION-CRASH")
+    assert row["disposition"] == "unknown" and row["missing_reason"] == "no-terminal-record"
+    if setup_report_delivered:
+        assert row["run_id"] == "RUN-ORIGINAL" and row["attempt_ref"].startswith("attempts/")
+    else:
+        assert "run_id" not in row and "attempt_ref" not in row
+    assert state.denied_duplicate_nodes == {node}
+
+
+def test_reusing_completed_explicit_run_id_does_not_start_this_session(pytester):
+    _write_conftest_with_config(pytester, _V21_CONFIG_YAML)
+    pytester.makepyfile(test_previous="""
+        from pathlib import Path
+        import pytest
+        @pytest.mark.ui_test
+        @pytest.mark.r0
+        @pytest.mark.case_id("CASE-A")
+        @pytest.mark.branch_id("primary")
+        def test_once(ui_test_execution_context):
+            with Path("executions").open("a") as log: log.write("x")
+    """)
+    options = ["test_previous.py", "--ui-run-id=COMPLETED-OWNER", "-q"]
+    evidence = pytester.path / "evidence"
+    assert pytester.runpytest_subprocess(*options).ret == 0
+    first, = (evidence / "sessions").glob("*.json")
+    terminal, = (evidence / "attempts").glob("*/terminal.json")
+    previous = terminal.read_bytes()
+    assert pytester.runpytest_subprocess(*options).ret == 1
+    second, = set((evidence / "sessions").glob("*.json")) - {first}
+    doc = json.loads(second.read_text())
+    row, = doc["nodes"]
+    assert row == dict(node_id="test_previous.py::test_once", disposition="not_executed",
+                       finalization_status="missing", missing_reason="E_ATTEMPT_START_ALREADY_EXISTS")
+    assert doc["denied_duplicate_nodes"] == [row["node_id"]] and not doc["worker_errors"]
+    assert (pytester.path / "executions").read_text() == "x" and terminal.read_bytes() == previous
+
+
+def test_worker_dies_during_setup_after_duplicate_is_refused(pytester):
+    pytest.importorskip("xdist")
+    _write_conftest_with_config(pytester, _V21_CONFIG_YAML)
+    with (pytester.path / "conftest.py").open("a", encoding="utf8") as conftest:
+        conftest.write("""
+def pytest_runtest_logreport(report):
+    if getattr(report, "ui_test_not_executed", None) == "E_ATTEMPT_START_ALREADY_EXISTS":
+        pathlib.Path("duplicate-reported").touch()
+""")
+    pytester.makepyfile(test_setup_crash="""
+        import os, time
+        from pathlib import Path
+        import pytest
+        @pytest.fixture
+        def setup_crash(ui_test_execution_context):
+            for _ in range(300):
+                if Path("duplicate-reported").exists():
+                    os._exit(23)
+                time.sleep(.05)
+            pytest.fail("duplicate refusal was not delivered")
+        @pytest.mark.ui_test
+        @pytest.mark.r0
+        @pytest.mark.case_id("CASE-A")
+        @pytest.mark.branch_id("primary")
+        def test_value(setup_crash):
+            pytest.fail("the call phase must not be reached")
+    """)
+    result = pytester.runpytest_subprocess("test_setup_crash.py", "-n", "2", "--dist=each", "--max-worker-restart=0",
+                                          "--ui-run-id=REVIEW-R0-CASE", "-q")
+    evidence = pytester.path / "evidence"
+    source, = (evidence / "sessions").glob("*.json")
+    doc = json.loads(source.read_text())
+    row, = doc["nodes"]
+    assert result.ret == doc["pytest_exitstatus"] == 1 and doc["worker_errors"]
+    assert len(list((evidence / "attempts").glob("*/attempt-start.json"))) == 1
+    assert doc["denied_duplicate_nodes"] == [row["node_id"]]
+    assert row["disposition"] == "unknown" and "terminal_ref" not in row
+
+
+def test_crashed_worker_keeps_neighbor_evidence(pytester):
+    pytest.importorskip("xdist")
+    _write_conftest_with_config(pytester, _V21_CONFIG_YAML)
+    pytester.makepyfile(test_crash="""
+        import os
+        import pytest
+        pytestmark = [pytest.mark.ui_test, pytest.mark.case_id("CASE-A"),
+                      pytest.mark.branch_id("BRANCH-A"), pytest.mark.r0]
+        def test_crash(ui_test_execution_context): os._exit(9)
+        def test_other(ui_test_execution_context): pass
+        def test_skip(ui_test_execution_context): pytest.skip("synthetic")
+    """)
+    result = pytester.runpytest_subprocess("test_crash.py", "-n", "2", "--max-worker-restart=1")
+    summary_path, = (pytester.path / "evidence/sessions").glob("*.json")
+    doc = json.loads(summary_path.read_text())
+    assert result.ret == doc["pytest_exitstatus"] == 1
+    assert doc["worker_errors"] and doc["collection_consistent"]
+    assert doc["session_status"] == "failed"
+    assert {row["node_id"].split("::")[-1]: row["disposition"] for row in doc["nodes"]} == {
+        "test_other": "passed", "test_crash": "unknown", "test_skip": "skipped"}
+    assert all("terminal_hash" not in row for row in doc["nodes"] if row["disposition"] == "unknown")
+
+
+def test_early_exit_preserves_undispatched_nodes(pytester):
+    _write_conftest_with_config(pytester, _V21_CONFIG_YAML)
+    pytester.makepyfile(test_stop="""
+        import pytest
+        pytestmark = [pytest.mark.ui_test, pytest.mark.case_id("CASE-A"),
+                      pytest.mark.branch_id("BRANCH-A"), pytest.mark.r0]
+        def test_fail(ui_test_execution_context): assert False
+        def test_not_run(ui_test_execution_context): pass
+    """)
+    result = pytester.runpytest_subprocess("test_stop.py", "-x")
+    summary_path, = (pytester.path / "evidence/sessions").glob("*.json")
+    doc = json.loads(summary_path.read_text())
+    assert result.ret == doc["pytest_exitstatus"] == 1
+    assert [r["disposition"] for r in doc["nodes"]] == ["failed", "not_executed"]
+
+
+def test_multi_run_id_diagnosed_before_fixture(pytester):
+    _write_conftest_with_config(pytester, _V21_CONFIG_YAML)
+    pytester.makepyfile(test_multi="""
+        import pathlib
+        import pytest
+        pytestmark = [pytest.mark.ui_test, pytest.mark.case_id("CASE-A"),
+                      pytest.mark.branch_id("BRANCH-A"), pytest.mark.r0]
+        @pytest.fixture
+        def business(): pathlib.Path("entered").touch()
+        @pytest.mark.parametrize("i", [1,2])
+        def test_node(i, business): pass
+    """)
+    result = pytester.runpytest_subprocess("test_multi.py", "--ui-run-id", "EXACT")
+    result.stdout.fnmatch_lines(["*use --ui-batch-id*"])
+    assert result.ret and not (pytester.path / "entered").exists()
 
 _PLUGIN_CONTEST = textwrap.dedent(f"""\
     # 根 conftest：显式加载通用 pytest_runtime_plugin
@@ -252,7 +446,7 @@ class TestPerNodeContext:
                 ctx = ui_test_execution_context
                 assert ctx.case_id == "CASE-A"
                 assert ctx.risk_level == "r0-read-only"
-                assert ctx.schema_version == "ui-test.execution-context.v4"
+                assert ctx.schema_version == "ui-test.execution-context.v5"
 
             @pytest.mark.ui_test
             @pytest.mark.case_id("CASE-B")
@@ -684,3 +878,126 @@ class TestInvalidFinalizationCandidate:
         result = pytester.runpytest_subprocess("test_qualification.py", "--ui-run-id", "RUN-FAILED-001", "--ui-r2-approved", "-v")
         result.assert_outcomes(failed=1)
         assert "E_FINALIZER_MUST_NOT_RUN_FOR_QUALIFICATION" not in result.stdout.str()
+
+@pytest.mark.parametrize("real_browser", [
+    False, pytest.param(True, marks=pytest.mark.skipif(
+        os.environ.get("UI_TEST_VERIFY_CHROMIUM") != "1", reason="requires local Chromium execution")),
+])
+def test_live_attempt_survives_other_collection_and_playwright_cleanup(pytester, real_browser):
+    import hashlib
+    import json
+    import zipfile
+    import subprocess
+    import sys
+    import time
+
+    _write_conftest_with_config(pytester, _V21_CONFIG_YAML)
+    with (pytester.path / "conftest.py").open("a", encoding="utf-8") as stream:
+        stream.write("\ndef pytest_ui_test_finalization_target_v1(run_id, node_id, attempt_store):\n    return {'run_root': str(pathlib.Path(__file__).parent / 'runs' / run_id)}\n")
+        if not real_browser:
+            stream.write("\nimport pytest\n@pytest.fixture\ndef page():\n    return None\n")
+    pytester.makepyfile(test_active="""
+        from pathlib import Path
+        import time
+        import pytest
+
+        @pytest.mark.ui_test
+        @pytest.mark.case_id("CASE-ONE")
+        @pytest.mark.branch_id("primary")
+        @pytest.mark.r0
+        def test_one(ui_test_execution_context, pytestconfig, output_path, page):
+            run = ui_test_execution_context.run_id
+            path = Path(output_path)
+            path.mkdir(parents=True, exist_ok=True)
+            if page is None:
+                (path / "trace.zip").write_bytes(run.encode())
+                (path / "owner.png").write_bytes(b"local")
+            else:
+                page.set_content("<h1>" + run + "</h1>")
+                assert page.locator("h1").inner_text() == run
+                assert page.context.cookies() == []
+                page.context.add_cookies([{"name": "owner", "value": run, "url": "https://example.invalid"}])
+                page.screenshot(path=str(path / "owner.png"))
+            Path(run).write_text(str(path))
+            if run == "RUN-FIRST":
+                for _ in range(1200):
+                    if Path("release").exists():
+                        return
+                    time.sleep(.1)
+                pytest.fail("release timeout")
+    """)
+    node = "test_active.py::test_one"
+    cmd = [sys.executable, "-m", "pytest", "-q", node, "--tracing=on", "--screenshot=on", "--ui-run-id"]
+    first = subprocess.Popen([*cmd, "RUN-FIRST"], cwd=pytester.path)
+    try:
+        for _ in range(1200):
+            if (pytester.path / "RUN-FIRST").exists() or first.poll() is not None:
+                break
+            time.sleep(.1)
+        assert (pytester.path / "RUN-FIRST").is_file()
+        attempts = pytester.path / "evidence" / "attempts"
+        original, = attempts.iterdir()
+        snapshot = {p.name: p.read_bytes() for p in original.iterdir() if p.suffix in {".json", ".jsonl"}}
+        from scripts.ui_test_core.attempt_recovery import AttemptRecovery
+        from scripts.ui_test_core.execution_attempt_store import ExecutionAttemptStore
+        actual_node = json.loads((original / "execution-context.json").read_text())["node_id"]
+        recovery = AttemptRecovery(store=ExecutionAttemptStore(evidence_root=attempts.parent))
+        assert recovery.recover_attempt(run_id="RUN-FIRST", node_id=actual_node, run_root=pytester.path / "runs" / "RUN-FIRST") == {"recovery_type": "active"}
+        subprocess.run([*cmd, "RUN-SECOND", "--collect-only"], cwd=pytester.path, check=True)
+        assert list(attempts.iterdir()) == [original]
+        assert {p.name: p.read_bytes() for p in original.iterdir() if p.suffix in {".json", ".jsonl"}} == snapshot
+        subprocess.run([*cmd, "RUN-SECOND"], cwd=pytester.path, check=True)
+        for run in ("RUN-FIRST", "RUN-SECOND"):
+            leaf = Path((pytester.path / run).read_text())
+            assert (leaf / "owner.png").is_file()
+    finally:
+        (pytester.path / "release").touch()
+        try:
+            first.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            first.kill()
+            first.wait()
+            raise
+    assert first.returncode == 0
+    for run in ("RUN-FIRST", "RUN-SECOND"):
+        root = pytester.path / "runs" / run
+        archive = root / "playwright"
+        index = json.loads((archive / "artifacts.json").read_text())
+        if not real_browser:
+            assert (archive / "trace.zip").read_bytes() == run.encode()
+            continue
+        assert sorted(row["ref"] for row in index) == ["playwright/test-finished-1.png", "playwright/trace.zip"]
+        for row in index:
+            assert hashlib.sha256((root / row["ref"]).read_bytes()).hexdigest() == row["sha256"]
+        with zipfile.ZipFile(archive / "trace.zip") as trace:
+            assert any(name.endswith(".trace") for name in trace.namelist())
+    assert len(list(attempts.glob("*/terminal.json"))) == 2
+
+
+def test_replacement_worker_preserves_previous_leaf(pytester):
+    pytest.importorskip("xdist")
+    pytest.importorskip("pytest_playwright")
+    _write_conftest_with_config(pytester, _V21_CONFIG_YAML)
+    with (pytester.path / "conftest.py").open("a", encoding="utf-8") as stream:
+        stream.write("\ndef pytest_configure_node(node):\n    node.workerinput['ui_test_session_id'] = 'SESSION-REPLACEMENT'\n")
+    pytester.makepyfile(test_restart="""
+        import os
+        from pathlib import Path
+
+        def test_crash(pytestconfig):
+            leaf = Path(pytestconfig.getoption("--output")).absolute()
+            leaf.mkdir(parents=True, exist_ok=True)
+            (leaf / "screenshot.png").write_bytes(b"prior worker")
+            Path("original").write_text(str(leaf))
+            os._exit(17)
+
+        def test_replacement(pytestconfig):
+            old = Path(Path("original").read_text())
+            new = Path(pytestconfig.getoption("--output")).absolute()
+            assert new != old and new.parent == old.parent
+            assert (old / "screenshot.png").read_bytes() == b"prior worker"
+            Path("replacement").write_text(str(new))
+    """)
+    result = pytester.runpytest_subprocess("-q", "-n", "1", "--max-worker-restart=1")
+    result.assert_outcomes(failed=1, passed=1)
+    assert (pytester.path / "replacement").is_file()

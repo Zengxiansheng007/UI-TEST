@@ -17,7 +17,7 @@ class StageBudgetError(ValueError):
 
 def validate_policies(config):
     policies=config.get('stage_write_policies',[])
-    if policies and (config.get('schema_version')!='2.3' or config.get('scope',{}).get('environment')!='test'):
+    if policies and (config.get('schema_version') not in {'2.3','2.4'} or config.get('scope',{}).get('environment')!='test'):
         raise StageBudgetError('E_STAGE_POLICY_TEST_ENV_REQUIRED')
     seen=set()
     for policy in policies:
@@ -64,7 +64,7 @@ def embedded_budget_issues(document,schema_name):
     """JSON Schema之外的哈希、范围、顺序和加总约束。"""
     if not isinstance(document,dict):return []
     budget=document.get('stage_write_budget')
-    if schema_name=='execution-context-v4.schema.json':budget=document.get('config_summary',{}).get('stage_write_budget')
+    if schema_name in {'execution-context-v4.schema.json','execution-context-v5.schema.json'}:budget=document.get('config_summary',{}).get('stage_write_budget')
     if budget is None:return []
     try:
         validate_budget(budget,document.get('case_id'),document.get('branch_id'))

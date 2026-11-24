@@ -26,7 +26,9 @@ Use Midscene as the first visual exploration layer and preserve what it learns f
 2. Convert test intent into concise Midscene prompts with operation, target, constraints, expected visible state, and forbidden actions.
 3. Prefer stage-based exploration: login state, project switch, module entry, page or modal open, form recognition, form fill, submit/result.
 4. Record successful strategy, failed strategy, reason, retry, and fallback candidate.
-5. Output updated packet with `next_action: verify` or `next_action: review` when blocked.
+5. Wrap the complete exploration checklist in [the batch fixture runner](scripts/exploration_stage.cjs) using [the delivery contract](references/exploration-delivery.md). Attach its returned HTML link and observations to the updated packet, with `next_action: verify` or `next_action: review` when blocked.
+
+Before handing exploration to verify, compare the existing visible observations with the cases’ intended assertions. Document the affected cases, shared business object, read and write, assertion at risk, and evidence references. Use only HTTP traffic naturally produced by authorized UI actions. Never issue or replay a request for this check. Pass concrete risks to verify, or proceed directly when none were found. See the [main Skill’s shared-state procedure](../ui-test/SKILL.md).
 
 ## Validation
 

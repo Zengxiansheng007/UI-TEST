@@ -8,16 +8,18 @@ _PAGE = """<!doctype html><html lang="en"><title>Controlled UI</title>
 <h1>Case workspace</h1><p id="identity">Signed in as local tester</p>
 <label>Title <input id="title"></label><button id="submit">Submit</button>
 <button id="status">Check status</button>
-<output id="result"></output><script>
+<p id="receipt"></p><span data-ui-sensitive style="position:absolute;top:180px;left:50px">private fixture identity</span><output id="result"></output><script>
 document.querySelector('#status').onclick = async () => {
   const response = await fetch('/status');
   const data = await response.json();
   document.querySelector('#result').textContent = data.ready ? 'Available' : 'Unavailable';
 };
 document.querySelector('#submit').onclick = async () => {
+  document.querySelector('#result').textContent = '';
   const response = await fetch('/submit', {method:'POST', body:document.querySelector('#title').value});
   const data = await response.json();
-  document.querySelector('#result').textContent = data.saved ? 'Saved' : 'Rejected';
+  document.querySelector('#receipt').textContent = data.saved ? 'Server accepted ' + document.querySelector('#title').value : 'Server rejected';
+  setTimeout(() => { document.querySelector('#result').textContent = data.saved ? 'Saved' : 'Rejected'; }, 500);
 };
 </script></html>"""
 

@@ -4,7 +4,10 @@ import json
 from urllib.parse import urlsplit
 from pathlib import Path
 from dataclasses import asdict
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from ui_test_core.case_contracts import canonical_hash, validate_document
+from window_observation import observe_window
+from ui_test_core.stage_capture import STANDARD_MASK, capture_step
 from ui_test_core.execution_data_session import ExecutionDataSession
 from ui_test_core.execution_parameter_guard import ExecutionParameterGuard
 from ui_test_core.failure_repair_store import FailureRepairEventStore
@@ -53,9 +56,9 @@ def verify_counter_action(action, todo, text, expected_count, checked):
         raise
 
 class PracticeRuntime:
-    def __init__(self, context, browser, qualification, experience_trial=False):
+    def __init__(self, context, new_context, qualification, experience_trial=False):
         self.context = asdict(context)  # 插件是上下文及run ID唯一来源。
-        self.browser = browser
+        self.new_context = new_context
         self.qualification = qualification
         self.experience_trial = experience_trial
 
@@ -77,7 +80,7 @@ class PracticeRuntime:
         store = FailureRepairEventStore(ROOT / 'diagnostics', product_id='todomvc')
         guard = ExecutionParameterGuard(session, store, source_file_ref='tests/test-data.json')
         guard.start()  # 参数漂移必须在BrowserContext前阻断。
-        browser_context = self.browser.new_context(viewport={'width': 1360, 'height': 900})
+        browser_context = self.new_context(viewport={'width': 1360, 'height': 900})
         actions = []
         def observed_action(kind):
             if kind in ('submit-enter', 'checkbox-change'):
@@ -174,17 +177,18 @@ class PracticeRuntime:
                 setattr(instance, attr, getattr(provider, attr))
             return instance
 
-        def evidence(sid):
+        def evidence(sid, point, object_ref, observation):
             target = output / (sid + '.png')
-            page.screenshot(path=str(target), full_page=True)  # 每个状态变更和失败均截图。
-            row = {'step_id': sid, 'status': 'passed', 'evidence_refs': [target.relative_to(run_root).as_posix()]}
+            row = {'step_id': sid, 'status': 'passed', 'evidence_refs': []}
+            capture_step(page, row, context=c, run_root=run_root, point=point, object_ref=object_ref,
+                         observation=observation, ref=target.relative_to(run_root))
             row['evidence_refs'].extend(selection_refs.get(sid, ()))
             rows.append(row)
             record_event(sid, 1, status='passed', evidence_refs=row['evidence_refs'])
             return target
         def qualification(index):
             screen = output / (f'boundary-{index}.png')
-            page.screenshot(path=str(screen), full_page=True)
+            page.screenshot(path=str(screen), mask=[page.locator(STANDARD_MASK)], mask_color='#000000')
             if budget:
                 result = build_stage_qualification(run_id=c['run_id'], case_id=case_id, branch_id=branch_id, build_fingerprint=frozen['manifest']['build_fingerprint'], budget=budget, steps=step_manifest, step_results=rows, screenshot_ref=screen.relative_to(run_root).as_posix(), screenshot_sha256=digest(screen), phase_index=index, prior_submit_count=index)
                 validate_stage_qualification(result, steps=step_manifest, budget=budget, build_fingerprint=frozen['manifest']['build_fingerprint'], root=run_root, activation=index == 0)
@@ -251,14 +255,12 @@ class PracticeRuntime:
             detail.update(action_result='passed', assertion_result='passed',
                           input_visible=todo.input.is_visible(), row_count=todo.rows.count())
             save(detail_path, detail)
-            window_probe = __import__('subprocess').run(['pwsh', '-NoProfile', '-Command', 'Get-Process | Where-Object { $_.MainWindowHandle -ne 0 -and $_.MainWindowTitle -match "TodoMVC" } | Select-Object Id,ProcessName,MainWindowHandle,MainWindowTitle | ConvertTo-Json -Compress'], capture_output=True, text=True, encoding='utf-8', timeout=15)  # 浏览器打开期间读取真实可见窗口。
-            save(output / 'window-observation.json', {'headless': False, 'exit_code': window_probe.returncode, 'windows': json.loads(window_probe.stdout) if window_probe.stdout.strip() else []})
-            assert window_probe.returncode == 0 and window_probe.stdout.strip(), 'E_VISIBLE_WINDOW_NOT_OBSERVED'
-            evidence('OPEN')
+            save(output / 'window-observation.json', observe_window(page))
+            evidence('OPEN', 'ordinary', 'Todo list', 'New todo input visible and list empty')
             rows[-1]['evidence_refs'].append(detail_path.relative_to(run_root).as_posix())
             check_pause('FILL', decision)
             todo.fill(guard.consume('text'))
-            evidence('FILL')
+            evidence('FILL', 'pre_submit', todo.input.input_value(), 'Input contains the verified case title')
             first_q = qualification(0)  # 仅证明第一写入前边界，后续阶段仍待核验。
             session.seal_snapshot(output / 'resolved-test-data.json')
             if self.qualification:
@@ -269,7 +271,7 @@ class PracticeRuntime:
             dispatch('add' if budget else None)
             verify_counter_action(lambda: todo.add(text, empty, added), todo, text, added, False)
             session.record_business_write_result('add' if budget else None, 'write_succeeded_verified')
-            evidence('ADD')
+            evidence('ADD', 'final', text, 'Target row visible, input cleared, remaining count ' + added)
             if budget:
                 ready = ready or resolve_step('READY-COMPLETE', 'component.ready', ['read'], explore=True)
                 if ready['status'] == 'selected':
@@ -288,7 +290,7 @@ class PracticeRuntime:
                 expect(current_rows.get_by_role('checkbox')).not_to_be_checked()
                 if ready['status'] == 'exploration_allowed':
                     save(exploration, dict(record, status='passed'))
-                evidence('READY-COMPLETE')
+                evidence('READY-COMPLETE', 'pre_submit', text, 'Unique matching target row is unchecked')
                 qualification(1)  # 同一context核对第二写入前的完整已执行前缀。
                 completed = guard.consume('count_completed')
                 choice = resolve_step('COMPLETE', 'script.complete', ['read', 'UI write'])
@@ -349,7 +351,7 @@ class PracticeRuntime:
                 script['assertion_result'] = 'passed'
                 save(script_path, script)
                 session.record_business_write_result('complete', 'write_succeeded_verified')
-                evidence('COMPLETE')
+                evidence('COMPLETE', 'final', text, 'Target checked, clear control visible, remaining count ' + completed)
                 rows[-1].update(strategy_use_ref=script_ref, strategy_use_hash=canonical_hash(script),
                                 reuse_verdict='verified', reuse_acceptance=True)
             save(run_root / 'pending.json', {'context': c, 'steps': rows, 'phase_results': session.phase_results, 'write_state': 'write_succeeded_verified', 'submit_count': sum(row['submit_count'] for row in session.phase_results), 'approval_hash': canonical_hash(approval), 'scope_crosswalk': {'tca_module_path': read(ROOT / 'authoring-module-paths.json')[case_id], 'formal_scope': frozen['case_ir']['scope']}, 'tca_tested_version': {'semantic_version': paths(case_id)['semantic_version'], 'data_version': paths(case_id)['data_version']}, 'formal_build_fingerprint': frozen['manifest']['build_fingerprint']})
@@ -372,6 +374,11 @@ class PracticeRuntime:
                     rows.append({'step_id': sid, 'status': 'failed' if index == 0 else 'skipped',
                                  'reason': failure['reason'] if index == 0 else 'predecessor_failed',
                                  'failure': failure, 'evidence_refs': list(selection_refs.get(sid, ()))})
+                    if index == 0:
+                        point = 'timeout' if isinstance(error, (PlaywrightTimeoutError, TimeoutError)) else 'failure'
+                        capture_step(page, rows[-1], context=c, run_root=run_root, point=point,
+                                     object_ref=sid, observation='Execution stopped: ' + failure['reason'],
+                                     ref='reports/failure.png')
                     if sid == 'OPEN' and use:
                         rows[-1]['evidence_refs'].append(detail_path.relative_to(run_root).as_posix())
                     if sid == 'READY-COMPLETE' and index > 0 and locals().get('ready') and ready['status'] == 'selected':
@@ -386,7 +393,8 @@ class PracticeRuntime:
                     if sid == 'COMPLETE' and 'script' in locals():
                         rows[-1].update(strategy_use_ref=script_ref, strategy_use_hash=canonical_hash(script))
                 capture_write_progress()  # 截图失败也不丢失已占预算。
-            page.screenshot(path=str(output / 'failure.png'), full_page=True)  # 失败不重提、不补偿。
+            if self.qualification:
+                page.screenshot(path=str(output / 'failure.png'), mask=[page.locator(STANDARD_MASK)], mask_color='#000000')
             raise
         finally:
             try:

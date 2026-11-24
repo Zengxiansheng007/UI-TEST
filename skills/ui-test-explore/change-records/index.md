@@ -1,10 +1,22 @@
 # Change records
 
+- [CR-20261124-138 · 阶段交付复核修复](entries/2026/2026-11/CR-20261124-138-stage-publication-review.md)
+
 ## Latest Changes
+
+- [CR-20261124-037 · 阶段异常与尝试归属](entries/2026/2026-11/CR-20261124-037-stage-outcomes.md)
+
+- [CR-20261124-033 · 探索批次交付](entries/2026/2026-11/CR-20261124-033-exploration-delivery.md)
+
+- [CR-20261120-027 · 探索结束、向验证交接已有证据。](entries/2026/2026-11/CR-20261120-027-shared-state.md)
 
 - [CR-20261118-006 · ModuleReadyContext 2.0](entries/2026/2026-11/CR-20261118-006-module-ready.md)
 
 ## Category Index
+
+- [references-and-assets](categories/references-and-assets.md)
+
+- [downstream-and-handoff](categories/downstream-and-handoff.md)
 
 - [core-skill-md](categories/core-skill-md.md)
 - [scripts-and-validation](categories/scripts-and-validation.md)
@@ -38,3 +50,7 @@ See issue-specific detail records.
 ## Detail Records
 
 - [CR-20260822-001](entries/2026/2026-08/CR-20260822-001-ui-test-asset-governance.md)
+
+- [CR-20261124-035 · 运行中采集步骤截图](entries/2026/2026-11/CR-20261124-035-stage-capture.md)
+
+- [CR-20261124-036 · 代表图与来源](entries/2026/2026-11/CR-20261124-036-representative-images.md)
