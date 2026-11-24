@@ -1,4 +1,4 @@
-schema_version: '2.3'
+schema_version: '2.4'
 scope:
   project_group: public-tca-todomvc-20261117
   project_group_name: 公开练习20261117
@@ -52,17 +52,16 @@ semantic_post_signatures: []
 execution_policies: []
 credential_index_ref: path:D:/UI-Test/_private/runtime-values/public-tca-todomvc-20261117/todomvc/test/credential-index.yaml
 pycharm_manual_execution:
-  contract_version: 4
+  contract_version: 5
   origin_detection: jetbrains-runner-path
   entry_scope: specified-runner
   r2_authorization: auto-test-only
   run_scope: per-node
-  r2_parallelism: serial-project-environment
   auto_generate_run_id: true
   auto_approve_r2_visible_ui: true
   finalization_contract: transaction-v1
   run_result_contract: v5
-  session_result_contract: v1
+  session_result_contract: v2
   acceptance_contract: external-exit-v1
 stage_write_policies:
 - case_id: TODO-P0-002

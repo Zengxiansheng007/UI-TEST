@@ -40,6 +40,8 @@ def pytest_ui_test_build_finalization_candidate_v1(
         and outcome["write_state"] == "write_succeeded_verified" else "failed",
         stage_write_budget=context["config_summary"].get("stage_write_budget"),
         phase_results=outcome.get("phase_results"),
+        step_results=outcome.get("steps"),
+        evidence_refs=[ref for step in outcome.get("steps", []) for ref in step.get("evidence_refs", [])],
         write_state=outcome["write_state"], submit_count=outcome["submit_count"],
     )
     return {"run_result": result, "evidence_index": build_evidence_index_v2(result, run_result_ref="objects/pending.json")}

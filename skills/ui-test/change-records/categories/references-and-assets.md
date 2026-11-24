@@ -6,9 +6,23 @@ Changes affecting references-and-assets.
 
 ## Outline
 
+- [CR-20261120-031 · 主包文件基线](../entries/2026/2026-11/CR-20261120-031-authoritative-session.md)
+
+- [CR-20261120-022](../entries/2026/2026-11/CR-20261120-022-formal-concurrency.md) · 新增 2.4 配置模板及 V5 上下文、V2 会话契约，兼容 2.3 和历史结果。
+
+- CR-20261120-026 · 入口与共享待办示例、决定复用函数及针对性测试。
+
 See the linked change records.
 
 ## Detailed Records
+
+### CR-20261120-031 · 主包文件基线
+
+新增本轮变更记录后，按仓库跟踪文件重新核对主包 284 个文件与现行 SKILL.md 摘要。[验证与变更记录](../entries/2026/2026-11/CR-20261120-031-authoritative-session.md)
+
+### CR-20261120-022 · 正式执行
+
+新增 2.4 配置模板及 V5 上下文、V2 会话契约，兼容 2.3 和历史结果。 变更依据、前后行为及验证见[详细记录](../entries/2026/2026-11/CR-20261120-022-formal-concurrency.md)。
 
 - [CR-20261119-016 · 探索经验和脚本复用](../entries/2026/2026-11/CR-20261119-016-strategy-learning.md)
 
@@ -87,3 +101,26 @@ Track schemas, fixtures, references and generated-asset contracts.
 - Validation: 副本及部署后结构检查零问题、敏感扫描 clear、49 项回归及六例可见窗口零提交资格通过。
 - Status: validated
 - Detail record: [CR-20260912-001](../entries/2026/2026-09/CR-20260912-001-visible-browser-and-run-scope.md).
+
+### CR-20261120-026 · 编写前核对共享状态
+
+正式脚本派发前核对用户消息、批次节点和具体冲突。 验证及范围见[详细变更记录](../entries/2026/2026-11/CR-20261120-026-shared-state.md)。
+
+### CR-20261120-028 · 人工并行与显式串行
+
+- 变更了正常 pytest 入口的显式范围、重投保护与结果投影。
+- [变更详情](../entries/2026/2026-11/CR-20261120-028-manual-concurrency.md)
+
+### CR-20261120-029 · Codex 明确指令并行
+
+- [变更详情](../entries/2026/2026-11/CR-20261120-029-codex-parallel.md)记录指令范围、冲突复用、派发与逐例验收。
+
+### CR-20261124-032 · 正式执行的阶段报告
+
+pytest controller 和 Codex 整批收尾核对已提交的会话与各用例 V5，再交付一个离线链接。 [详情](../entries/2026/2026-11/CR-20261124-032-formal-stage-delivery.md)
+
+- [CR-20261124-035 · 运行中采集步骤截图](../entries/2026/2026-11/CR-20261124-035-stage-capture.md)
+
+- [CR-20261124-135 · R0 正式断言、V5 与零提交收据](../entries/2026/2026-11/CR-20261124-135-read-only-finalization.md)
+
+- [CR-20261124-036 · 代表图与来源](../entries/2026/2026-11/CR-20261124-036-representative-images.md)

@@ -87,7 +87,7 @@ def verify_report_outcomes(data: dict[str, Any], run_root: Path) -> dict[str, An
     store = transaction.store
     committed = None
     if store.commit_path.exists() or store.receipt_path.exists():
-        committed = transaction.read_committed()
+        committed = transaction.read_committed(immutable_snapshot=True)
         if committed:
             if committed["run_result"] != result:
                 raise ValueError("finalization belongs to a different result")
@@ -122,10 +122,21 @@ def verify_report_outcomes(data: dict[str, Any], run_root: Path) -> dict[str, An
     return facts
 
 
+LIVE_CREDENTIAL = re.compile(
+    r"\b(?:Bearer|Basic)\s+[A-Za-z0-9+/._=-]{8,}|\bsk-[A-Za-z0-9_-]{20,}"
+    r"|-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----"
+    r"""|(?<![\w-])(?:password|passwd|authorization|(?:set-)?cookie|(?:access[_-]?)?token|secret|api[_-]?key|x-token)["']?\s*[:=]\s*["']?[^\s"'<>,;{}]+""",
+    re.IGNORECASE,
+)
+BITMAP_URI = re.compile(r"data:image/(?:png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]+")
+
+
 def scan_sensitive(value: Any, path: str = "$") -> list[str]:
     findings: list[str] = []
     if isinstance(value, dict):
         for key, child in value.items():
+            if key == "data_uri" and isinstance(child, str) and BITMAP_URI.fullmatch(child):
+                continue  # Masking is performed at capture. Text metadata still goes through the scan.
             key_lower = str(key).lower()
             if key_lower in SENSITIVE_KEYS and child not in (None, "", [], {}, True, False):
                 findings.append(f"{path}.{key}")
@@ -133,6 +144,8 @@ def scan_sensitive(value: Any, path: str = "$") -> list[str]:
     elif isinstance(value, list):
         for idx, child in enumerate(value):
             findings.extend(scan_sensitive(child, f"{path}[{idx}]"))
+    elif isinstance(value, str) and LIVE_CREDENTIAL.search(value):
+        findings.append(path)
     return findings
 
 
@@ -399,6 +412,8 @@ def output_paths(data: dict[str, Any], root: Path) -> tuple[Path, Path]:
 
 def safe_segment(value: str, max_len: int) -> str:
     cleaned = re.sub(r"[^A-Za-z0-9._-]+", "-", value).strip("-")
+    if cleaned and not cleaned.strip("."):
+        raise ValueError("Invalid report path segment")
     if len(cleaned) <= max_len:
         return cleaned
     digest = hashlib.sha1(cleaned.encode("utf-8")).hexdigest()[:10]
@@ -407,20 +422,40 @@ def safe_segment(value: str, max_len: int) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True, type=Path)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--input", type=Path)
+    source.add_argument("--session-result", type=Path, help="Controller's sessions/<session_id>.json")
+    parser.add_argument("--evidence-root", type=Path)
+    parser.add_argument("--observed-exit-code", type=int, help="Exit code captured by the caller waiting for pytest")
+    parser.add_argument("--expected-batch-id", help="Batch ID supplied to pytest, when applicable")
     parser.add_argument("--output-root", required=True, type=Path)
+    parser.add_argument("--diagnostic", action="store_true", help="Produce the historical detailed diagnostic layout")
     args = parser.parse_args()
+    if args.session_result is not None:
+        if args.evidence_root is None:
+            parser.error("--session-result requires --evidence-root")
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "ui-test" / "scripts"))
+        from session_report import generate_session_report
+
+        artifacts = generate_session_report(args.session_result, args.evidence_root, args.output_root,
+                                            args.observed_exit_code, args.expected_batch_id, scan_sensitive,
+                                            stage_delivery=not args.diagnostic)
+        print(json.dumps(artifacts, ensure_ascii=True))
+        return 0
+    if any(value is not None for value in (args.evidence_root, args.observed_exit_code, args.expected_batch_id)):
+        parser.error("session options require --session-result")
     data = read_json(args.input)
     ensure_required(data)
     sensitive = scan_sensitive(data)
     if sensitive:
-        raise ValueError("sensitive fields contain live values: " + ", ".join(sensitive))
+        raise ValueError("sensitive fields contain live values")
 
     run_root = args.input.parent / data["run_root"]
     run_result = build_canonical_run_result(data, run_root)
     data["verified_outcomes"] = verify_report_outcomes(data, run_root)
-    from ui_test_core.path_utils import io_path
-    human_dir, agent_dir = output_paths(data, io_path(args.output_root))
+    from ui_test_core.path_utils import canonical_display_path, io_path
+    layout_root = args.output_root if args.diagnostic else args.output_root / "stage-reports"
+    human_dir, agent_dir = output_paths(data, io_path(layout_root))
     human_dir.mkdir(parents=True, exist_ok=True)
     agent_dir.mkdir(parents=True, exist_ok=True)
     report_path = human_dir / "report.html"
@@ -428,14 +463,30 @@ def main() -> int:
     evidence_index = build_evidence_index(data, report_rel)
     data["report"]["status"] = run_result["overall_status"]
     execution_summary = build_execution_summary(data, report_rel, run_result)
-
-    report_path.write_text(render_html(data), encoding="utf-8")
+    from stage_report import atomic_text, render_stage_html
+    if args.diagnostic:
+        document = render_html(data)
+    else:
+        from ui_test_core.stage_delivery import formal_step
+        steps = [formal_step(step, run_root, run_result) for step in run_result["step_results"]]
+        case = {**run_result, "steps": steps, "status": run_result["overall_status"],
+                "evidence_index": dict(evidence_refs=run_result["evidence_refs"],
+                                       verified_outcomes=data["verified_outcomes"])}
+        document = render_stage_html("playwright", run_result["run_id"], [case])
+        evidence_index.update(layout_contract="stage-report", steps=[
+            dict(step_id=step["step_id"], status=step.get("status"), evidence_refs=step.get("evidence_refs", []),
+                 human_entry=f"report.html#case-1-step-{position}") for position, step in enumerate(steps, 1)])
+        execution_summary.update(step_count=len(steps), passed_steps=sum(step.get("status") == "passed" for step in steps),
+                                 ui_screenshot_count=document.count('class="ui-image-trigger"'))
     (agent_dir / "evidence-index.json").write_text(json.dumps(evidence_index, ensure_ascii=False, indent=2), encoding="utf-8")
     (agent_dir / "run-result.json").write_text(json.dumps(run_result, ensure_ascii=False, indent=2), encoding="utf-8")
     (agent_dir / "execution-summary.json").write_text(json.dumps(execution_summary, ensure_ascii=False, indent=2), encoding="utf-8")
+    atomic_text(report_path, document)
     print(json.dumps({
         "status": "generated",
         "report_html": str(report_path),
+        "report_url": canonical_display_path(report_path).as_uri(),
+        "run_result": str(agent_dir / "run-result.json"),
         "evidence_index": str(agent_dir / "evidence-index.json"),
         "execution_summary": str(agent_dir / "execution-summary.json")
     }, ensure_ascii=False, indent=2))

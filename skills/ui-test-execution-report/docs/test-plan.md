@@ -1,5 +1,9 @@
 # Test Plan
 
+## Session review forward scenario
+
+A reviewer has the two parameterized cases from a completed pytest invocation and a second invocation where a worker disappeared. Produce session reports for each from the recorded controller files, evidence roots, caller-observed exits and original batch IDs. Identify what happened to each node, which result can be used for the batch and where the reviewer can inspect the supporting terminal or receipt. Repeat after removing the controller summary in a disposable copy. Check the existing case-report example with its historical external acceptance record.
+
 ## Deterministic Tests
 
 | Test | Command | Expected |

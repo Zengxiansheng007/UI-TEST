@@ -6,6 +6,8 @@ Changes affecting core-skill-md.
 
 ## Outline
 
+- CR-20261120-026 · 入口与共享待办示例、决定复用函数及针对性测试。
+
 See the linked change records.
 
 ## Detailed Records
@@ -71,3 +73,18 @@ Track normative routing, workflow, validation and escalation changes in `SKILL.m
 - Validation: 副本及部署后结构检查零问题、敏感扫描 clear、49 项回归及六例可见窗口零提交资格通过。
 - Status: validated
 - Detail record: [CR-20260912-001](../entries/2026/2026-09/CR-20260912-001-visible-browser-and-run-scope.md).
+
+### CR-20261120-026 · 编写前核对共享状态
+
+正式脚本派发前核对用户消息、批次节点和具体冲突。 验证及范围见[详细变更记录](../entries/2026/2026-11/CR-20261120-026-shared-state.md)。
+
+### CR-20261120-028 · 人工并行与显式串行
+
+- 变更了正常 pytest 入口的显式范围、重投保护与结果投影。
+- [变更详情](../entries/2026/2026-11/CR-20261120-028-manual-concurrency.md)
+
+### CR-20261120-029 · Codex 明确指令并行
+
+- [变更详情](../entries/2026/2026-11/CR-20261120-029-codex-parallel.md)记录指令范围、冲突复用、派发与逐例验收。
+
+- [CR-20261124-135 · R0 正式断言、V5 与零提交收据](../entries/2026/2026-11/CR-20261124-135-read-only-finalization.md)

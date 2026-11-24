@@ -1,4 +1,5 @@
 """Normal project pytest node. The same source case runs before and after repair."""
+from dataclasses import asdict
 import json
 import re
 from pathlib import Path
@@ -7,6 +8,7 @@ from urllib.parse import urlsplit
 import pytest
 from playwright.sync_api import expect
 from ui_test_core.asset_revision import AssetCatalog, digest, encoded, replace
+from ui_test_core.stage_capture import capture_step
 from ui_test_core.reusable_assets import check_selected_pauses, inside, select_asset
 from ui_test_core.reuse_outcome import ReuseFailure, failure_outcome
 from source_case import BINDINGS, CASE, OTHER, SCOPE, TARGET, assert_rows
@@ -50,9 +52,19 @@ def test_two_rows(browser, ui_test_execution_context):
         page.route("**/*", restrict)
         todo = TodoPage(page)
         todo.open("https://demo.playwright.dev/todomvc/")
+        steps = receipt["steps"] = []
+        def step_for(phase, title):
+            step = dict(step_id=phase, action=title, status="failed", evidence_refs=[])
+            steps.append(step)
+            return step
+        def capture(step, point, target, fact, ref=None):
+            capture_step(page, step, context=asdict(context), run_root=out, point=point,
+                         object_ref=target, observation=fact, ref=ref)
         for index, text in enumerate((OTHER, TARGET), 1):
             todo.fill(text)
             phase = ledger.phase_ids[index-1]
+            step = step_for(phase, "Add " + text)
+            capture(step, "pre_submit", text, "Verified title is filled")
             ledger.reserve(phase)()
             receipt["writes"].append("add")
             replace(out/"use.json", encoded(receipt))  # Reserve before the UI dispatch.
@@ -60,9 +72,12 @@ def test_two_rows(browser, ui_test_execution_context):
             expect(todo.rows).to_have_count(index)
             expect(todo.rows.get_by_text(text, exact=True)).to_be_visible()
             ledger.record(phase,"write_succeeded_verified")
+            capture(step, "final", text, "Matching target visible at expected row count")
+            step["status"] = "passed"
         assert_rows(todo, complete=False)
         receipt["before"] = [False, False, todo.counter.inner_text()]
-        todo.page.screenshot(path=str(out/"before.png"))
+        step = step_for("COMPLETE", "Complete " + TARGET)
+        capture(step, "pre_submit", TARGET, "Both rows are unchecked", "before.png")
 
         def entry(key):
             check_selected_pauses(project, selection, rows, SCOPE)  # Recheck every pinned dependency before executing code.
@@ -96,7 +111,7 @@ def test_two_rows(browser, ui_test_execution_context):
             assert_rows(todo, complete=False)  # The failed lookup left both rows unchanged.
             result = failure_outcome(error, {**SCOPE, **asset, "asset_id": target_id})
             receipt.update(failure=result, after=[False, False, todo.counter.inner_text()])
-            todo.page.screenshot(path=str(out/"failure.png"))
+            capture(step, "timeout", TARGET, "Both rows remain unchecked after stopped lookup", "failure.png")
             replace(out/"use.json", encoded(receipt))  # Failure precedes the scoped pause.
             if result["pause_scope"]:
                 catalog.pause(target_id, asset["version"], SCOPE, expected_revision=revision)
@@ -105,7 +120,14 @@ def test_two_rows(browser, ui_test_execution_context):
         assert_rows(todo, complete=True)
         ledger.record("check-target","write_succeeded_verified")
         receipt.update(assertion_result="passed", after=[True, False, todo.counter.inner_text()])
-        todo.page.screenshot(path=str(out/"after.png"))
+        capture(step, "final", TARGET, "Only the target row is checked", "after.png")
+        step["status"] = "passed"
+    except Exception:
+        if receipt.get("steps"):
+            current = receipt["steps"][-1]
+            if current["status"] == "failed" and not any(i["point"] == "timeout" for i in current.get("images", [])):
+                capture(current, "timeout", current["action"], "Execution stopped before the expected result")
+        raise
     finally:
         replace(out/"use.json", encoded(receipt))
         page_context.close()

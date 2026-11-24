@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+from contextlib import nullcontext
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
@@ -453,9 +454,10 @@ class FinalizationTransaction:
             self._fault(fault_injector, "after_receipt")
             return {"status": "committed", "manifest": manifest, "receipt": receipt}
 
-    def read_committed(self) -> dict[str, Any] | None:
+    def read_committed(self, *, immutable_snapshot: bool = False) -> dict[str, Any] | None:
         """只在 commit、成功 receipt 与两个 object 全部闭合时返回结果。"""
-        with self.store.locked():
+        # Offline readers need no writable lock. Atomic publication makes an incomplete snapshot fail closed.
+        with nullcontext() if immutable_snapshot else self.store.locked():
             manifest = self.store.read_commit()
             receipt = self.store.read_receipt()
             if manifest is None:

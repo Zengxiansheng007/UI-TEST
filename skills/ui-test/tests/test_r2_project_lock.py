@@ -1,7 +1,7 @@
 """r2_project_lock 和 pytest插件R2锁集成的单元/集成测试。
 
 覆盖：首个获取、第二进程冲突、释放后获取、子进程异常退出恢复、
-R0/R1旁路、R3/xdist拒绝、teardown释放、context manager。
+无显式范围时直接执行、R3拒绝、xdist逐例授权、teardown释放、context manager。
 中文注释；不运行测试或输出敏感形状。
 """
 
@@ -319,6 +319,7 @@ class TestAcquireRelease:
             lock.release()
         assert exc_info.value.code == "E_R2_LOCK_RELEASE_FAILED:288"
         assert lock.is_held
+        lock._held, lock._handle = False, None  # 恢复 Win32 前先注销模拟句柄。
 
     @pytest.mark.skipif(
         sys.platform != "win32" and os.name != "nt",
@@ -488,11 +489,11 @@ class TestXdistDetection:
 # 集成测试：pytest插件 R2锁生命周期
 # ===========================================================================
 
-class TestPluginR2LockLifecycle:
-    # R2 item在fixture前获取锁，teardown释放
+class TestDefaultFormalExecution:
+    # 无显式范围时，三个风险级别均使用原准入规则。
 
-    def test_r2_acquires_and_releases_lock(self, pytester: pytest.Pytester) -> None:
-        # R2 PyCharm来源item获取锁并在teardown后释放
+    def test_r2_qualification_without_serial_constraint(self, pytester: pytest.Pytester) -> None:
+        # 模拟 PyCharm 来源以验证候选批准。
         _write_pycharm_conftest(pytester, _V21_CONFIG_YAML)
         pytester.makepyfile(test_r2_lock=textwrap.dedent("""\
             import pytest
@@ -502,12 +503,11 @@ class TestPluginR2LockLifecycle:
             @pytest.mark.branch_id("BRANCH-A")
             @pytest.mark.r2
             def test_r2_lock_acquire(ui_test_execution_context):
-                # 锁应在fixture前获取；context可用即说明setup成功
+                # 确认 setup 产生有效上下文。
                 ctx = ui_test_execution_context
                 assert ctx.risk_level == "r2-ui-write-test"
         """))
         result = pytester.runpytest_subprocess("test_r2_lock.py", "--ui-pre-submit-only", "-v")
-        # setup成功获取锁且fixture可用即说明集成工作
         result.assert_outcomes(passed=1, errors=0, failed=0)
 
     def test_r0_bypasses_lock(self, pytester: pytest.Pytester) -> None:
@@ -564,61 +564,139 @@ class TestPluginR3Blocked:
         result.stdout.fnmatch_lines(["*E_R3_BLOCKED*"])
 
 
-class TestPluginXdistForbidden:
-    # xdist环境下R2并行在锁前报E_R2_PARALLEL_FORBIDDEN
+@pytest.mark.parametrize("distribution", ["load", "each"])
+def test_xdist_runs_each_approved_r2_instance_once(pytester, distribution):
+    pytest.importorskip("xdist")
+    _write_cli_conftest(pytester, _V21_CONFIG_YAML)
+    pytester.makepyfile(test_writes="""
+        import pytest
+        from pathlib import Path
 
-    def test_xdist_r2_forbidden(self, pytester: pytest.Pytester) -> None:
-        _write_cli_conftest(pytester, _V21_CONFIG_YAML)
-        # 模拟xdist环境变量
-        pytester.makepyfile(test_xdist=textwrap.dedent("""\
+        @pytest.mark.parametrize("value", [1, 2])
+        @pytest.mark.ui_test
+        @pytest.mark.case_id("CASE-XDIST")
+        @pytest.mark.branch_id("BRANCH-A")
+        @pytest.mark.r2
+        def test_node(value, ui_test_execution_context):
+            assert ui_test_execution_context.approved
+            with Path(f"calls-{value}").open("a") as stream:
+                print("one dispatch", file=stream)
+    """)
+    result = pytester.runpytest_subprocess("test_writes.py", "-n", "2", "--dist", distribution,
+                                           "--ui-r2-approved", "--ui-pre-submit-only")
+    for value in (1, 2):
+        assert (pytester.path / f"calls-{value}").read_text().splitlines() == ["one dispatch"]
+    if distribution == "each":
+        result.assert_outcomes(passed=2, errors=2)
+        import json
+        summary, = (pytester.path / "evidence/sessions").glob("*.json")
+        session = json.loads(summary.read_text(encoding="utf-8"))
+        assert session["session_status"] == "failed" and session["pytest_exitstatus"] == result.ret
+        assert set(session["denied_duplicate_nodes"]) == set(session["expected_nodes"])
+        assert all(row["disposition"] == "passed" and row["terminal_ref"] for row in session["nodes"])
+    else:
+        result.assert_outcomes(passed=2)
+
+
+@pytest.mark.parametrize("version", ["2.3", "2.4"])
+def test_explicit_scope_conflict_prevents_fixture_and_preserves_neighbor(pytester, version):
+    import json
+    import yaml
+    from scripts.ui_test_core.r2_project_lock import create_r2_project_lock
+
+    blocked = "test_scope.py::test_business[blocked]"
+    neighbor = "test_scope.py::test_business[neighbor]"
+    decision = dict(scope="nodes", node_ids=[blocked], decision_ref="approval:shared-object")
+    config = yaml.safe_load(_V21_CONFIG_YAML)
+    if version == "2.3":
+        (pytester.path / "ui-test.serial-constraints.json").write_text(json.dumps([decision]))
+    else:
+        config.update(schema_version="2.4", serial_constraints=[decision])
+        policy = config["pycharm_manual_execution"]
+        policy.update(contract_version=5, session_result_contract="v2")
+        del policy["r2_parallelism"]
+    _write_cli_conftest(pytester, yaml.safe_dump(config))
+    pytester.makepyfile(test_scope="""
+        import pytest
+        from pathlib import Path
+        @pytest.mark.parametrize("value", ["blocked", "neighbor"])
+        @pytest.mark.ui_test
+        @pytest.mark.case_id("CASE-SCOPE")
+        @pytest.mark.branch_id("primary")
+        @pytest.mark.r2
+        def test_business(value, ui_test_execution_context):
+            assert ui_test_execution_context.approved
+            Path(value).touch(exist_ok=False)
+    """)
+    with create_r2_project_lock(config=config, node_ids=(blocked,)):
+        result = pytester.runpytest_subprocess("test_scope.py", "--ui-pre-submit-only", "--ui-r2-approved")
+    result.assert_outcomes(passed=1, errors=1)
+    assert "该范围被占用，本次未执行" in result.stdout.str()
+    assert not (pytester.path / "blocked").exists() and (pytester.path / "neighbor").exists()
+    summary, = (pytester.path / "evidence/sessions").glob("*.json")
+    entries = {row["node_id"]: row for row in json.loads(summary.read_text(encoding="utf-8"))["nodes"]}
+    assert entries[blocked]["disposition"] == "not_executed"
+    assert blocked in entries[blocked]["missing_reason"] and "attempt_ref" not in entries[blocked]
+    assert entries[neighbor]["disposition"] == "passed"
+
+
+def test_automatic_id_redelivery_cannot_reopen_completed_attempt(pytester):
+    _write_pycharm_conftest(pytester, _V21_CONFIG_YAML)
+    with (pytester.path / "conftest.py").open("a", encoding="utf-8") as conftest:
+        conftest.write(textwrap.dedent("""
             import pytest
 
-            @pytest.mark.ui_test
-            @pytest.mark.case_id("CASE-XDIST-001")
-            @pytest.mark.branch_id("BRANCH-A")
-            @pytest.mark.r2
-            def test_xdist_r2(ui_test_execution_context):
-                pass
+            @pytest.hookimpl(tryfirst=True)
+            def pytest_runtestloop(session):
+                item, = session.items
+                for _ in range(2):
+                    item.ihook.pytest_runtest_protocol(item=item, nextitem=None)
+                return True
         """))
-        result = pytester.runpytest_subprocess("test_xdist.py", 
-            "-v",
-            "--ui-run-id", "UIT-XDIST-001",
-            "--ui-r2-approved",
-            "--ui-pre-submit-only",
-        )
-        # 在没有xdist环境变量的情况下应正常通过
-        result.assert_outcomes(passed=1)
+    pytester.makepyfile(test_replay="""
+        import pytest
+        from pathlib import Path
+        @pytest.mark.ui_test
+        @pytest.mark.case_id("CASE-RERUN")
+        @pytest.mark.branch_id("primary")
+        @pytest.mark.r2
+        def test_once(ui_test_execution_context):
+            with Path("admissions").open("a") as stream:
+                print(ui_test_execution_context.run_id, file=stream)
+    """)
+    result = pytester.runpytest_subprocess("test_replay.py", "--ui-pre-submit-only")
+    result.assert_outcomes(passed=1, errors=1)
+    result.stdout.fnmatch_lines(["*E_ATTEMPT_START_ALREADY_EXISTS*"])
+    assert len((pytester.path / "admissions").read_text().splitlines()) == 1
+    terminal, = (pytester.path / "evidence/attempts").glob("*/terminal.json")
+    import json
+    assert json.loads(terminal.read_text())["status"] == "passed"
 
-    def test_xdist_env_blocks_r2(self, pytester: pytest.Pytester) -> None:
-        # 设置xdist环境变量后R2应被拒绝
-        _write_cli_conftest(pytester, _V21_CONFIG_YAML)
-        pytester.makepyfile(test_xdist_env=textwrap.dedent("""\
-            import pytest
 
-            @pytest.mark.ui_test
-            @pytest.mark.case_id("CASE-XDIST-ENV-001")
-            @pytest.mark.branch_id("BRANCH-A")
-            @pytest.mark.r2
-            def test_xdist_env_r2(ui_test_execution_context):
-                pass
-        """))
-        # 使用子进程环境变量模拟xdist
-        # runpytest_subprocess继承当前环境，需要直接设置
-        old_val = os.environ.get("PYTEST_XDIST_WORKER")
-        os.environ["PYTEST_XDIST_WORKER"] = "gw0"
-        try:
-            result = pytester.runpytest_subprocess("test_xdist_env.py", 
-                "-v",
-                "--ui-run-id", "UIT-XDIST-002",
-                "--ui-r2-approved",
-            )
-        finally:
-            if old_val is None:
-                os.environ.pop("PYTEST_XDIST_WORKER", None)
-            else:
-                os.environ["PYTEST_XDIST_WORKER"] = old_val
-        result.assert_outcomes(errors=1)
-        result.stdout.fnmatch_lines(["*E_R2_PARALLEL_FORBIDDEN*"])
+@pytest.mark.parametrize("environment,approval,expected", [
+    ("test", [], "E_UI_TEST_R2_APPROVAL_REQUIRED"),
+    ("staging", ["--ui-r2-approved"], "E_UI_TEST_R2_TEST_ENVIRONMENT_REQUIRED"),
+])
+def test_worker_requires_own_test_environment_and_approval(pytester, environment, approval, expected):
+    pytest.importorskip("xdist")
+    project = _V21_CONFIG_YAML.replace("environment: test", f"environment: {environment}")
+    project = project.replace("/test/", f"/{environment}/")
+    _write_cli_conftest(pytester, project)
+    pytester.makepyfile(test_worker="""
+        import pytest
+        from pathlib import Path
+        @pytest.mark.ui_test
+        @pytest.mark.case_id("CASE-WORKER")
+        @pytest.mark.branch_id("primary")
+        @pytest.mark.r2
+        def test_run(ui_test_execution_context):
+            Path("fixture-reached").touch()
+    """)
+    result = pytester.runpytest_subprocess("test_worker.py", "-n", "2", "--ui-run-id", "R2-GUARD", *approval)
+    result.assert_outcomes(errors=1)
+    result.stdout.fnmatch_lines(["*" + expected + "*"])
+    assert not (pytester.path / "fixture-reached").exists()
+    assert not list((pytester.path / "evidence/attempts").glob("*/attempt-start.json"))
 
 
 class TestPluginTeardownRelease:

@@ -34,6 +34,8 @@ CHILD = textwrap.dedent(
     transaction_id = "FIN-CRASH-001"
     digest = "sha256:" + "a" * 64
     store = ExecutionAttemptStore(evidence_root=root / "evidence")
+    owner = store.attempt_ownership(run_id=run_id, node_id=node_id)
+    owner.__enter__()  # os._exit exercises kernel release without Python cleanup.
     store.create_attempt_start(
         run_id=run_id,
         node_id=node_id,
@@ -48,6 +50,7 @@ CHILD = textwrap.dedent(
         session_id=session_id,
         finalization_mode="transaction-v1",
     )
+    store.bind_run_target(run_id=run_id, node_id=node_id, run_root=root / "run")
     store.append_event(
         run_id=run_id,
         node_id=node_id,
@@ -149,15 +152,16 @@ def test_hard_exit_never_recovers_transaction_to_passed(
 
     store = ExecutionAttemptStore(evidence_root=tmp_path / "evidence")
 
-    def probe(_attempt):
-        return (
-            "receipt_without_terminal"
-            if transaction.store.read_receipt() is not None
-            else "commit_without_receipt"
-        )
-
-    recovery = AttemptRecovery(store=store).scan_and_recover(finalization_probe=probe)
-    assert recovery["unresolved_attempts"][0]["finalization_state"] == expected_state
+    recovery = AttemptRecovery(store=store)
+    target = dict(run_id="RUN-CRASH-001", node_id="test_crash.py::test_node", run_root=tmp_path / "run")
+    wrong = tmp_path / "unrelated"
+    wrong.mkdir()
+    for unrelated in (wrong, tmp_path / "missing"):
+        assert recovery.recover_attempt(**{**target, "run_root": unrelated}) == {"recovery_type": "unknown-owner"}
+        assert store.read_recovery_events(run_id=target["run_id"], node_id=target["node_id"]) == []
+    result = recovery.recover_attempt(**target)
+    assert result["recovered_from"] == expected_state
+    assert recovery.recover_attempt(**target) == result  # Recovery is idempotent.
     assert store.read_terminal(run_id="RUN-CRASH-001", node_id="test_crash.py::test_node") is None
     recovery_file = next((tmp_path / "evidence" / "attempts").glob("*/recovery.jsonl"))
     record = json.loads(recovery_file.read_text(encoding="utf-8").splitlines()[0])

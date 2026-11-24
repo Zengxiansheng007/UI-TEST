@@ -123,16 +123,18 @@ Read this section when determining completion status, interpreting pytest result
 | pytest 阶段结果 | setup/call/teardown 的 passed/failed/error | 不升级为业务 write 成功；不替代人工验收 |
 | 业务 write state | `write_succeeded_verified` / `write_failed` / `write_succeeded_verification_failed` / `write_outcome_unknown` | 独立于 pytest 状态；由 R2RunGuard 在实际写点观测 |
 | finalization | RunResultV5/evidence object、单一commit manifest、receipt和terminal闭包 | commit/receipt前不得写passed terminal；孤立文件不构成提交 |
-| pytest session | PytestSessionResultV1记录最终session exit与node闭包 | 不修改RunResult、terminal或业务write state |
+| pytest session | PytestSessionResultV2 记录正式节点清单、逐例处置、worker 异常及 pytest 退出码；历史 V1 仍可读取 | 逐例核对 RunResult、terminal 或本次运行模式要求的回执 |
 | 外部PyCharm/人工验收 | PyCharmProcessEvidenceV1记录helper/exit/console摘要，PyCharmAcceptanceResultV1从文件读回绑定全部hash闭包 | 裸字典、RunResult/terminal不得自证；CLI/CI及post-run recovery不自动获得 |
 | 整体完成状态 | 聚合报告的最终 `passed` / `completed` | 必须在人工 A/B 真实 R2 均通过后才可为 passed/completed |
 
 ### 执行门禁引用
 
-- 项目契约2.3、ExecutionContextV4、AttemptV2、指定用例及实际 runner_digest、来源与批准分离、R2跨进程串行和两级diagnostics/attempt边界的完整规则见[asset-governance.md](asset-governance.md#execution-context-governance)。旧项目 2.2、ExecutionContextV3、Approval V2 仅供审计。
-- 版本化Schema见`schemas/execution-context-v4.schema.json`、`execution-attempt-v2.schema.json`、`run-result-v5.schema.json`、`finalization-commit-v1.schema.json`、`run-finalization-receipt-v1.schema.json`、`pytest-session-result-v1.schema.json`、`pycharm-process-evidence-v1.schema.json`和`pycharm-acceptance-result-v1.schema.json`；来源分类和Run ID resolver仍见`scripts/ui_test_core/pycharm_runtime.py`。
+- 项目契约2.4及2.3投影、ExecutionContextV5、AttemptV2、指定用例及实际 runner_digest、来源与批准分离、显式串行范围和两级diagnostics/attempt边界的完整规则见[asset-governance.md](asset-governance.md#execution-context-governance)。旧项目 2.2、ExecutionContextV3、Approval V2 仅供审计。
+- 版本化Schema见`schemas/execution-context-v5.schema.json`、`execution-attempt-v2.schema.json`、`run-result-v5.schema.json`、`finalization-commit-v1.schema.json`、`run-finalization-receipt-v1.schema.json`、`pytest-session-result-v2.schema.json`、`pycharm-process-evidence-v1.schema.json`和`pycharm-acceptance-result-v1.schema.json`；来源分类和Run ID resolver仍见`scripts/ui_test_core/pycharm_runtime.py`。
 - `pre-submit qualification`保留qualification attempt/terminal与QualificationResult，但不得生成普通业务run要求的R2ApprovalRecord、RunResultV5、commit或receipt；普通run不得跳过事务化finalization。
 - 普通业务run顺序固定为：最终teardown TestReport → `finalization_started` → 项目候选 → content-addressed objects → 单一原子commit manifest → 成功receipt → `finalization_committed` → 唯一passed terminal。任一步失败均不得保留passed terminal。
 - finalizer异常、非法返回或Schema/闭包失败必须写脱敏failure receipt并将teardown改为失败；`report.longrepr`与TeamCity details必须包含稳定错误码和异常类的非空摘要，不得包含原始业务值、私有URL或凭据。
-- `pytest_sessionfinish`生成PytestSessionResultV1并记录最终exit；session exit非零、receipt缺失或`recovery_mode=post-run`时，外部AcceptanceResult必须拒绝`pycharm_integration/human_r2=passed`。
-- 人工PyCharm普通点击在2.3项目策略、显式指定的用例、test/R2和串行锁全部满足时，Approval V3继续使用机器值`approval_source=pycharm-project-policy`；CLI/CI显式批准继续使用`explicit-cli`，但两者都不能让RunResultV5自证人工验收。
+- 一次 pytest 调用对应一个会话。本机 xdist 的 controller 对照每个 worker 收集的正式节点清单，汇总通过 pytest report 回传的结果。普通 pytest 使用同一汇总规则。会话结果写入项目证据根的 `sessions/<session_id>.json`。
+- 单节点 CLI 继续使用 `--ui-run-id`。显式选定的文件展开为多个正式节点时，每个参数化节点自动取得独立 Run ID。用 `--ui-batch-id BATCH-A` 为整批命名。同名批次再次启动会生成新的会话。重复投递同一获准节点时，查看会话的 `denied_duplicate_nodes`。已执行实例的终态及回执继续可查，拒绝记录和进程退出码反映整批失败。
+- 核对整批结论时，将调用方观察到的进程退出码与会话记录比较，再检查完整收集清单和逐例终态。事务模式还要核对回执及 V5。缺少会话文件应报告不完整。退出非零、缺少必需回执或 `recovery_mode=post-run` 时，外部验收不能通过。
+- 人工PyCharm普通点击在有效项目策略、显式指定的用例、test/R2及所有匹配的串行约束均满足时，Approval V3继续使用机器值`approval_source=pycharm-project-policy`；CLI/CI显式批准继续使用`explicit-cli`，但两者都不能让RunResultV5自证人工验收。

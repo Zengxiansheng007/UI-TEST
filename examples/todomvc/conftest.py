@@ -19,7 +19,7 @@ def pytest_addoption(parser):
     parser.addoption('--ui-candidate-build', default=None)
 
 def pytest_ui_test_project_config_path():
-    return str(ROOT / 'ui-test.project.yaml')  # 始终原2.2，绝不读planning副本。
+    return str(ROOT / 'ui-test.project.yaml')  # 使用当前工作树的项目配置。
 
 def pytest_ui_test_execution_evidence_root():
     return str(ROOT / 'execution-evidence')
@@ -40,7 +40,10 @@ def pytest_ui_test_build_finalization_candidate_v1(run_id, node_id, transaction_
             raise ValueError('E_SOURCE_STEPS_INCOMPLETE')
         for row in pending['steps']:
             screenshot = 'reports/' + row['step_id'] + '.png'
-            if row['status'] != 'passed' or screenshot not in row['evidence_refs'] or not (run_root / screenshot).is_file():
+            bound = screenshot in row['evidence_refs'] and (run_root / screenshot).is_file()
+            missing = any(image.get('missing_reason') and image.get('step_id') == row['step_id']
+                          and image.get('run_id') == run_id for image in row.get('images', []))
+            if row['status'] != 'passed' or not (bound or missing):
                 raise ValueError('E_SOURCE_STEP_EVIDENCE_INCOMPLETE')
     for step in pending['steps']:
         if step['step_id'] == 'COMPLETE' and 'strategy_use_ref' in step:
@@ -71,7 +74,12 @@ def pytest_ui_test_build_finalization_candidate_v1(run_id, node_id, transaction_
             if linked and detail is None:
                 step['evidence_refs'].remove(relative)  # 缺失的明细不构成可交付证据。
     context_ref, context_hash = attempt_store.read_execution_context_ref_and_hash(run_id=run_id, node_id=node_id)
-    result = build_run_result_v5(run_root=run_root, snapshot_path=run_root / 'reports/resolved-test-data.json', transaction_id=transaction_id, session_id=context['session_id'], execution_context_ref=context_ref, execution_context_hash=context_hash, attempt_ref=context['attempt_ref'], pre_terminal_events_hash=pre_terminal_events_hash, approval_ref='approval-record.json', approval_hash=pending['approval_hash'], run_id=run_id, node_id=node_id, case_id=context['case_id'], branch_id=context['branch_id'], pytest_phase_status=dict(pytest_phase_status), overall_status='passed' if all(v == 'passed' for v in pytest_phase_status.values()) else 'failed', write_state=pending['write_state'], submit_count=pending['submit_count'], step_results=pending['steps'], evidence_refs=[ref for row in pending['steps'] for ref in row['evidence_refs']], cleanup_status='not_planned_this_release', stage_write_budget=context['config_summary'].get('stage_write_budget'), phase_results=pending['phase_results'] if context['config_summary'].get('stage_write_budget') else None)
+    evidence_refs = [ref for row in pending['steps'] for ref in row['evidence_refs']]
+    artifact_index = run_root / 'playwright/artifacts.json'
+    if artifact_index.is_file():  # Only link archived artifacts after their digests were recorded.
+        evidence_refs.extend(entry['ref'] for entry in read(artifact_index))
+        evidence_refs.append('playwright/artifacts.json')
+    result = build_run_result_v5(run_root=run_root, snapshot_path=run_root / 'reports/resolved-test-data.json', transaction_id=transaction_id, session_id=context['session_id'], execution_context_ref=context_ref, execution_context_hash=context_hash, attempt_ref=context['attempt_ref'], pre_terminal_events_hash=pre_terminal_events_hash, approval_ref='approval-record.json', approval_hash=pending['approval_hash'], run_id=run_id, node_id=node_id, case_id=context['case_id'], branch_id=context['branch_id'], pytest_phase_status=dict(pytest_phase_status), overall_status='passed' if all(v == 'passed' for v in pytest_phase_status.values()) else 'failed', write_state=pending['write_state'], submit_count=pending['submit_count'], step_results=pending['steps'], evidence_refs=evidence_refs, cleanup_status='not_planned_this_release', stage_write_budget=context['config_summary'].get('stage_write_budget'), phase_results=pending['phase_results'] if context['config_summary'].get('stage_write_budget') else None)
     assert not verify_run_result_v5_links(result, run_root=run_root)
     return {'run_result': result, 'evidence_index': build_evidence_index_v2(result, run_result_ref='objects/' + '0' * 64 + '.json')}
 
@@ -80,6 +88,6 @@ def browser_type_launch_args(browser_type_launch_args):
     return {**browser_type_launch_args, 'headless': False}
 
 @pytest.fixture
-def ui_test_runtime(ui_test_execution_context, browser, request):
-    return PracticeRuntime(ui_test_execution_context, browser, request.config.getoption('--ui-pre-submit-only'),
+def ui_test_runtime(ui_test_execution_context, new_context, request):
+    return PracticeRuntime(ui_test_execution_context, new_context, request.config.getoption('--ui-pre-submit-only'),
                            request.config.getoption('--ui-experience-trial'))

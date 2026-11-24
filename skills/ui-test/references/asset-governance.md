@@ -62,21 +62,23 @@ After write/run: scan produced paths and formal references, validate hashes and 
 
 ## Execution Context Governance
 
-### 2.3执行门禁与旧版本历史审计
+### 项目配置和运行记录版本
 
-- 所有新正式 UI-Test 执行必须使用项目契约2.3（`schema_version: 2.3`、`contract_version: 4`）和ExecutionContextV4，并声明`finalization_contract: transaction-v1`、`run_result_contract: v5`、`session_result_contract: v1`、`acceptance_contract: external-exit-v1`。2.1/ExecutionContextV2/ExecutionAttemptV1/RunResultV4及更早版本永久只读，仅供历史审计；缺失、未知或冲突值均在BrowserContext前阻断。
-- 2.3继续要求`origin_detection: jetbrains-runner-path`、`entry_scope: specified-runner`、`r2_authorization: auto-test-only`、`run_scope: per-node`、`r2_parallelism: serial-project-environment`；新契约字段不得削弱这些既有门禁。
+- 新项目以 [2.4 项目配置](../assets/project-v2.4.template.json) 为模板，设置 `contract_version: 5`、`session_result_contract: v2`。正式入口要求明确选择 runner；R2 批准、阶段预算和写入提交继续独立校验。
+- 切换项目的正式入口前，等待使用旧运行时的进程退出，核对原节点 terminal 与回执。旧进程无法读取新版策略。2.3 原配置使用原 Schema 核验；缺少明确决定时，旧模板的串行常量读取为 `legacy-template-default`。
+- 2.4 可在项目顶层写入 `serial_constraints` 数组。2.3 可在项目配置同目录放置 `ui-test.serial-constraints.json`，内容为同一数组。每项含 `decision_ref` 与 `scope`。全项目选 `project-environment`，限定节点选 `nodes` 并列出 `node_ids`。执行上下文保存原配置版本、原配置摘要和实际选用的来源与约束。
+- 本次执行产生 ExecutionContextV5、RunResultV5、SessionResultV2。原 ExecutionContextV4 和 SessionResultV1 按记录版本校验；2.2 及以前项目执行前仍需迁移。
 
 ### 通用 pytest 插件为唯一控制层
 
-- 所有项目通过根 `conftest.py` 显式加载`ui_test_core.pytest_runtime_plugin`。该插件是ExecutionContextV4、AttemptV2、finalization状态和SessionResult的唯一控制层：注册参数、分类来源、绑定node并收集最终pytest阶段结果。项目runtime只消费已验证上下文并返回候选，不得自行识别PyCharm、生成Run ID、授予R2批准或写terminal。
+- 所有项目通过根 `conftest.py` 显式加载`ui_test_core.pytest_runtime_plugin`。该插件是ExecutionContextV5、AttemptV2、finalization状态和SessionResult的唯一控制层：注册参数、分类来源、绑定node并收集最终pytest阶段结果。项目runtime只消费已验证上下文并返回候选，不得自行识别PyCharm、生成Run ID、授予R2批准或写terminal。
 - 普通正式业务run由插件驱动项目finalizer生成RunResultV5/evidence候选，再交给core事务存储。`--ui-pre-submit-only`保留qualification attempt/terminal并由独立QualificationResult表达，但不得生成业务RunResultV5、commit或receipt；不得因缺少业务pending把成功qualification改写为teardown失败。
 - 缺失插件加载的收集必须失败。`pytest --trace-config` 可证明加载。
 
 ### 来源与批准分离
 
-- `execution_origin` 与 R2 授权决定分离。JetBrains runner 真实入口路径只产生 `pycharm` 来源分类，不独立授予写权限。实际批准由来源策略、risk level、environment、entry scope 和 R2 串行锁共同决定。
-- 当上述2.3项目策略完整满足并由普通PyCharm Run/Rerun/Debug触发自动R2时，稳定`approval_source`为`pycharm-project-policy`；它表示项目策略对当前node的一次性批准，不是跨run的人工长期授权。
+- `execution_origin` 与 R2 授权决定分离。JetBrains runner 真实入口路径只产生 `pycharm` 来源分类，不独立授予写权限。实际批准由来源策略、risk level、environment、entry scope 共同决定。相应节点还须取得所有适用的显式串行范围。
+- 当上述受支持项目策略完整满足并由普通PyCharm Run/Rerun/Debug触发自动R2时，稳定`approval_source`为`pycharm-project-policy`；它表示项目策略对当前node的一次性批准，不是跨run的人工长期授权。
 - 非 PyCharm 入口（CLI/CI/Codex）无显式 Run ID 或批准时必须 fail closed，不得使用固定 `manual-run` 回退。
 
 ### 指定用例与来源摘要
@@ -87,9 +89,9 @@ After write/run: scan produced paths and formal references, validate hashes and 
 - PyCharm 2025.3 还可能改写 `__main__.__file__`；Windows resolver 因此通过 `GetCommandLineW` 与 `CommandLineToArgvW` 读取创建进程时的原始 argv，但只检查脚本入口位置 `[1]`。后续普通 pytest 参数中的同名路径不得产生 PyCharm 来源或 R2 批准。
 - PyCharm helper 会为本地 TeamCity 测试消息协议设置 `TEAMCITY_VERSION`。该单一传输标记不得覆盖严格验证的 JetBrains runner；其他强 CI 标记仍优先，且没有 runner 时 `TEAMCITY_VERSION` 仍分类为 CI。
 
-### R2 跨进程串行
+### 显式串行范围
 
-- R2 使用 `project_group+product+environment` 跨进程锁保证串行。锁冲突立即报 `E_R2_PROJECT_LOCK_HELD`，不排队。锁持有者异常结束后可恢复且不伪造成功。
+- 2.4 使用 `serial_constraints`，2.3 使用同目录的 `ui-test.serial-constraints.json` 记录明确决定。`project-environment` 覆盖当前项目环境全部正式节点，`nodes` 按完整 pytest nodeid 集合匹配。每一匹配约束在 fixture 前非阻塞取得；发生占用时显示具体范围、决定引用和“该范围被占用，本次未执行”。操作系统在持有者退出时释放锁。没有匹配约束时可直接执行。
 
 ### 两级 Diagnostics/Attempt 边界
 
@@ -101,8 +103,8 @@ After write/run: scan produced paths and formal references, validate hashes and 
 - RunResultV5与evidence index先进入受控staging，再安装为`objects/<sha256>.json`内容寻址payload；读者只把单一`finalization-commit.json`视为提交点，孤立staging、object或固定旧文件名均不构成提交。
 - commit必须先于成功RunFinalizationReceipt，成功receipt必须先于唯一passed terminal。commit前失败不得留下可接受半成品；commit后缺receipt只能记录`status=failed`、`recovery_mode=post-run`，永远不能追认为同进程通过。
 - finalizer异常或非法返回必须生成Schema有效的脱敏failure receipt，持久化稳定`error_code`、`exception_class`与`message_digest`，同时向pytest TestReport和TeamCity提供非空`longrepr/details`；不得持久化原始异常消息、私有URL或凭据。
-- `pytest_sessionfinish`只生成PytestSessionResultV1，记录最终`pytest_exitstatus`及每node terminal/receipt闭包；它不得补写passed terminal、修改RunResult或升级业务状态。
-- 外部进程控制器先生成PyCharmProcessEvidenceV1，只保留helper路径/内容摘要、真实observed exit及stdout/stderr哈希；PyCharmAcceptanceResultV1只能从实际文件读回生成，并绑定该进程证据、ExecutionContextV4、terminal、授权、RunResultV5、commit、receipt和SessionResult。只有session exit=0、helper exit=0、无post-run recovery且闭包完整时，`pycharm_integration`和`human_r2`才可为passed。
+- `pytest_sessionfinish`生成 PytestSessionResultV2，记录预期节点、各节点的实际处置、已有 terminal/receipt 引用及最终 pytest 退出状态；它不得补写passed terminal、修改RunResult或升级业务状态。
+- 外部进程控制器先生成PyCharmProcessEvidenceV1，只保留helper路径/内容摘要、真实observed exit及stdout/stderr哈希；PyCharmAcceptanceResultV1只能从实际文件读回生成，并绑定该进程证据、对应版本的 ExecutionContext、terminal、授权、RunResultV5、commit、receipt和SessionResult。只有session exit=0、helper exit=0、无post-run recovery且闭包完整时，`pycharm_integration`和`human_r2`才可为passed。
 
 ### 分层完成状态
 

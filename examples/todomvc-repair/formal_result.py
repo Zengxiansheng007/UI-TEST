@@ -62,14 +62,23 @@ def pytest_ui_test_build_finalization_candidate_v1(run_id,node_id,transaction_id
     passed = all(s=="passed" for s in pytest_phase_status.values())
     if passed:
         assert use["assertion_result"] == use["action_result"] == "passed"
-    refs = ["use.json",*[p.name for p in sorted(out.glob("*.png"))]]
-    step = dict(step_id="COMPLETE",status="passed" if passed else "failed",evidence_refs=refs,
-                asset_use_hash=canonical_hash(use))
+    if "steps" in use:
+        steps = use["steps"]
+        refs = ["use.json", *(ref for step in steps for ref in step["evidence_refs"])]
+        for step in steps:
+            if step["step_id"] == use["step_id"]:
+                step.update(asset_use_hash=canonical_hash(use))
+                step["evidence_refs"].append("use.json")
+    else:
+        # Retry of a recorded attempt produced before phase captures were available.
+        refs = ["use.json", *(p.name for p in sorted(out.glob("*.png")))]
+        steps = [dict(step_id="COMPLETE",status="passed" if passed else "failed",evidence_refs=refs,
+                      asset_use_hash=canonical_hash(use))]
     result = build_run_result_v5(run_root=out,snapshot_path=out/"resolved-test-data.json",
         transaction_id=transaction_id,session_id=c["session_id"],execution_context_ref=ref,execution_context_hash=sha,
         attempt_ref=c["attempt_ref"],pre_terminal_events_hash=pre_terminal_events_hash,approval_ref="approval.json",
         approval_hash=canonical_hash(json.loads((out/"approval.json").read_bytes())),run_id=run_id,node_id=node_id,
         case_id=c["case_id"],branch_id=c["branch_id"],pytest_phase_status=dict(pytest_phase_status),
-        overall_status="passed" if passed else "failed",write_state=state,submit_count=n,step_results=[step],
+        overall_status="passed" if passed else "failed",write_state=state,submit_count=n,step_results=steps,
         evidence_refs=refs,stage_write_budget=c["config_summary"]["stage_write_budget"],phase_results=phases)
     return dict(run_result=result,evidence_index=build_evidence_index_v2(result,run_result_ref="objects/"+"0"*64+".json"))

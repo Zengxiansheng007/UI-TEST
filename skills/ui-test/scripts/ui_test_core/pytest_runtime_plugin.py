@@ -2,10 +2,7 @@
 
 本插件是执行上下文的唯一控制层。项目 runtime 通过 ``ui_test_execution_context`` fixture
 消费已验证上下文，不得自行识别 PyCharm 来源、生成 Run ID 或授予 R2 批准。
-ST-005：为R2 item在fixture前获取跨进程非阻塞串行锁，在teardown/finalizer释放；
-R0/R1不获取锁；R3报E_R3_BLOCKED；xdist并行在锁前报E_R2_PARALLEL_FORBIDDEN。
-ST-006：collection阶段身份/配置门禁错误写diagnostics且不创建attempt；
-R2锁成功后、R0/R1 setup开始时创建attempt-start；
+匹配项目显式串行范围的节点在 fixture 前取得范围锁。
 记录setup/call/teardown阶段事件并在正常pytest生命周期末生成唯一terminal。
 新增execution evidence root hookspec。
 """
@@ -14,6 +11,7 @@ from __future__ import annotations
 
 import hashlib  # 生成不暴露本机路径的来源与配置摘要。
 import json  # 读取ExecutionContextV2 Schema。
+import os
 import re  # 校验Run ID和摘要格式。
 import uuid  # 为每个pytest宿主进程生成唯一session identity。
 from dataclasses import asdict, dataclass  # 构建并验证只读上下文对象。
@@ -24,22 +22,21 @@ from typing import Any, Callable, Mapping  # 声明稳定的输入结构。
 import pytest  # pytest 插件入口与 hookspec 依赖。
 from jsonschema import Draft202012Validator  # 在上下文进入fixture前执行正式Schema校验。
 
-from .attempt_recovery import AttemptRecovery
+from contextlib import ExitStack
 from .case_contracts import canonical_hash, validate_document
 from .execution_attempt_store import (
     ExecutionAttemptStore,
     ExecutionAttemptStoreError,
     derive_attempt_directory_name,
 )
-from .pycharm_runtime import resolve_pycharm_run_context
+from .pycharm_runtime import classify_execution_origin, resolve_pycharm_run_context
+from .session_evidence import FormalSession
 from .finalization_transaction import FinalizationTransaction, FinalizationTransactionError
 from .project_config import ProjectConfigError, load_project_config
 from .path_utils import io_path
 from .r2_project_lock import (
-    R2ProjectLock,
     R2ProjectLockError,
     create_r2_project_lock,
-    detect_xdist_parallel,
 )
 
 
@@ -57,10 +54,10 @@ def _utc_now() -> str:
 
 
 @dataclass(frozen=True)
-class _ExecutionContextV4:
-    """ExecutionContextV4 的不可变运行时表示。"""
+class _ExecutionContextV5:
+    """ExecutionContextV5 的不可变运行时表示。"""
 
-    schema_version: str  # 固定为 ui-test.execution-context.v4
+    schema_version: str  # 固定为 ui-test.execution-context.v5
     session_id: str  # 当前pytest宿主进程唯一会话ID
     execution_origin: str  # pycharm | codex-cli | cli | ci | unknown
     origin_evidence: dict[str, Any]  # 来源证据摘要，不含绝对路径
@@ -80,17 +77,29 @@ class _ExecutionContextV4:
     run_result_contract: str  # v5
     session_result_contract: str  # v1
     acceptance_contract: str  # external-exit-v1
+    execution_channel: str
     config_summary: dict[str, Any]  # 已验证v2.1策略快照
 
 
+@dataclass(frozen=True)
+class _DispatchedContext(_ExecutionContextV5):
+    task_ref: str
+    batch_ref: str
+
+
 #: 每个 item 存放其 ExecutionContextV2 的 stash key。
-EXECUTION_CONTEXT_KEY: pytest.StashKey[_ExecutionContextV4] = pytest.StashKey()
+EXECUTION_CONTEXT_KEY: pytest.StashKey[_ExecutionContextV5] = pytest.StashKey()
 
 #: marker 校验失败时存放错误码的 stash key，供 pytest_runtest_setup 使用。
 _MARKER_ERROR_KEY: pytest.StashKey[str] = pytest.StashKey()
 
-#: R2锁对象存放的 stash key；None表示非R2 item或锁未获取。
-_R2_LOCK_KEY: pytest.StashKey[R2ProjectLock | None] = pytest.StashKey()
+_SCOPE_LOCKS: pytest.StashKey[ExitStack] = pytest.StashKey()  # 同一节点可受多个决定约束。
+_SESSION_TIME: pytest.StashKey[str] = pytest.StashKey()  # 重投使用同一自动编号。
+_NOT_EXECUTED: pytest.StashKey[str] = pytest.StashKey()
+
+
+_RUN_TARGET_KEY: pytest.StashKey[Mapping[str, Any]] = pytest.StashKey()
+_ATTEMPT_OWNER_KEY: pytest.StashKey[ExitStack] = pytest.StashKey()
 
 #: ST-006：每个 item 的 ExecutionAttemptStore 存放的 stash key。
 _ATTEMPT_STORE_KEY: pytest.StashKey[Any] = pytest.StashKey()
@@ -103,7 +112,8 @@ _PHASE_REPORTS_KEY: pytest.StashKey[dict[str, pytest.TestReport]] = pytest.Stash
 
 #: pytest进程级session与节点终态投影；仅用于sessionfinish写入只读结果。
 _SESSION_ID_KEY: pytest.StashKey[str] = pytest.StashKey()
-_SESSION_NODE_RESULTS_KEY: pytest.StashKey[list[dict[str, Any]]] = pytest.StashKey()
+_SESSION: pytest.StashKey[FormalSession] = pytest.StashKey()
+_PROJECT: pytest.StashKey[Mapping] = pytest.StashKey()
 _SESSION_EVIDENCE_ROOT_KEY: pytest.StashKey[str] = pytest.StashKey()
 
 
@@ -189,6 +199,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     本插件使用唯一前缀 ``--ui-`` 避免与项目私有参数碰撞。
     """
     group = parser.getgroup("ui-test-execution", "UI-Test Execution Context")
+    group.addoption("--ui-batch-id", help="Label this batch; each selected node gets its own run ID.")
     group.addoption(
         _OPTION_RUN_ID,
         action="store",
@@ -213,14 +224,30 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 def pytest_configure(config: pytest.Config) -> None:
     """注册正式marker，避免项目依赖外部pytest.ini才能解释测试身份。"""
 
-    config.stash[_SESSION_ID_KEY] = "SESSION-" + uuid.uuid4().hex.upper()
-    config.stash[_SESSION_NODE_RESULTS_KEY] = []
+    worker = getattr(config, "workerinput", {})
+    config.stash[_SESSION_ID_KEY] = worker.get("ui_test_session_id") or "SESSION-" + uuid.uuid4().hex.upper()
+    config.stash[_SESSION_TIME] = worker.get("ui_test_session_time") or _utc_now()
+    if os.environ.get("UI_TEST_CODEX_TASK_REF"):
+        if not config.pluginmanager.hasplugin("ui_test_core.codex_pytest_dispatch"):
+            raise pytest.UsageError("E_CODEX_USE_TASK_DISPATCHER")
+        config._ui_test_dispatch_session = config.stash[_SESSION_ID_KEY]
+    config.stash[_SESSION] = FormalSession()
+    config.pluginmanager.register(config.stash[_SESSION])
+    batch = config.getoption("--ui-batch-id")
+    if batch is not None and not re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", batch):
+        raise pytest.UsageError("Invalid --ui-batch-id")
+
+    output = getattr(config.option, "output", None)
+    if output:
+        session_id = getattr(config, "workerinput", {}).get("ui_test_session_id", config.stash[_SESSION_ID_KEY])
+        instance = uuid.uuid4().hex  # Worker names can be reused after a crash.
+        config.option.output = str(Path(output) / session_id / instance)
 
     markers = {
         "ui_test": "正式UI-Test节点",
         "case_id(value)": "稳定Source Case标识",
         "branch_id(value)": "稳定branch标识",
-        "r0": "只读公开风险",
+        "r0": "只读公开风险；formal_result=True 使用零提交 V5 事务",
         "r1": "只读认证风险",
         "r2": "测试环境可见UI单写风险",
         "r3": "禁止执行的高风险",
@@ -312,7 +339,7 @@ def _sha256_bytes(data: bytes) -> str:
 
 
 def _build_config_summary(config: Mapping[str, Any]) -> dict[str, Any]:
-    """从 v2.3 项目配置提取 ExecutionContextV4 的契约快照。"""
+    """从当前或兼容项目配置提取 ExecutionContextV5 的契约快照。"""
     policy = config.get("pycharm_manual_execution") if isinstance(config.get("pycharm_manual_execution"), Mapping) else {}
     return {
         "schema_version": config["schema_version"],
@@ -321,10 +348,10 @@ def _build_config_summary(config: Mapping[str, Any]) -> dict[str, Any]:
         "entry_scope": policy["entry_scope"],
         "r2_authorization": policy["r2_authorization"],
         "run_scope": policy["run_scope"],
-        "r2_parallelism": policy["r2_parallelism"],
+        "effective_concurrency": config["effective_concurrency"],
         "finalization_contract": policy["finalization_contract"],
         "run_result_contract": policy["run_result_contract"],
-        "session_result_contract": policy["session_result_contract"],
+        "session_result_contract": "v2",
         "acceptance_contract": policy["acceptance_contract"],
     }
 
@@ -335,8 +362,8 @@ def _build_execution_context(
     marker_info: dict[str, Any],
     config: pytest.Config,
     pycharm_config: Mapping[str, Any] | None,
-) -> _ExecutionContextV4:
-    """为单个 ui_test item 构建 ExecutionContextV4 并存入 item.stash。
+) -> _ExecutionContextV5:
+    """为单个 ui_test item 构建 ExecutionContextV5 并存入 item.stash。
 
     从所选文件获取实际来源摘要，核对当前运行授权。本 Story 不获取 R2 锁、不创建 attempt 文件。
     """
@@ -347,7 +374,12 @@ def _build_execution_context(
 
     # CLI 参数
     requested_run_id = config.getoption(_OPTION_RUN_ID, None) or None
-    explicitly_approved = bool(config.getoption(_OPTION_R2_APPROVED, False))
+    if len(config.stash[_SESSION].expected) > 1:
+        if requested_run_id:
+            raise _MarkerError(node_id, "E_MULTI_NODE_RUN_ID: use --ui-batch-id instead of --ui-run-id")
+        seed = f"{config.stash[_SESSION_ID_KEY]}:{node_id}"
+        requested_run_id = "UIT-" + hashlib.sha256(seed.encode()).hexdigest()[:32].upper()
+    explicitly_approved = bool(config.getoption(_OPTION_R2_APPROVED, False)) and not _formal_read_only(item)
     declared_origin = config.getoption(_OPTION_EXECUTION_ORIGIN, None) or None
 
     if pycharm_config is None:
@@ -371,11 +403,16 @@ def _build_execution_context(
         requested_run_id=requested_run_id,
         explicitly_approved=explicitly_approved,
         declared_origin=declared_origin,
+        now=datetime.fromisoformat(config.stash[_SESSION_TIME]),
+        unique_suffix=config.stash[_SESSION_ID_KEY][-8:],
+        controller_origin=getattr(config, "workerinput", {}).get("ui_test_origin"),
     )
 
     if not isinstance(resolver_result.get("run_id"), str) or not resolver_result["run_id"]:
         raise _MarkerError(node_id, "E_FORMAL_RUN_ID_REQUIRED")  # 正式上下文不得携带Schema不允许的空Run ID。
 
+    if risk_level == "r2-ui-write-test" and resolver_result["environment"] != "test":
+        raise _MarkerError(node_id, "E_UI_TEST_R2_TEST_ENVIRONMENT_REQUIRED")
     if risk_level == "r2-ui-write-test" and not resolver_result["approved"] and not config.getoption("--ui-pre-submit-only", False):
         raise _MarkerError(node_id, "E_UI_TEST_R2_APPROVAL_REQUIRED")
     runner_path = Path(str(item.path)).resolve()
@@ -406,10 +443,11 @@ def _build_execution_context(
             "run_result_contract", "session_result_contract", "acceptance_contract",
         )
     }
+    contract_material["effective_concurrency"] = config_summary["effective_concurrency"]
     if budget is not None:
         contract_material["stage_write_budget"] = budget
-    context = _ExecutionContextV4(
-        schema_version="ui-test.execution-context.v4",
+    context = _ExecutionContextV5(
+        schema_version="ui-test.execution-context.v5",
         session_id=session_id,
         execution_origin=resolver_result["execution_origin"],
         origin_evidence=resolver_result["origin_evidence"],
@@ -433,9 +471,13 @@ def _build_execution_context(
         run_result_contract=config_summary["run_result_contract"],
         session_result_contract=config_summary["session_result_contract"],
         acceptance_contract=config_summary["acceptance_contract"],
+        execution_channel="xdist-worker" if hasattr(config, "workerinput") else "single-process",
         config_summary=config_summary,
     )
-    context_schema = json.loads((SKILL_ROOT / "schemas" / "execution-context-v4.schema.json").read_text(encoding="utf-8"))
+    intent = getattr(config, "_ui_test_codex_request", None)
+    if intent:
+        context = _DispatchedContext(**asdict(context), task_ref=intent["task_ref"], batch_ref=intent["batch_ref"])
+    context_schema = json.loads((SKILL_ROOT / "schemas" / "execution-context-v5.schema.json").read_text(encoding="utf-8"))
     errors = sorted(Draft202012Validator(context_schema).iter_errors(asdict(context)), key=lambda error: list(error.absolute_path))
     if errors:
         raise _MarkerError(node_id, "E_UI_TEST_EXECUTION_CONTEXT_SCHEMA_INVALID")
@@ -471,7 +513,7 @@ def pytest_collection_modifyitems(
     非 ui_test 普通 pytest 用例不受影响。marker 缺失/冲突不在此处 fail，
     而是存入 _MARKER_ERROR_KEY，由 pytest_runtest_setup 在 item 执行前失败。
 
-    ST-005：R3 item 存入 E_R3_BLOCKED 错误码；xdist并行检测在锁前执行。
+    ST-005：R3 item 存入 E_R3_BLOCKED 错误码。
     ST-006：collection阶段身份/配置/门禁错误写diagnostics且不创建attempt。
     """
     hookrelay = session.config.hook
@@ -486,9 +528,6 @@ def pytest_collection_modifyitems(
     else:
         config_error = "E_UI_TEST_PROJECT_CONFIG_REQUIRED"
 
-    # ST-005：检测xdist并行环境；R2并行在锁前报E_R2_PARALLEL_FORBIDDEN。
-    _xdist_parallel = detect_xdist_parallel(config=config)
-
     # ST-006：获取execution evidence root，用于写入diagnostics。
     evidence_root = hookrelay.pytest_ui_test_execution_evidence_root()
     attempt_store: ExecutionAttemptStore | None = None
@@ -496,30 +535,6 @@ def pytest_collection_modifyitems(
         config.stash[_SESSION_EVIDENCE_ROOT_KEY] = evidence_root
         try:
             attempt_store = ExecutionAttemptStore(evidence_root=evidence_root)
-            def _probe_finalization(attempt_info: Mapping[str, Any]) -> str | None:
-                run_id = attempt_info.get("run_id")
-                node_id = attempt_info.get("node_id")
-                if not isinstance(run_id, str) or not run_id or not isinstance(node_id, str) or not node_id:
-                    return None
-                target = hookrelay.pytest_ui_test_finalization_target_v1(
-                    run_id=run_id, node_id=node_id, attempt_store=attempt_store
-                )
-                if not isinstance(target, Mapping) or not isinstance(target.get("run_root"), str):
-                    return None
-                transaction = FinalizationTransaction(target["run_root"])
-                commit = transaction.store.read_commit()
-                receipt = transaction.store.read_receipt()
-                if commit is not None and receipt is not None:
-                    return "receipt_without_terminal"
-                if commit is not None:
-                    return "commit_without_receipt"
-                if receipt is not None:
-                    return "finalizing"
-                return None
-
-            AttemptRecovery(store=attempt_store).scan_and_recover(
-                finalization_probe=_probe_finalization
-            )  # 读取真实commit/receipt分类，但绝不追认passed。
         except ExecutionAttemptStoreError:
             attempt_store = None  # ui_test item稍后以稳定错误码fail closed。
 
@@ -543,70 +558,63 @@ def pytest_collection_modifyitems(
                 store=attempt_store, item=item, code="E_R3_BLOCKED", detail="r3-gate"
             )
             continue
-        # ST-005：R2并行在锁前报E_R2_PARALLEL_FORBIDDEN。
-        if marker_info["risk_level"] == "r2-ui-write-test" and _xdist_parallel:
-            item.stash[_MARKER_ERROR_KEY] = _record_gate_diagnostic(
-                store=attempt_store, item=item, code="E_R2_PARALLEL_FORBIDDEN", detail="xdist-gate"
-            )
-            continue
         if config_error is not None:
             item.stash[_MARKER_ERROR_KEY] = _record_gate_diagnostic(
                 store=attempt_store, item=item, code=config_error, detail="config-gate"
             )
             continue
-        try:
-            context = _build_execution_context(
-                item=item,
-                marker_info=marker_info,
-                config=config,
-                pycharm_config=pycharm_config,
-            )
-            # ST-006：存入attempt_store供setup使用。
-            if attempt_store is not None:
-                item.stash[_ATTEMPT_STORE_KEY] = attempt_store
-        except _MarkerError as exc:
-            item.stash[_MARKER_ERROR_KEY] = _record_gate_diagnostic(
-                store=attempt_store, item=item, code=exc.code, detail="context-gate"
-            )
+        item.stash[_PROJECT] = pycharm_config
+        item.stash[_ATTEMPT_STORE_KEY] = attempt_store
 
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtest_setup(item: pytest.Item) -> None:
     """在 item 执行前检查 marker 错误码，确保在 BrowserContext 前失败。
 
-    ST-005：R2 item 在fixture前获取跨进程非阻塞串行锁并存入 item stash。
-    R0/R1不获取锁；R3/xdist错误码已由 collection 阶段存入。
-    ST-006：R2锁成功后、R0/R1 setup开始时创建attempt-start；
-    记录setup阶段事件。
+    先检查有效串行范围，再取得本次 attempt 的独占所有权。
     """
+    # 重复投递可能复用 item，清除上次准入的状态，防止再次写入其终态。
+    for key in (_ATTEMPT_STARTED_KEY, _PHASE_REPORTS_KEY, _NOT_EXECUTED, _RUN_TARGET_KEY):
+        if key in item.stash:
+            del item.stash[key]
     error_code = item.stash.get(_MARKER_ERROR_KEY, None)
     if error_code is not None:
         pytest.fail(error_code, pytrace=False)
 
-    # ST-005：R2 item 在fixture前获取跨进程非阻塞串行锁。
-    context = item.stash.get(EXECUTION_CONTEXT_KEY, None)
-    if context is not None and context.risk_level == "r2-ui-write-test":
-        # 锁scope从已验证项目配置读取，不接受测试文件或CLI提供任意锁名。
-        hookrelay = item.config.hook
-        project_config_path = hookrelay.pytest_ui_test_project_config_path()
-        if isinstance(project_config_path, str) and project_config_path:
-            try:
-                pycharm_config = load_project_config(project_config_path, purpose="execute")
-            except ProjectConfigError:
-                pytest.fail("E_R2_LOCK_CONFIG_REQUIRED", pytrace=False)
-        else:
-            pytest.fail("E_R2_LOCK_CONFIG_REQUIRED", pytrace=False)
+    context = None
+    if _PROJECT in item.stash:
         try:
-            lock = create_r2_project_lock(config=pycharm_config)
-            lock.acquire()  # 非阻塞获取；冲突立即失败。
-            item.stash[_R2_LOCK_KEY] = lock
-        except R2ProjectLockError as exc:
-            pytest.fail(exc.code, pytrace=False)
+            context = _build_execution_context(item=item, marker_info=_parse_ui_test_markers(item),
+                                               config=item.config, pycharm_config=item.stash[_PROJECT])
+        except _MarkerError as exc:
+            code = _record_gate_diagnostic(store=item.stash[_ATTEMPT_STORE_KEY], item=item,
+                                           code=exc.code, detail="context-gate")
+            pytest.fail(code, pytrace=False)
+    if context is not None:
+        config = item.stash[_PROJECT]  # 使用创建上下文时已校验的同一配置快照。
+        locks = ExitStack()
+        item.stash[_SCOPE_LOCKS] = locks
+        for decision in config["effective_concurrency"]["serial_constraints"]:
+            nodes = tuple(decision.get("node_ids", ()))
+            if nodes and item.nodeid not in nodes:
+                continue
+            try:
+                locks.enter_context(create_r2_project_lock(config=config, node_ids=nodes))
+            except R2ProjectLockError as exc:
+                locks.close()  # 立即释放先前已取得的重叠范围。
+                if exc.code == "E_R2_PROJECT_LOCK_HELD":
+                    scope = ", ".join(nodes) if nodes else "project-environment"
+                    reason = f"该范围被占用，本次未执行 [{scope}] ({decision['decision_ref']})"
+                    item.stash[_NOT_EXECUTED] = reason
+                    pytest.fail(reason, pytrace=False)
+                pytest.fail(exc.code, pytrace=False)
 
-    # ST-006：R2锁成功后、R0/R1 setup开始时创建attempt-start。
     attempt_store = item.stash.get(_ATTEMPT_STORE_KEY, None)
     if attempt_store is not None and context is not None:
         try:
+            owner = ExitStack()
+            owner.enter_context(attempt_store.attempt_ownership(run_id=context.run_id, node_id=context.node_id))
+            item.stash[_ATTEMPT_OWNER_KEY] = owner
             attempt_store.create_attempt_start(
                 run_id=context.run_id,
                 node_id=context.node_id,
@@ -623,7 +631,7 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
                     "not_applicable_qualification"
                     if bool(item.config.getoption("--ui-pre-submit-only", False))
                     else "transaction-v1"
-                    if context.risk_level == "r2-ui-write-test"
+                    if context.risk_level == "r2-ui-write-test" or _formal_read_only(item)
                     else "not_applicable_read_only"
                 ),
             )
@@ -634,6 +642,12 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
                 node_id=context.node_id,
                 context_document=asdict(context),
             )
+            target = item.config.hook.pytest_ui_test_finalization_target_v1(
+                run_id=context.run_id, node_id=context.node_id, attempt_store=attempt_store)
+            if isinstance(target, Mapping) and isinstance(target.get("run_root"), str):
+                run_root = str(Path(target["run_root"]).resolve())
+                attempt_store.bind_run_target(run_id=context.run_id, node_id=context.node_id, run_root=run_root)
+                item.stash[_RUN_TARGET_KEY] = {**target, "run_root": run_root}
             # 记录setup阶段admitted事件。
             attempt_store.append_event(
                 run_id=context.run_id,
@@ -645,14 +659,33 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
         except Exception as exc:
             # attempt-start创建失败不得伪造成功；存入错误码供后续处理。
             code = getattr(exc, "code", "E_ATTEMPT_START_FAILED")
+            if code == "E_ATTEMPT_START_ALREADY_EXISTS":
+                item.stash[_NOT_EXECUTED] = code  # 保留原获准执行的终态，另记重复投递。
             item.stash[_MARKER_ERROR_KEY] = code
             pytest.fail(code, pytrace=False)
+
+
+@pytest.hookimpl(hookwrapper=True, tryfirst=True)
+def pytest_runtest_protocol(item: pytest.Item):
+    """Release ownership after teardown reports and terminal publication have completed."""
+    try:
+        yield
+    finally:
+        owner = item.stash.get(_ATTEMPT_OWNER_KEY, None)
+        if owner is not None:
+            owner.close()
+        _release_r2_lock(item)  # 报告 hook 中断时也释放约束。
 
 
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)
 def pytest_runtest_teardown(item: pytest.Item) -> None:
     """只包裹真实fixture teardown；R2锁延迟到finalization结束后释放。"""
     yield
+
+
+def _formal_read_only(item: pytest.Item) -> bool:
+    marker = item.get_closest_marker("r0")
+    return marker is not None and marker.kwargs.get("formal_result") is True
 
 
 def _terminal_status_from_reports(reports: Mapping[str, pytest.TestReport]) -> str:
@@ -683,40 +716,46 @@ def _stable_exception(exc: BaseException) -> tuple[str, str, str]:
 
 def _release_r2_lock(item: pytest.Item) -> None:
     """finalization完成后释放锁；失败由调用方投影为治理错误。"""
-    lock = item.stash.get(_R2_LOCK_KEY, None)
+    lock = item.stash.get(_SCOPE_LOCKS, None)
     if lock is None:
         return
-    lock.release()
-    item.stash[_R2_LOCK_KEY] = None
+    lock.close()
+    del item.stash[_SCOPE_LOCKS]
 
 
 def _record_session_node(
     *,
     item: pytest.Item,
-    context: _ExecutionContextV4,
+    context: _ExecutionContextV5,
     attempt_store: ExecutionAttemptStore,
     finalization_status: str,
     receipt_ref: str | None = None,
     receipt_hash: str | None = None,
+    receipt_document: Mapping | None = None,
 ) -> None:
     terminal = attempt_store.read_terminal(run_id=context.run_id, node_id=context.node_id)
     if terminal is None:
         return
     node = {
+        "attempt_ref": context.attempt_ref,
         "run_id": context.run_id,
         "node_id": context.node_id,
         "terminal_ref": context.attempt_ref + "/terminal.json",
         "terminal_hash": canonical_hash(terminal),
         "finalization_status": finalization_status,
+        "disposition": "passed" if terminal["status"] == "passed" else "failed",
         "_execution_origin": context.execution_origin,
         "_origin_evidence_digest": context.origin_evidence["evidence_digest"],
     }
     if receipt_ref and receipt_hash:
         node["receipt_ref"] = receipt_ref
         node["receipt_hash"] = receipt_hash
-    nodes = item.config.stash.get(_SESSION_NODE_RESULTS_KEY, [])
-    nodes.append(node)
-    item.config.stash[_SESSION_NODE_RESULTS_KEY] = nodes
+        if receipt_document is not None and receipt_ref.startswith("runs/"):
+            # Project run roots may live outside the attempt store. Bind a portable receipt copy.
+            root = Path(item.config.stash[_SESSION_EVIDENCE_ROOT_KEY])
+            with io_path(root / context.attempt_ref / "session-receipt.json").open("x", encoding="utf-8") as stream:
+                json.dump(receipt_document, stream, ensure_ascii=False)
+    item.stash[_PHASE_REPORTS_KEY]["teardown"].ui_test_node = node
 
 
 def _verify_current_run_links(run_result, root, context, attempt_store, events_hash, phase_status):
@@ -736,6 +775,29 @@ def _verify_current_run_links(run_result, root, context, attempt_store, events_h
         if not (root / relative).resolve(strict=True).is_relative_to(root):
             raise FinalizationTransactionError("E_FINALIZATION_EVIDENCE_PATH_INVALID")
     approval = load_strict_json(root / run_result["approval_ref"])
+    if context.risk_level == "r0-read-only":
+        from .run_evidence_linker import build_read_only_boundary
+        expected_boundary = build_read_only_boundary(asdict(context))
+        if run_result.get("risk_level") != context.risk_level or canonical_hash(approval) != canonical_hash(expected_boundary):
+            raise FinalizationTransactionError("E_FINALIZATION_READ_ONLY_BOUNDARY_MISMATCH")
+    else:
+        if run_result.get("risk_level") == "r0-read-only":
+            raise FinalizationTransactionError("E_FINALIZATION_CONTEXT_LINK_MISMATCH")
+        _verify_write_approval(approval, context)
+    if any(run_result.get(key) != getattr(context, key) for key in ("case_id", "branch_id")):
+        raise FinalizationTransactionError("E_FINALIZATION_CONTEXT_LINK_MISMATCH")
+    issues = verify_run_result_v5_links(
+        run_result, run_root=root, expected_session_id=context.session_id,
+        expected_run_id=context.run_id, expected_node_id=context.node_id,
+        expected_execution_context_ref=ref, expected_execution_context_hash=digest,
+        expected_attempt_ref=context.attempt_ref, expected_pre_terminal_events_hash=events_hash,
+        expected_approval_hash=canonical_hash(approval), expected_pytest_phase_status=phase_status,
+    )
+    if issues:
+        raise FinalizationTransactionError(issues[0])
+
+
+def _verify_write_approval(approval, context):
     if validate_document(approval, "r2-approval-record-v3.schema.json"):
         raise FinalizationTransactionError("E_FINALIZATION_APPROVAL_INVALID")
     budget = context.config_summary.get("stage_write_budget")
@@ -751,17 +813,6 @@ def _verify_current_run_links(run_result, root, context, attempt_store, events_h
     boundary_fields = ("run_id", "case_id", "environment", "allowed_action", "channel", "max_submit_count")
     if approval["boundary_hash"] != canonical_hash({key: approval[key] for key in boundary_fields}):
         raise FinalizationTransactionError("E_FINALIZATION_APPROVAL_BOUNDARY_MISMATCH")
-    if any(run_result.get(key) != expected[key] for key in ("case_id", "branch_id")):
-        raise FinalizationTransactionError("E_FINALIZATION_CONTEXT_LINK_MISMATCH")
-    issues = verify_run_result_v5_links(
-        run_result, run_root=root, expected_session_id=context.session_id,
-        expected_run_id=context.run_id, expected_node_id=context.node_id,
-        expected_execution_context_ref=ref, expected_execution_context_hash=digest,
-        expected_attempt_ref=context.attempt_ref, expected_pre_terminal_events_hash=events_hash,
-        expected_approval_hash=canonical_hash(approval), expected_pytest_phase_status=phase_status,
-    )
-    if issues:
-        raise FinalizationTransactionError(issues[0])
 
 
 def _fail_teardown_report(report: pytest.TestReport, *, code: str, exception_class: str, message_digest: str) -> None:
@@ -772,11 +823,46 @@ def _fail_teardown_report(report: pytest.TestReport, *, code: str, exception_cla
     report.outcome = "failed"
 
 
+def _archive_playwright_output(item, context, store):
+    """Archive upstream screenshot/trace files before publishing any formal references."""
+    source = (item.funcargs or {}).get("output_path")
+    if not source:
+        return
+    folder = Path(source).resolve()
+    leaf = Path(item.config.getoption("--output")).resolve()
+    if folder.parent != leaf or not folder.is_dir():
+        return
+    artifacts = sorted(p for p in folder.iterdir() if re.fullmatch(
+        r"trace(?:-[0-9]+)?\.zip|test-(?:finished|failed)-[0-9]+\.png", p.name))
+    if not artifacts:
+        return
+    target = item.stash.get(_RUN_TARGET_KEY, None)
+    if target is None:
+        return  # No project-owned formal output root for this item.
+    archive = io_path(target["run_root"]) / "playwright"
+    archive.mkdir(parents=True, exist_ok=False)  # Never overwrite an earlier run's evidence.
+    entries = []
+    for artifact in artifacts:
+        if artifact.resolve().parent != folder or not artifact.is_file():
+            raise ValueError("E_PLAYWRIGHT_ARTIFACT_PATH")
+        destination = archive / artifact.name
+        digest = hashlib.sha256()
+        with artifact.open("rb") as source_file, destination.open("xb") as target_file:
+            for chunk in iter(lambda: source_file.read(1024 * 1024), b""):
+                digest.update(chunk)
+                target_file.write(chunk)
+        entries.append({"ref": "playwright/" + artifact.name, "sha256": digest.hexdigest()})
+    with (archive / "artifacts.json").open("x", encoding="utf-8") as index:
+        json.dump(entries, index, sort_keys=True)
+
+
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)
 def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
     """在其他makereport wrapper完成后执行事务，再决定唯一terminal。"""
     outcome = yield
     report: pytest.TestReport = outcome.get_result()
+    if report.when == "setup" and _NOT_EXECUTED in item.stash:
+        report.ui_test_not_executed = item.stash[_NOT_EXECUTED]
     context = item.stash.get(EXECUTION_CONTEXT_KEY, None)
     attempt_store = item.stash.get(_ATTEMPT_STORE_KEY, None)
     if context is None:
@@ -793,6 +879,7 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
         return
 
     reports = item.stash.get(_PHASE_REPORTS_KEY, {})
+    report.ui_test_run_id = context.run_id
     reports[report.when] = report
     item.stash[_PHASE_REPORTS_KEY] = reports
     try:
@@ -815,9 +902,17 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
     if report.when != "teardown":
         return
 
+    try:
+        _archive_playwright_output(item, context, attempt_store)
+    except Exception as exc:
+        _fail_teardown_report(report, code="E_PLAYWRIGHT_ARCHIVE_FAILED",
+                              exception_class=type(exc).__name__, message_digest=_sha256_text(str(exc)))
+
     terminal_status = _terminal_status_from_reports(reports)
     stage_failure = bool(context.config_summary.get("stage_write_budget")) and context.risk_level == "r2-ui-write-test" and not item.config.getoption("--ui-pre-submit-only", False)
-    if terminal_status != "passed" and not stage_failure:
+    qualification_mode = bool(item.config.getoption("--ui-pre-submit-only", False))
+    formal_read_only = _formal_read_only(item) and not qualification_mode
+    if terminal_status != "passed" and not (stage_failure or formal_read_only):
         try:
             _release_r2_lock(item)
         except Exception as exc:
@@ -840,9 +935,8 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
         )
         return
 
-    qualification_mode = bool(item.config.getoption("--ui-pre-submit-only", False))
     read_only_mode = context.risk_level != "r2-ui-write-test"
-    if qualification_mode or read_only_mode:
+    if qualification_mode or (read_only_mode and not formal_read_only):
         try:
             _release_r2_lock(item)
             attempt_store.create_terminal(
@@ -873,11 +967,7 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
     receipt_ref: str | None = None
     receipt_hash: str | None = None
     try:
-        target = item.config.hook.pytest_ui_test_finalization_target_v1(
-            run_id=context.run_id,
-            node_id=context.node_id,
-            attempt_store=attempt_store,
-        )
+        target = item.stash.get(_RUN_TARGET_KEY, None)
         if not isinstance(target, Mapping) or not isinstance(target.get("run_root"), str):
             raise FinalizationTransactionError("E_FINALIZATION_TARGET_REQUIRED")
         transaction = FinalizationTransaction(target["run_root"])
@@ -973,6 +1063,7 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
             finalization_status="committed",
             receipt_ref=receipt_ref,
             receipt_hash=receipt_hash,
+            receipt_document=receipt,
         )
         return
     except Exception as exc:
@@ -1060,6 +1151,7 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
                 finalization_status="failed" if receipt_ref and receipt_hash else "missing",
                 receipt_ref=receipt_ref,
                 receipt_hash=receipt_hash,
+                receipt_document=receipt if receipt_ref and receipt_ref.startswith("runs/") else None,
             )
         except Exception as session_exc:
             report.sections.append((
@@ -1068,30 +1160,110 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
             ))
 
 
-@pytest.hookimpl(trylast=True)
-def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
-    """写PytestSessionResultV1；只投影最终exit，不补写任何passed terminal。"""
-    nodes = session.config.stash.get(_SESSION_NODE_RESULTS_KEY, [])
-    evidence_root = session.config.stash.get(_SESSION_EVIDENCE_ROOT_KEY, "")
-    if not nodes or not evidence_root:
+@pytest.hookimpl(optionalhook=True)
+def pytest_configure_node(node):
+    config = node.config
+    node.workerinput["ui_test_session_id"] = config.stash[_SESSION_ID_KEY]
+    node.workerinput["ui_test_session_time"] = config.stash[_SESSION_TIME]
+    node.workerinput["ui_test_origin"] = classify_execution_origin(
+        declared_origin=config.getoption(_OPTION_EXECUTION_ORIGIN, None))
+    # Local workers share the controller's pytest tempdir, isolated for every actual instance.
+    node.workerinput["ui_test_manifest"] = str(config._tmp_path_factory.getbasetemp()
+                                              / ("formal-" + uuid.uuid4().hex + ".json"))
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_collection_finish(session):
+    config = session.config
+    formal = [item.nodeid for item in session.items if item.get_closest_marker("ui_test")]
+    config.stash[_SESSION].observe_collection([item.nodeid for item in session.items], formal)
+    worker = getattr(config, "workerinput", {})
+    if worker.get("ui_test_manifest"):
+        Path(worker["ui_test_manifest"]).write_text(json.dumps(formal), encoding="utf-8")
+
+
+@pytest.hookimpl(optionalhook=True)
+def pytest_xdist_node_collection_finished(node, ids):
+    config = node.config
+    formal = json.loads(Path(node.workerinput["ui_test_manifest"]).read_text(encoding="utf-8"))
+    config.stash[_SESSION].observe_collection(ids, formal)
+
+
+@pytest.hookimpl(optionalhook=True)
+def pytest_testnodedown(node, error):
+    if error is not None:
+        node.config.stash[_SESSION].worker_errors.append(node.gateway.id)
+
+
+@pytest.hookimpl(wrapper=True, tryfirst=True)
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int):
+    result = yield
+    _write_session_result(session)
+    return result
+
+
+def _write_session_result(session):
+    """写PytestSessionResultV2；只投影最终exit，不补写任何passed terminal。"""
+    config = session.config
+    state = config.stash[_SESSION]
+    if hasattr(config, "workerinput") or config.option.collectonly or not state.expected:
+        return
+    nodes = state.records.values()
+    expected = state.expected
+    evidence_root = config.hook.pytest_ui_test_execution_evidence_root()
+    if not evidence_root:
+        session.exitstatus = session.exitstatus or pytest.ExitCode.INTERNAL_ERROR
         return
     try:
         origins = {node["_execution_origin"] for node in nodes}
         origin = next(iter(origins)) if len(origins) == 1 else "unknown"
         origin_digests = sorted({node["_origin_evidence_digest"] for node in nodes})
-        public_nodes = [
-            {key: value for key, value in node.items() if not key.startswith("_")}
-            for node in nodes
-        ]
-        all_committed = all(
-            node["finalization_status"] in {
+        public_nodes = state.reconcile(Path(evidence_root), config.stash[_SESSION_ID_KEY])
+        for node in public_nodes:
+            if node["finalization_status"] != "committed":
+                continue
+            # Reopen the project's authoritative transaction after worker teardown.
+            try:
+                store = ExecutionAttemptStore(evidence_root=evidence_root)
+                target = config.hook.pytest_ui_test_finalization_target_v1(
+                    run_id=node["run_id"], node_id=node["node_id"],
+                    attempt_store=store)
+                if not store.matches_run_target(run_id=node["run_id"], node_id=node["node_id"],
+                                                run_root=target["run_root"]):
+                    raise ValueError("E_SESSION_RUN_TARGET_MISMATCH")
+                closure = FinalizationTransaction(target["run_root"]).read_committed()
+                if (closure and canonical_hash(closure["receipt"]) == node["receipt_hash"]
+                        and (node["disposition"] != "passed" or closure["run_result"]["overall_status"] == "passed")):
+                    if hasattr(config, "_ui_test_codex_request"):
+                        if not hasattr(config, "_ui_test_codex_write_state"):
+                            config._ui_test_codex_write_state = {}
+                        config._ui_test_codex_write_state[node["node_id"]] = closure["run_result"]["write_state"]
+                    continue
+            except (ValueError, OSError, RuntimeError, TypeError, KeyError):
+                pass
+            node.update(disposition="unknown", finalization_status="missing", missing_reason="invalid-transaction")
+            for field in ("terminal_ref", "terminal_hash", "receipt_ref", "receipt_hash"):
+                node.pop(field, None)
+        run_ids = [row.get("run_id") for row in public_nodes]
+        all_committed = (len(run_ids) == len(set(run_ids)) and state.consistent and not state.worker_errors and
+                         set(expected) == set(state.records)) and all(
+            node["disposition"] == "passed" and node["finalization_status"] in {
                 "committed", "not_applicable_qualification", "not_applicable_read_only"
             }
             for node in public_nodes
         )
-        session_status = "passed" if int(exitstatus) == 0 and all_committed else "failed"
+        passed = not int(session.exitstatus) and all_committed and not state.denied_duplicate_nodes
+        session_status = "passed" if passed else "failed"
+        if session.exitstatus == pytest.ExitCode.INTERRUPTED:
+            session_status = "interrupted"
+        if session_status != "passed" and not int(session.exitstatus):
+            session.exitstatus = pytest.ExitCode.TESTS_FAILED
         document: dict[str, Any] = {
-            "schema_version": "ui-test.pytest-session-result.v1",
+            "expected_nodes": expected,
+            "collection_consistent": state.consistent,
+            "worker_errors": state.worker_errors,
+            "unexpected_nodes": sorted(set(state.records) - set(expected)),
+            "schema_version": "ui-test.pytest-session-result.v2",
             "session_id": session.config.stash[_SESSION_ID_KEY],
             "execution_origin": origin,
             "origin_evidence_digest": (
@@ -1100,25 +1272,45 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
                 else canonical_hash({"origin_evidence_digests": origin_digests})
             ),
             "nodes": public_nodes,
-            "pytest_exitstatus": int(exitstatus),
+            "pytest_exitstatus": int(session.exitstatus),
             "all_required_nodes_committed": all_committed,
             "session_status": session_status,
             "recorded_at": _utc_now(),
         }
+        if state.denied_duplicate_nodes:
+            document["denied_duplicate_nodes"] = sorted(state.denied_duplicate_nodes)
+        if config.getoption("--ui-batch-id"):
+            document["batch_id"] = config.getoption("--ui-batch-id")
         document["session_result_hash"] = canonical_hash(document)
-        if validate_document(document, "pytest-session-result-v1.schema.json"):
+        if validate_document(document, "pytest-session-result-v2.schema.json"):
             raise RuntimeError("E_PYTEST_SESSION_RESULT_SCHEMA_INVALID")
         target = io_path(Path(evidence_root) / "sessions" / f"{document['session_id']}.json")
         target.parent.mkdir(parents=True, exist_ok=True)
-        with target.open("x", encoding="utf-8", newline="\n") as stream:
+        pending = target.with_suffix(".tmp")
+        with pending.open("x", encoding="utf-8", newline="\n") as stream:
             json.dump(document, stream, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        pending.rename(target)
+        if not hasattr(config, "_ui_test_codex_request"):  # Codex publishes once after all child sessions finish.
+            from .stage_delivery import publish_session
+            try:
+                delivery = publish_session(target)
+            except (OSError, ValueError, RuntimeError, ImportError) as error:
+                message = f"E_STAGE_REPORT_VALIDATION: {error}"
+                session.exitstatus = session.exitstatus or pytest.ExitCode.INTERNAL_ERROR
+            else:
+                message = f"UI-Test stage report: {delivery['report_url']}"
+            terminal = config.pluginmanager.getplugin("terminalreporter")
+            if terminal:
+                terminal.write_line(message)
+            else:
+                print(message)
     except Exception:
         # SessionResult缺失必须反映到原helper退出码；恢复器也不得事后补成passed。
         session.exitstatus = pytest.ExitCode.INTERNAL_ERROR
 
 
 @pytest.fixture
-def ui_test_execution_context(request: pytest.FixtureRequest) -> _ExecutionContextV4:
+def ui_test_execution_context(request: pytest.FixtureRequest) -> _ExecutionContextV5:
     """function-scope fixture：项目 runtime 通过此 fixture 消费已验证上下文。
 
     不允许重新计算来源或批准。如果 item 没有 ui_test marker，fixture 报错。

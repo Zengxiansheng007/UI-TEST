@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-
 import pytest
 
 from scripts.ui_test_core.attempt_recovery import AttemptRecovery
@@ -184,12 +182,9 @@ def test_recovery_after_commit_event_never_synthesizes_passed(tmp_path) -> None:
     )
 
     summary = AttemptRecovery(store=store).scan_and_recover()
-    assert summary["unresolved_attempts"][0]["finalization_state"] == "receipt_without_terminal"
+    assert summary["unresolved_attempts"][0]["finalization_state"] == "committed_without_terminal"
     assert store.read_terminal(run_id=RUN_ID, node_id=NODE_ID) is None
-    recovery_path = next((tmp_path / "evidence" / "attempts").glob("*/recovery.jsonl"))
-    recovery = json.loads(recovery_path.read_text(encoding="utf-8").splitlines()[0])
-    assert recovery["event_type"] == "unresolved"
-    assert recovery["code"] == "E_PREVIOUS_FINALIZATION_UNRESOLVED"
+    assert store.read_recovery_events(run_id=RUN_ID, node_id=NODE_ID) == []
 
 
 def test_finalization_refs_reject_parent_traversal_before_terminal_write(tmp_path) -> None:
@@ -276,11 +271,9 @@ def test_attempt_local_failure_receipt_covers_missing_project_target(tmp_path) -
     assert duplicate_ref == ref and duplicate == receipt
 
 
-def test_recovery_probe_distinguishes_commit_without_receipt(tmp_path) -> None:
+def test_legacy_attempt_without_owner_lock_remains_read_only(tmp_path) -> None:
     store = _store(tmp_path)
     _start_v2(store)
-    summary = AttemptRecovery(store=store).scan_and_recover(
-        finalization_probe=lambda _attempt: "commit_without_receipt"
-    )
-    assert summary["unresolved_attempts"][0]["finalization_state"] == "commit_without_receipt"
-    assert store.read_terminal(run_id=RUN_ID, node_id=NODE_ID) is None
+    result = AttemptRecovery(store=store).recover_attempt(run_id=RUN_ID, node_id=NODE_ID, run_root=tmp_path / "run")
+    assert result["recovery_type"] == "unknown-owner"
+    assert store.read_recovery_events(run_id=RUN_ID, node_id=NODE_ID) == []

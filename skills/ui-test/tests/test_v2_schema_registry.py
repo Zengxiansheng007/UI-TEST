@@ -50,6 +50,9 @@ def test_registry_tracks_active_transaction_family_and_deprecates_prior_executio
     # ST-013新增transaction-v1执行族；R2 Approval V2继续有效。
     for contract_id in (
         "ui-test.r2-approval-record.v3",
+        "ui-test.project.v2.4",
+        "ui-test.execution-context.v5",
+        "ui-test.pytest-session-result.v2",
         "ui-test.project.v2.3",
         "ui-test.execution-context.v4",
         "ui-test.execution-attempt.v2",

@@ -1,4 +1,8 @@
 import copy
+import hashlib
+import json
+import shutil
+from pathlib import Path
 
 import pytest
 
@@ -93,6 +97,79 @@ def _commit(transaction, run_result, evidence_index, **kwargs):
         recorded_at=FIXED_TIME,
         **kwargs,
     )
+
+
+@pytest.mark.parametrize("damage", ["receipt", "missing_receipt", "manifest", "run_result", "other_owner",
+                                     "swapped_transaction", "portable", "legacy_portable"])
+def test_session_verifier_reopens_owner_transaction_after_close(tmp_path, damage):
+    from scripts.ui_test_core.execution_attempt_store import ExecutionAttemptStore, derive_attempt_directory_name
+    from scripts.ui_test_core.session_evidence import verify_node_evidence
+
+    result, index = _candidate()
+    run, node, session = (result[key] for key in ("run_id", "node_id", "session_id"))
+    evidence = tmp_path / "execution-evidence"
+    owner = tmp_path / "cases" / result["case_id"] / "runs" / run
+    attempt = "attempts/" + derive_attempt_directory_name(run_id=run, node_id=node)
+    directory = evidence / attempt
+    directory.mkdir(parents=True)
+    store = ExecutionAttemptStore(evidence_root=evidence)
+    store.bind_run_target(run_id=run, node_id=node, run_root=owner)
+    def digest(text):
+        return "sha256:" + hashlib.sha256(text.encode()).hexdigest()
+    start = dict(session_id=session, run_id_digest=digest(run), node_id_digest=digest(node),
+                 attempt_id=digest(f"{run}:{node}"), finalization_mode="transaction-v1")
+    if damage == "legacy_portable":
+        from scripts.ui_test_core.project_config import load_project_config
+        config = tmp_path / "ui-test.project.yaml"
+        shutil.copyfile(Path(__file__).resolve().parents[1] / "assets/fixtures/specified-runner/project.json", config)
+        start["project_config_digest"] = load_project_config(config, purpose="inventory")["config_fingerprint"]
+        (directory / "execution-context.json").write_text(json.dumps(dict(case_id=result["case_id"])))
+        (directory / "owner-location.json").unlink()
+    (directory / "attempt-start.json").write_text(json.dumps(start))
+    result.update(attempt_ref=attempt, execution_context_ref=attempt + "/execution-context.json")
+    result.pop("run_result_hash")
+    result["run_result_hash"] = canonical_hash(result)
+    closure = _commit(FinalizationTransaction(owner), result, index)
+    receipt, manifest = closure["receipt"], closure["manifest"]
+    ref = f"runs/{run}/finalization/finalization-receipt.json"
+    terminal = dict(status="passed", is_unique_terminal=True, receipt_ref=ref, receipt_hash=canonical_hash(receipt),
+                    commit_manifest_ref=f"runs/{run}/finalization/finalization-commit.json",
+                    commit_manifest_hash=canonical_hash(manifest), pre_terminal_events_hash=HASH)
+    (directory / "terminal.json").write_text(json.dumps(terminal))
+    (directory / "session-receipt.json").write_text(json.dumps(receipt))
+    row = dict(node_id=node, run_id=run, attempt_ref=attempt, disposition="passed", finalization_status="committed",
+               receipt_ref=ref, receipt_hash=canonical_hash(receipt), terminal_ref=attempt + "/terminal.json",
+               terminal_hash=canonical_hash(terminal))
+    assert verify_node_evidence(evidence, session, row)
+    if damage in ("portable", "legacy_portable"):
+        archive = tmp_path / "archive"
+        shutil.copytree(evidence, archive)
+        archived_run = archive / "runs" / run
+        shutil.copytree(owner, archived_run)
+        assert verify_node_evidence(archive, session, row)
+        (archived_run / "finalization/finalization-commit.json").unlink()
+        assert not verify_node_evidence(archive, session, row)
+        if damage == "legacy_portable":
+            archived_run.parent.rename(archive / "removed-runs")
+            assert not verify_node_evidence(archive, session, row)
+            assert verify_node_evidence(evidence, session, row)
+        return
+    if damage == "other_owner":
+        shutil.copytree(owner, evidence / "runs" / run)
+        owner.rename(owner.with_name("other-owner"))
+    elif damage == "missing_receipt":
+        (owner / "finalization/finalization-receipt.json").unlink()
+    elif damage == "swapped_transaction":
+        owner.rename(owner.with_name("old-transaction"))
+        result.pop("run_result_hash")
+        result["session_id"] = "SESSION-OTHER-PROJECT"
+        result["run_result_hash"] = canonical_hash(result)
+        _commit(FinalizationTransaction(owner), result, index)
+    else:
+        target = {"receipt": "finalization-receipt.json", "manifest": "finalization-commit.json",
+                  "run_result": manifest["run_result_ref"]}[damage]
+        (owner / "finalization" / target).write_text("{}")
+    assert not verify_node_evidence(evidence, session, row)
 
 
 def test_commit_publishes_content_addressed_objects_one_manifest_and_receipt(tmp_path):

@@ -69,6 +69,16 @@ def find_report(root: Path) -> Path | None:
 
 
 def validate_generated(root: Path) -> list[dict[str, str]]:
+    stage = root / "stage-reports"
+    if stage.is_dir():
+        findings = validate_generated_layout(stage)
+        if (root / "human-html").is_dir() or (root / "agent-readable").is_dir():
+            findings.extend(validate_generated_layout(root))
+        return findings
+    return validate_generated_layout(root)
+
+
+def validate_generated_layout(root: Path) -> list[dict[str, str]]:
     findings: list[dict[str, str]] = []
     report = find_report(root)
     if not report:
@@ -77,7 +87,9 @@ def validate_generated(root: Path) -> list[dict[str, str]]:
     # 样例校验仅统计证据单元格；缺图占位不代表真实截图已交付。
     screenshot_cell_count = text.count("截图缩略图（点击放大）") + text.count('data-ui-image-missing=')
     api_count = text.count("点击查看 JSON")
-    for marker in ("附件索引（治理用）", "接口汇总索引（治理用）", "第 4 章"):
+    stage = 'aria-label="用例与关键节点"' in text
+    markers = ("Playwright 正式执行报告", "证据索引与运行来源") if stage else ("附件索引（治理用）", "接口汇总索引（治理用）", "第 4 章")
+    for marker in markers:
         if marker not in text:
             findings.append(finding("P1", "generated-marker-missing", f"missing marker {marker}", report))
     for legacy in ("完整截图墙", "旧版独立证据展示区", "证据与 JSON</th>"):
@@ -92,14 +104,14 @@ def validate_generated(root: Path) -> list[dict[str, str]]:
         findings.append(finding("P0", "evidence-index-missing", "evidence-index.json not found", root))
     else:
         data = json.loads(read_text(evidence[0]))
-        if data.get("layout_contract") != "step-table-embedded-evidence":
+        if data.get("layout_contract") != ("stage-report" if stage else "step-table-embedded-evidence"):
             findings.append(finding("P1", "layout-contract-missing", "layout_contract must be step-table-embedded-evidence", evidence[0]))
     if not summary:
         findings.append(finding("P0", "execution-summary-missing", "execution-summary.json not found", root))
     else:
         data = json.loads(read_text(summary[0]))
-        if (data.get("ui_screenshot_count") != screenshot_cell_count or
-                data.get("api_assertion_count") != api_count):
+        if (data.get("ui_screenshot_count") != (text.count('class="ui-image-trigger"') if stage else screenshot_cell_count)
+                or (not stage and data.get("api_assertion_count") != api_count)):
             findings.append(finding("P1", "summary-counts-invalid", "HTML evidence counts differ from summary", summary[0]))
     if not run_results:
         findings.append(finding("P0", "canonical-run-result-missing", "run-result.json not found", root))

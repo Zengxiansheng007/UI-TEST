@@ -332,3 +332,13 @@ def test_helper_content_must_match_process_evidence(tmp_path: Path) -> None:
             pytest_session_result_ref="sessions/session.json",
             evaluation_authority="independent-qa",
         )
+
+
+def test_read_only_result_cannot_attest_human_r2(tmp_path):
+    result, docs = _build_from_files(tmp_path)
+    docs["run"].update(risk_level="r0-read-only", write_state="not_attempted", submit_count=0)
+    issues = validate_pycharm_acceptance_chain(
+        run_result=docs["run"], finalization_commit=docs["commit"], finalization_receipt=docs["receipt"],
+        pytest_session_result=docs["session"], acceptance_result=result, approval_record=docs["approval"],
+        execution_context=docs["context"], terminal=docs["terminal"], process_evidence=docs["process"])
+    assert "acceptance-passed-without-complete-chain" in issues
