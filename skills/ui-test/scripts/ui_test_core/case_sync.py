@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .case_contracts import canonical_hash, validate_document
+from .artifact_layout import ProjectLayout, checked_path, short_id
 from .file_lock import exclusive_file_lock
 from .path_utils import canonical_display_path, io_path
 from .release_verifier import verify_release
@@ -72,6 +73,30 @@ def dry_run(compiled: dict[str, Any], target: str | Path, *, operation_id: str |
     return create_sync_plan(compiled, target, operation_id=operation_id)
 
 
+def save_project_plan(project_root, compiled, display_name, *, operation_id=None):
+    """Persist a normal compile plan for the identified case in its project directory."""
+    manifest = compiled["manifest"]
+    target = ProjectLayout(project_root).register_case(manifest["case_id"], manifest["branch_id"], display_name)
+    plan = create_sync_plan(compiled, target, operation_id=operation_id)
+    plan_file = checked_path(target / "计划" / (short_id(plan["operation_id"]) + ".json"), extra_units=38)
+    with exclusive_file_lock(target / ".locks" / "plan.lock"):
+        if plan_file.exists() and load_strict_json(plan_file) != plan:
+            raise CaseSyncError("E_SYNC_PLAN_ID_CONFLICT")
+        if not plan_file.exists():
+            _atomic_json(plan_file, plan)
+        _atomic_json(target / "plan.json", plan)
+    return plan
+
+
+def _project_layout(root, plan):
+    target = canonical_display_path(root)
+    if target.parent.name == "用例":
+        layout = ProjectLayout(target.parent.parent)
+        if target == layout.case_dir(plan["case_id"], plan["branch_id"]):
+            return layout
+    return None
+
+
 def _result(plan: dict[str, Any], status: str, active_build: str | None, *, no_op: bool, issues: list[str], release_path: Path | None = None) -> dict[str, Any]:
     result: dict[str, Any] = {
         "schema_version": "ui-test.sync-result.v2",
@@ -115,13 +140,17 @@ def _ensure_release(plan: dict[str, Any], compiled: dict[str, Any], root: Path, 
         if state["release_integrity"] != "valid" or state["input_sync"] != "in_sync":
             return None, ["E_SYNC_EXISTING_RELEASE_INVALID"]
         return release, []
-    staging_parent = root / "_staging"
+    layout = _project_layout(root, plan)
+    staging_parent = layout.temp_dir(plan["operation_id"]) if layout else root / "_staging"
     staging_parent.mkdir(parents=True, exist_ok=True)
-    staging = Path(tempfile.mkdtemp(prefix=f"{plan['operation_id']}-", dir=staging_parent))
+    staging = Path(tempfile.mkdtemp(prefix="build-" if layout else f"{plan['operation_id']}-", dir=staging_parent))
     try:
         files = {**compiled["outputs"], "manifest.json": compiled["manifest"]}
         for index, (name, content) in enumerate(sorted(files.items()), 1):
             destination = staging / name
+            if layout:
+                checked_path(destination)
+                checked_path(release / name)
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_text(_serialize(content), encoding="utf-8", newline="\n")
             if fail_after_artifacts is not None and index >= fail_after_artifacts:
@@ -154,7 +183,7 @@ def prepare_sync_plan(
         return rejected
     root.mkdir(parents=True, exist_ok=True)
     lock_name = f"{plan['case_id']}--{plan['branch_id']}.lock".replace("/", "_").replace("\\", "_")
-    with exclusive_file_lock(root / ".locks" / lock_name):
+    with exclusive_file_lock(root / ".locks" / ("case.lock" if _project_layout(root, plan) else lock_name)):
         active_build = _active_build(root)
         if active_build != plan.get("expected_active_build"):
             return _result(plan, "concurrent_update", active_build, no_op=False, issues=["E_SYNC_EXPECTED_ACTIVE_MISMATCH"])
@@ -180,7 +209,7 @@ def activate_prepared_sync_plan(plan: dict[str, Any], input_loader: Callable[[],
     if rejected:
         return rejected
     lock_name = f"{plan['case_id']}--{plan['branch_id']}.lock".replace("/", "_").replace("\\", "_")
-    with exclusive_file_lock(root / ".locks" / lock_name):
+    with exclusive_file_lock(root / ".locks" / ("case.lock" if _project_layout(root, plan) else lock_name)):
         active_build = _active_build(root)
         if active_build == plan["build_fingerprint"]:
             return _result(plan, "in_sync", active_build, no_op=True, issues=[])

@@ -75,3 +75,9 @@ Codex 调度由最外层批次负责发布，同一批次的所有子会话汇�
 通过 `mask_selectors` 传入页面内需要遮挡的敏感字段、文本及图片选择器。默认遮挡密码、带 data-ui-sensitive 标记的区域、支付卡号及一次性验证码字段。对象标识、观察及理由使用已脱敏摘要。完整视口为默认，明确跨屏核对时传 `full_page=True`。
 
 同一尝试中的截图以对象、观察时点和业务状态归组。同一动作留下多图时，显式传入相同的 `object_ref`、`point`、`state_ref`（默认用 `observation`）；区分同类事件的多次发生时传 `moment_ref`。作者实际核对画面后可用 `preferred` 指定本组代表图。能读出对象与状态的图标 `support="direct"`（默认）；只提供上下文的图标 `support="context"`，保留在索引。只有回执本身满足用例目标且画面足以证明时，才给该图填写 `final_goal`，记录具体目标。后续状态变化另行记录。
+
+### 在项目目录查询原有脚本和报告
+
+在项目根创建 `legacy-sources.json`，列出要登记的项目内相对目录，例如 `{"directories":["旧用例/cases","历史报告"]}`。运行 `python scripts/project_catalog.py <项目根>` 并打开项目根的 `index.html`。同一批结果可通过 `runs.sqlite3` 的 `legacy_artifacts` 表查询。省略配置时仅登记新产物。
+
+原报告链接以旧 HTML 所在位置为起点，保留其原有相对路径。生效脚本来自同一分支下可核实的 `active.json` 和发布清单。目录内多版脚本均保留路径；待核、缺件或失链条目给出原因及来源。私有目录和重解析点排除在扫描范围之外。

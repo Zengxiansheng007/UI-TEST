@@ -3,7 +3,7 @@ import json
 import os
 import tempfile
 import unittest
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from unittest.mock import patch
 
 from scripts.ui_test_core.path_planner import (
@@ -80,10 +80,12 @@ class ProjectPathTests(unittest.TestCase):
             config = load_project_config(write_config(directory))
         plan = plan_asset_path(config, "source_case", selection())
         self.assertEqual(plan["root_kind"], "execution")
-        self.assertTrue(plan["target_path"].startswith(r"D:\UI-Test\demo__示例项目组\ops-platform__运维管理系统"))
-        self.assertIn(r"ops-platform__运维管理系统\demoops-ops-platform__运维管理系统", plan["target_path"])
-        self.assertIn(r"operations-config__运营配置\message-management__消息管理\announcement-management__公告管理\create__创建", plan["target_path"])
-        self.assertTrue(plan["target_path"].endswith(r"cases\DEMOOPS-ANNOUNCEMENT-P0-A\branches\system-announcement\source\source-case.json"))
+        target = PureWindowsPath(plan["target_path"])
+        self.assertTrue(target.is_relative_to(PureWindowsPath(r"D:\UI-Test")))
+        self.assertEqual(target.parts[-4], "用例")
+        self.assertRegex(target.parts[-3], r"^c[0-9a-f]{16}$")
+        self.assertEqual(target.parts[-2:], ("source", "source-case.json"))
+        self.assertEqual(plan["scope"]["module_path"], selection()["module_path"])
 
     def test_yaml_project_config_is_loaded_with_declared_dependency(self):
         import yaml
@@ -153,8 +155,12 @@ class ProjectPathTests(unittest.TestCase):
         staging = plan_asset_path(config, "staging", selection())
         self.assertEqual(knowledge["root"], r"D:\RAG")
         self.assertEqual(execution["root"], r"D:\UI-Test")
-        self.assertIn(r"cases\DEMOOPS-ANNOUNCEMENT-P0-A\branches\system-announcement\runs\2026\08\RUN-20260822-001", execution["target_path"])
-        self.assertTrue(staging["target_path"].startswith(r"D:\UI-Test\_tmp\demo__示例项目组"))
+        self.assertEqual(PureWindowsPath(execution["target_path"]).parts[-3], "运行")
+        self.assertEqual(PureWindowsPath(staging["target_path"]).parts[-2], "临时")
+        for kind, label in (("repair", "修复"), ("handoff", "交接"), ("recovery", "恢复")):
+            event = PureWindowsPath(plan_asset_path(config, kind, selection())["target_path"])
+            self.assertEqual(event.parent.name, label)
+            self.assertEqual(event.parent.parent, PureWindowsPath(execution["target_path"]).parent)
         self.assertFalse(knowledge["caller_selected_root"])
         self.assertFalse(execution["caller_selected_root"])
         with self.assertRaisesRegex(PathPlanningError, "E_CALLER_ROOT_FORBIDDEN"):

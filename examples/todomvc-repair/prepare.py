@@ -10,6 +10,7 @@ sys.path.insert(0, str(TEMPLATE.parents[1] / "skills/ui-test/scripts"))
 from source_case import BINDINGS, CASE, SCOPE
 from ui_test_core.asset_repair import committed_use, impact_plan, repair_destination, require_verified
 from ui_test_core.asset_revision import AssetCatalog, digest, encoded, replace
+from ui_test_core.artifact_layout import ProjectLayout
 
 KEY = "locator.target"
 
@@ -61,14 +62,14 @@ def stage(project, trial, failure_run):
     plan = impact_plan(rows, KEY, BINDINGS)
     if plan["unresolved"] or plan["cases"] != [CASE]:
         raise ValueError("affected cases not fully mapped")
-    shutil.copytree(project, trial, ignore=shutil.ignore_patterns("runs", "execution-evidence", "__pycache__", ".pytest_cache"))
+    shutil.copytree(project, trial, ignore=shutil.ignore_patterns("运行", "临时", "runs", "execution-evidence", "__pycache__", ".pytest_cache"))
     destination = repair_destination(rows[KEY].get("source_ownership"))
     raw = (TEMPLATE/"repairs"/destination/"target.py").read_bytes()
     source = Path(destination)/"2"/"target.py"
     replace(trial/"assets"/source, raw)
     desc = dict(rows[KEY], version=2, sha256=digest(raw), conditions=SCOPE, source=source.as_posix(),
                 adapted_from=dict(asset_id=KEY, version=1, sha256=rows[KEY]["sha256"]),
-                failure_ref="runs/"+failure_run+"/use.json", failure_sha256=digest(encoded(failure)),
+                failure_ref=(ProjectLayout(project).find_attempt(failure_run)/"use.json").relative_to(project.resolve()).as_posix(), failure_sha256=digest(encoded(failure)),
                 failure_result_hash=failure_result)
     AssetCatalog(trial).publish(KEY, desc, raw, expected_revision=revision)
     replace(trial/"qualification.json", encoded(dict(plan=plan, expected_revision=revision,

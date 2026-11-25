@@ -52,6 +52,18 @@ def test_no_event_creates_no_daily_file(tmp_path):
     assert not (tmp_path / "diagnostics" / "failure-repair-history").exists()
 
 
+def test_project_repairs_open_the_original_event_from_its_case(tmp_path):
+    (tmp_path / "ui-test.project.yaml").touch()
+    store = FailureRepairEventStore(tmp_path / "diagnostics", product_id="sample-product")
+    event = _failure()
+    store.append(event)
+    link, = tmp_path.glob("用例/*/修复/*.json")
+    reference = json.loads(link.read_text("utf8"))
+    assert reference["id"] == event["event_id"]
+    original = (link.parent / reference["source"]).read_text("utf8")
+    assert json.loads(original)["event_id"] == reference["id"]
+
+
 def test_failure_append_idempotency_and_repair_projection(tmp_path):
     store = FailureRepairEventStore(tmp_path / "diagnostics", product_id="sample-product")
     failure = _failure()

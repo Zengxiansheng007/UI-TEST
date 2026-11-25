@@ -88,12 +88,28 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("source", type=Path)
     parser.add_argument("--review-notes", type=Path, default=None)
-    parser.add_argument("--output", type=Path, required=True)
+    destination = parser.add_mutually_exclusive_group(required=True)
+    destination.add_argument("--output", type=Path)
+    destination.add_argument("--project", type=Path)
+    parser.add_argument("--stage", choices=("midscene", "playwright"))
+    parser.add_argument("--stage-run-id")
     args = parser.parse_args()
 
     source = load_json(args.source)
     review_notes = load_json(args.review_notes) if args.review_notes else None
-    save_json(args.output, pack(source, review_notes))
+    bundle = pack(source, review_notes)
+    target = args.output
+    if args.project:
+        if not args.stage or not args.stage_run_id:
+            parser.error("--project requires --stage and --stage-run-id")
+        from ui_test_core.artifact_layout import ProjectLayout
+        layout = ProjectLayout(args.project)
+        target = layout.related_file(layout.run_dir(args.stage, args.stage_run_id), "交接", bundle["summary"]["prompt_id"])
+        target.parent.mkdir(parents=True, exist_ok=True)
+        from ui_test_core.codex_dispatch_state import publish
+        publish(target, bundle)
+    else:
+        save_json(target, bundle)
 
 
 if __name__ == "__main__":

@@ -1,14 +1,15 @@
 """Read sealed worker results and publish at the enclosing controller's boundary."""
-import hashlib
 import sys
 from pathlib import Path
 
 from .case_contracts import canonical_hash, validate_document
+from .artifact_layout import ProjectLayout, batch_stage_id, dispatch_task_ref
 from .execution_attempt_store import ExecutionAttemptStore
 from .finalization_transaction import FinalizationTransaction
 from .path_utils import canonical_display_path, io_path
 from .session_evidence import verify_node_evidence
 from .strict_json import load_strict_json
+from .stage_origin import recorded_origin
 
 
 def report_engine():
@@ -84,12 +85,20 @@ def formal_cases(source, *, session_hash=None, batch_id=None):
     legacy, _ = report_engine()
     cases = []
     for row in session["nodes"]:
-        case = {**row, "session_id": source.stem, "status": row["disposition"], "steps": []}
+        case = {**row, **session.get("selected_cases", {}).get(row["node_id"], {}), "execution_source": str(source), "evidence_source": None,
+                "started_at": session.get("started_at"), "ended_at": session["recorded_at"],
+                "session_status": session["session_status"], "session_id": source.stem, "status": row["disposition"], "steps": []}
         if row.get("missing_reason") in {"invalid-transaction", "invalid-terminal-or-receipt", "conflicting-deliveries", "phase-report-mismatch"}:
             raise ValueError("E_STAGE_NODE_EVIDENCE_CONFLICT")
         if row.get("terminal_ref") or row["finalization_status"] == "committed":
             if not verify_node_evidence(root, source.stem, row):
                 raise ValueError("E_STAGE_NODE_EVIDENCE_CONFLICT")
+            if row.get("terminal_ref"):
+                case["evidence_source"] = str(root / row["terminal_ref"])
+        if row.get("terminal_ref"):
+            context = ExecutionAttemptStore(evidence_root=root).read_execution_context(run_id=row["run_id"], node_id=row["node_id"])
+            if context and context.get("binding"):
+                case.update(binding=context["binding"], version=context["binding"]["version"])
         if row["finalization_status"] == "committed":
             store = ExecutionAttemptStore(evidence_root=root)
             run_root = store.session_run_target(run_id=row["run_id"], node_id=row["node_id"])
@@ -97,10 +106,16 @@ def formal_cases(source, *, session_hash=None, batch_id=None):
             if not closure or canonical_hash(closure["receipt"]) != row["receipt_hash"]:
                 raise ValueError("E_STAGE_RECEIPT_CONFLICT")
             result = closure["run_result"]
+            if case.get("binding") and canonical_hash(context) != result["execution_context_hash"]:
+                raise ValueError("E_STAGE_VERSION_CONTEXT_CONFLICT")
             report = {**row, "session_id": source.stem, "case_id": result["case_id"],
                       "transaction_id": closure["manifest"]["transaction_id"]}
             legacy.build_canonical_run_result(dict(run_result=result, report=report), Path(run_root))
             steps = [formal_step(step, run_root, closure["evidence_index"]) for step in result["step_results"]]
+            final_root = Path(run_root) / "finalization"
+            case.update(branch_id=result["branch_id"],
+                        execution_source=str(final_root / closure["manifest"]["run_result_ref"]),
+                        evidence_source=str(final_root / closure["manifest"]["evidence_index_ref"]))
             case.update(case_id=result["case_id"], status=result["overall_status"], steps=steps,
                         run_result_hash=result["run_result_hash"], evidence_index=closure["evidence_index"],
                         run_result=result, run_root=str(run_root))
@@ -114,7 +129,15 @@ def publish_session(source):
     source = canonical_display_path(source)
     cases = formal_cases(source)
     _, engine = report_engine()
-    return engine.publish_stage_report("playwright", source.stem, cases, source.parent.parent / "stage-reports" / source.stem)
+    project = ProjectLayout.from_evidence(source)
+    output = project.reserve_run("playwright", source.stem) if project else source.parent.parent / "stage-reports" / source.stem
+    delivery = engine.publish_stage_report("playwright", source.stem, cases, output,
+                                           origin=recorded_origin(output, "playwright", source.stem))
+    if project:
+        from .catalog_delivery import catalog_delivery
+        catalog_delivery(project.root, source.stem, "playwright", cases, delivery, started_at=cases[0]["started_at"],
+                         ended_at=cases[0]["ended_at"], status=cases[0]["session_status"])
+    return delivery
 
 
 def publish_batch(task, batch_id, batch):
@@ -143,6 +166,14 @@ def publish_batch(task, batch_id, batch):
     if archive or set(batch["nodes"]) != {case["node_id"] for case in cases}:
         raise ValueError("E_STAGE_BATCH_IDENTITY")
     _, engine = report_engine()
-    key = hashlib.sha256(batch_id.encode()).hexdigest()[:24]
-    output = task.parent / (task.name + ".reports") / key
-    return engine.publish_stage_report("playwright", batch_id, cases, output)
+    projects = {project.root if (project := ProjectLayout.from_evidence(source)) else None for source, _ in references}
+    project = ProjectLayout(projects.pop()) if len(projects) == 1 and None not in projects else ProjectLayout(task.parent)
+    batch_id = batch_stage_id(dispatch_task_ref(task), batch_id)
+    output = project.reserve_run("playwright", batch_id)
+    delivery = engine.publish_stage_report("playwright", batch_id, cases, output,
+                                           origin=recorded_origin(output, "playwright", batch_id))
+    if all(case.get("execution_source") for case in cases):
+        from .catalog_delivery import catalog_delivery
+        catalog_delivery(project.root, batch_id, "playwright", cases, delivery, started_at=batch.get("started_at"),
+                         ended_at=max(c["ended_at"] for c in cases), status=batch["status"])
+    return delivery

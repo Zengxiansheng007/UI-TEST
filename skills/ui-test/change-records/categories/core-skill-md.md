@@ -88,3 +88,24 @@ Track normative routing, workflow, validation and escalation changes in `SKILL.m
 - [变更详情](../entries/2026/2026-11/CR-20261120-029-codex-parallel.md)记录指令范围、冲突复用、派发与逐例验收。
 
 - [CR-20261124-135 · R0 正式断言、V5 与零提交收据](../entries/2026/2026-11/CR-20261124-135-read-only-finalization.md)
+
+- [CR-20261125-044 · 执行时版本绑定](../entries/2026/2026-11/CR-20261125-044-execution-version.md)
+
+- [CR-20261125-048 · 项目产物盘点与使用方](../entries/2026/2026-11/CR-20261125-048-project-inventory.md)
+
+- [CR-20261125-046 · 阶段原件与关联报告](../entries/2026/2026-11/CR-20261125-046-stage-links.md)
+
+- [CR-20261125-049 · 阶段保留与预演](../entries/2026/2026-11/CR-20261125-049-stage-retention.md)
+
+- [CR-20261125-047 · 按中文用例名查当前脚本](../entries/2026/2026-11/CR-20261125-047-current-scripts.md)
+
+- [CR-20261125-050 · Windows 定时生成待审清单](../entries/2026/2026-11/CR-20261125-050-windows-preview.md)
+
+- [CR-20261125-051 · 批准与阶段归档核验](../entries/2026/2026-11/CR-20261125-051-stage-archive.md)
+
+- [CR-20261125-052 · 批准范围内释放工作副本](../entries/2026/2026-11/CR-20261125-052-stage-release.md)
+
+- [CR-20261125-053 · 离线历史目录与阶段恢复](../entries/2026/2026-11/CR-20261125-053-archive-history.md)
+
+
+- [CR-20261125-054 · 从已批准批次继续归档与释放](../entries/2026/2026-11/CR-20261125-054-resume-archive.md)

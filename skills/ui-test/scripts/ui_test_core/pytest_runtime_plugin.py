@@ -106,6 +106,7 @@ _ATTEMPT_STORE_KEY: pytest.StashKey[Any] = pytest.StashKey()
 
 #: ST-006：每个 item 的 attempt 已创建标志。
 _ATTEMPT_STARTED_KEY: pytest.StashKey[bool] = pytest.StashKey()
+_VERSION_BINDING_KEY: pytest.StashKey[dict] = pytest.StashKey()
 
 #: ST-006：保存setup/call/teardown三阶段TestReport，用于唯一terminal判定。
 _PHASE_REPORTS_KEY: pytest.StashKey[dict[str, pytest.TestReport]] = pytest.StashKey()
@@ -221,9 +222,30 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
+@pytest.hookimpl(hookwrapper=True)
+def pytest_make_collect_report(collector):
+    """Keep release contents immutable while pytest imports a selected release module."""
+    import sys
+    file = collector.path
+    if file.name == "playwright-test.py" and file.parent.parent.name == "releases":
+        previous = sys.dont_write_bytecode
+        sys.dont_write_bytecode = True
+        try:
+            yield
+        finally:
+            sys.dont_write_bytecode = previous
+    else:
+        yield
+
+
 def pytest_configure(config: pytest.Config) -> None:
     """注册正式marker，避免项目依赖外部pytest.ini才能解释测试身份。"""
 
+    release_files = {Path(str(arg).partition("::")[0]).resolve() for arg in config.args
+                     if Path(str(arg).partition("::")[0]).name == "playwright-test.py"}
+    if len(release_files) > 1 and config.option.importmode == "prepend":
+        # Each immutable release exports the same filename. Keep their module identities distinct.
+        config.option.importmode = "importlib"
     worker = getattr(config, "workerinput", {})
     config.stash[_SESSION_ID_KEY] = worker.get("ui_test_session_id") or "SESSION-" + uuid.uuid4().hex.upper()
     config.stash[_SESSION_TIME] = worker.get("ui_test_session_time") or _utc_now()
@@ -574,7 +596,7 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
     先检查有效串行范围，再取得本次 attempt 的独占所有权。
     """
     # 重复投递可能复用 item，清除上次准入的状态，防止再次写入其终态。
-    for key in (_ATTEMPT_STARTED_KEY, _PHASE_REPORTS_KEY, _NOT_EXECUTED, _RUN_TARGET_KEY):
+    for key in (_ATTEMPT_STARTED_KEY, _PHASE_REPORTS_KEY, _NOT_EXECUTED, _RUN_TARGET_KEY, _VERSION_BINDING_KEY):
         if key in item.stash:
             del item.stash[key]
     error_code = item.stash.get(_MARKER_ERROR_KEY, None)
@@ -592,6 +614,13 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
             pytest.fail(code, pytrace=False)
     if context is not None:
         config = item.stash[_PROJECT]  # 使用创建上下文时已校验的同一配置快照。
+        from .artifact_layout import ProjectLayout, batch_stage_id
+        evidence_root = item.config.stash.get(_SESSION_EVIDENCE_ROOT_KEY, None)
+        project = ProjectLayout.from_evidence(Path(evidence_root) / "sessions") if evidence_root else None
+        if project:
+            stage_id = (batch_stage_id(context.task_ref, context.batch_ref)
+                        if isinstance(context, _DispatchedContext) else context.session_id)
+            project.reserve_run("playwright", stage_id)
         locks = ExitStack()
         item.stash[_SCOPE_LOCKS] = locks
         for decision in config["effective_concurrency"]["serial_constraints"]:
@@ -613,7 +642,7 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
     if attempt_store is not None and context is not None:
         try:
             owner = ExitStack()
-            owner.enter_context(attempt_store.attempt_ownership(run_id=context.run_id, node_id=context.node_id))
+            owner.enter_context(attempt_store.attempt_ownership(run_id=context.run_id, node_id=context.node_id, case_id=context.case_id))
             item.stash[_ATTEMPT_OWNER_KEY] = owner
             attempt_store.create_attempt_start(
                 run_id=context.run_id,
@@ -637,10 +666,19 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
             )
             item.stash[_ATTEMPT_STARTED_KEY] = True
             # ST-008：plugin在attempt-start之后写context，任何失败使pytest失败。
+            document = asdict(context)
+            if project and Path(item.path).resolve().is_relative_to(project.root):
+                from .execution_version import bind_python
+                supporting = [parent / "conftest.py" for parent in Path(item.path).resolve().parents
+                              if parent.is_relative_to(project.root) and (parent / "conftest.py").is_file()]
+                document["binding"] = bind_python(project.root, item.path, item.nodeid, supporting,
+                                                  owner=(context.case_id, context.branch_id),
+                                                  runner_digest=context.runner_digest)
+                item.stash[_VERSION_BINDING_KEY] = document["binding"]
             attempt_store.write_execution_context(
                 run_id=context.run_id,
                 node_id=context.node_id,
-                context_document=asdict(context),
+                context_document=document,
             )
             target = item.config.hook.pytest_ui_test_finalization_target_v1(
                 run_id=context.run_id, node_id=context.node_id, attempt_store=attempt_store)
@@ -648,6 +686,9 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
                 run_root = str(Path(target["run_root"]).resolve())
                 attempt_store.bind_run_target(run_id=context.run_id, node_id=context.node_id, run_root=run_root)
                 item.stash[_RUN_TARGET_KEY] = {**target, "run_root": run_root}
+            if project:
+                from .formal_catalog import attempt_checkpoint
+                attempt_checkpoint(stage_id, evidence_root, context, attempt_store, "running")
             # 记录setup阶段admitted事件。
             attempt_store.append_event(
                 run_id=context.run_id,
@@ -756,16 +797,27 @@ def _record_session_node(
             with io_path(root / context.attempt_ref / "session-receipt.json").open("x", encoding="utf-8") as stream:
                 json.dump(receipt_document, stream, ensure_ascii=False)
     item.stash[_PHASE_REPORTS_KEY]["teardown"].ui_test_node = node
+    evidence_root = item.config.stash.get(_SESSION_EVIDENCE_ROOT_KEY, None)
+    if evidence_root:
+        from .artifact_layout import batch_stage_id
+        from .formal_catalog import attempt_checkpoint
+        stage_id = batch_stage_id(context.task_ref, context.batch_ref) if isinstance(context, _DispatchedContext) else context.session_id
+        target = item.stash.get(_RUN_TARGET_KEY, {})
+        attempt_checkpoint(stage_id, evidence_root, context, attempt_store, node["disposition"],
+                           target.get("run_root") if finalization_status == "committed" else None)
 
 
-def _verify_current_run_links(run_result, root, context, attempt_store, events_hash, phase_status):
+def _verify_current_run_links(run_result, root, context, attempt_store, events_hash, phase_status, binding=None):
     from .run_evidence_linker import verify_run_result_v5_links
     from .strict_json import load_strict_json
 
     ref, digest = attempt_store.read_execution_context_ref_and_hash(
         run_id=context.run_id, node_id=context.node_id
     )
-    if digest != canonical_hash(asdict(context)):
+    document = asdict(context)
+    if binding is not None:
+        document["binding"] = binding
+    if digest != canonical_hash(document):
         raise FinalizationTransactionError("E_FINALIZATION_CONTEXT_LINK_MISMATCH")
     root = root.resolve(strict=True)
     for field in ("resolved_test_data_ref", "approval_ref"):
@@ -1012,7 +1064,7 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[Any]):
         if run_result.get("schema_version") == "ui-test.run-result.v5":
             _verify_current_run_links(
                 run_result, transaction.run_root, context, attempt_store,
-                pre_terminal_events_hash, phase_status,
+                pre_terminal_events_hash, phase_status, item.stash.get(_VERSION_BINDING_KEY, None),
             )
         committed = transaction.commit(
             transaction_id=transaction_id,
@@ -1177,6 +1229,15 @@ def pytest_collection_finish(session):
     config = session.config
     formal = [item.nodeid for item in session.items if item.get_closest_marker("ui_test")]
     config.stash[_SESSION].observe_collection([item.nodeid for item in session.items], formal)
+    if formal and not config.option.collectonly and not hasattr(config, "_ui_test_codex_request"):
+        from .artifact_layout import ProjectLayout
+        from .formal_catalog import selected_cases, registration_notice
+        from .stage_events import stage_started
+        root = config.stash.get(_SESSION_EVIDENCE_ROOT_KEY, None)
+        project = ProjectLayout.from_evidence(Path(root) / "sessions") if root else None
+        if project:
+            registration_notice(stage_started(project.root, "playwright", config.stash[_SESSION_ID_KEY],
+                                              config.stash[_SESSION_TIME], selected_cases(session.items)))
     worker = getattr(config, "workerinput", {})
     if worker.get("ui_test_manifest"):
         Path(worker["ui_test_manifest"]).write_text(json.dumps(formal), encoding="utf-8")
@@ -1219,7 +1280,15 @@ def _write_session_result(session):
         origin = next(iter(origins)) if len(origins) == 1 else "unknown"
         origin_digests = sorted({node["_origin_evidence_digest"] for node in nodes})
         public_nodes = state.reconcile(Path(evidence_root), config.stash[_SESSION_ID_KEY])
+        selected = {item.nodeid: item for item in session.items}
+        selected_cases = {}
         for node in public_nodes:
+            item = selected.get(node["node_id"])
+            if item is not None:
+                for name in ("case_id", "branch_id"):
+                    marker = item.get_closest_marker(name)
+                    if marker and marker.args and isinstance(marker.args[0], str):
+                        selected_cases.setdefault(node["node_id"], {})[name] = marker.args[0]
             if node["finalization_status"] != "committed":
                 continue
             # Reopen the project's authoritative transaction after worker teardown.
@@ -1276,7 +1345,10 @@ def _write_session_result(session):
             "all_required_nodes_committed": all_committed,
             "session_status": session_status,
             "recorded_at": _utc_now(),
+            "started_at": config.stash[_SESSION_TIME],
         }
+        if selected_cases:
+            document["selected_cases"] = selected_cases
         if state.denied_duplicate_nodes:
             document["denied_duplicate_nodes"] = sorted(state.denied_duplicate_nodes)
         if config.getoption("--ui-batch-id"):

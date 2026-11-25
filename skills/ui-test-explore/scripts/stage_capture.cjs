@@ -25,7 +25,7 @@ function caseCapture(row, output, caseMasks = []) {
       throw new Error('Conflicting capture step identity');
     }
     const caption = [object_ref, point, observation].join(' · ');
-    const image = {stage:'midscene',run_id:row.run_id,case_id:row.case_id,attempt_ref:row.attempt_ref,
+    const image = {stage:'midscene',run_id:row.run_id,case_id:row.case_id,branch_id:row.branch_id,attempt_ref:row.attempt_ref,
       step_id:step.step_id,point,object_ref,observation,caption,role:point === 'ordinary' ? 'ordinary' : 'key',
       full_page:fullPage,preferred,support,...qualifiers};
     if (reason) { image.reason = reason; entry.key_reason = reason; }
@@ -42,7 +42,7 @@ function caseCapture(row, output, caseMasks = []) {
       const captureId = randomUUID();
       const file = path.join(directory,captureId+'.png');
       fs.writeFileSync(file,bytes,{flag:'wx'});
-      const receipt = {stage:image.stage,run_id:row.run_id,case_id:row.case_id,attempt_ref:row.attempt_ref,
+      const receipt = {stage:image.stage,run_id:row.run_id,case_id:row.case_id,branch_id:row.branch_id,attempt_ref:row.attempt_ref,
         step_id:step.step_id,path:file,sha256:createHash('sha256').update(bytes).digest('hex')};
       fs.writeFileSync(path.join(directory,captureId+'.json'),JSON.stringify(receipt),{flag:'wx'});
       Object.assign(image,{path:file,sha256:receipt.sha256,capture_id:captureId,

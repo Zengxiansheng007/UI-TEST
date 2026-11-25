@@ -1,11 +1,14 @@
 """练习项目运行时仅消费插件上下文并返回候选。"""
 import hashlib
 import json
+import re
 from urllib.parse import urlsplit
 from pathlib import Path
 from dataclasses import asdict
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from ui_test_core.case_contracts import canonical_hash, validate_document
+from ui_test_core.artifact_layout import ProjectLayout
+from ui_test_core.release_verifier import verify_release
 from window_observation import observe_window
 from ui_test_core.stage_capture import STANDARD_MASK, capture_step
 from ui_test_core.execution_data_session import ExecutionDataSession
@@ -35,11 +38,33 @@ def digest(path):
 def paths(case_id):
     return read(ROOT / 'asset-paths.json')[case_id]
 
-def compiled(case_id):
-    return read(ROOT / 'compiled' / (case_id + '.json'))
+def compiled(case_id, branch_id):
+    case = ProjectLayout(ROOT).case_dir(case_id, branch_id)
+    pointer_file = case / "active.json"
+    if not pointer_file.exists():
+        frozen = read(ROOT / "compiled" / (case_id + ".json"))
+        if frozen["manifest"]["branch_id"] != branch_id:
+            raise ValueError("E_ACTIVE_BRANCH_MISMATCH")
+        return dict(frozen, test_data_path=branch_root(case_id) / "tests/test-data.json")
+    pointer = read(pointer_file)
+    fingerprint = pointer["build_fingerprint"]
+    if not re.fullmatch(r"sha256:[0-9a-f]{64}", fingerprint):
+        raise ValueError("E_ACTIVE_RELEASE_INVALID")
+    release = case / "releases" / fingerprint.removeprefix("sha256:")
+    if ((pointer["case_id"], pointer["branch_id"]) != (case_id, branch_id)
+            or pointer["manifest_ref"] != (release / "manifest.json").relative_to(case).as_posix()
+            or verify_release(release, active_pointer=pointer)["release_integrity"] != "valid"):
+        raise ValueError("E_ACTIVE_RELEASE_INVALID")
+    return {"manifest": read(release / "manifest.json"), "case_ir": read(release / "case-ir.json"),
+            "parameter_manifest": read(release / "case-parameter-manifest.json"),
+            "resolved_ir": read(release / "resolved-ir.json"), "test_data_path": release / "test-data.json"}
 
 def branch_root(case_id):
     return ROOT / paths(case_id)['branch_root']
+
+
+def attempt_root(context):
+    return ProjectLayout(ROOT).formal_attempt(context["session_id"], context["run_id"])
 
 
 def verify_counter_action(action, todo, text, expected_count, checked):
@@ -66,17 +91,17 @@ class PracticeRuntime:
         c = self.context
         assert (case_id, branch_id) == (c['case_id'], c['branch_id'])
         assert c['approved'] and c['environment'] == 'test' and c['risk_level'] == 'r2-ui-write-test'
-        frozen = compiled(case_id)
+        frozen = compiled(case_id, branch_id)
         assert parameter_manifest == frozen['parameter_manifest'] and step_manifest == frozen['resolved_ir']['resolved_steps']
         budget = c['config_summary'].get('stage_write_budget')
-        run_root = branch_root(case_id) / 'runs' / c['run_id']
+        run_root = attempt_root(c)
         output = run_root / 'qualification' if self.qualification else run_root / 'reports'
         output.mkdir(parents=True, exist_ok=True)
         if not self.qualification:
             if (run_root / 'pending.json').exists() or (run_root / 'approval-record.json').exists():
                 raise RuntimeError('E_EXISTING_RUN_REQUIRES_RECEIPT_RECOVERY')
             (run_root / 'execution-started').touch(exist_ok=False)  # 重送或并发运行不得覆盖原账本。
-        session = ExecutionDataSession(run_id=c['run_id'], build_fingerprint=frozen['manifest']['build_fingerprint'], test_data_path=branch_root(case_id) / 'tests/test-data.json', parameter_manifest=parameter_manifest, stage_write_budget=budget)
+        session = ExecutionDataSession(run_id=c['run_id'], build_fingerprint=frozen['manifest']['build_fingerprint'], test_data_path=frozen["test_data_path"], parameter_manifest=parameter_manifest, stage_write_budget=budget)
         store = FailureRepairEventStore(ROOT / 'diagnostics', product_id='todomvc')
         guard = ExecutionParameterGuard(session, store, source_file_ref='tests/test-data.json')
         guard.start()  # 参数漂移必须在BrowserContext前阻断。

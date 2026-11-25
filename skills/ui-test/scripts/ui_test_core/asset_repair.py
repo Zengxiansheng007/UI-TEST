@@ -9,7 +9,8 @@ def committed_use(project, run_id, expected_status):
     from .reusable_assets import inside, trace_run
     if not run_id or not run_id.isalnum():
         raise ValueError("expected a project run identifier")
-    root = inside(project.resolve(), "runs/"+run_id)
+    from .artifact_layout import ProjectLayout
+    root = ProjectLayout(project).find_attempt(run_id)
     uses = trace_run(root)
     final = root/"finalization"
     commit = json.loads((final/"finalization-commit.json").read_bytes())

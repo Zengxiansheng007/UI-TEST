@@ -82,6 +82,21 @@ def invoke(project, args, **env):
                           text=True, timeout=120)
 
 
+def test_independent_tasks_with_same_batch_retain_reports_and_short_observer_files(project):
+    long_name = "测" * (185 - len(str(project)))
+    original = invoke(project, command(project, long_name))
+    assert original.returncode == 0, original.stdout + original.stderr
+    first, = project.glob("运行/p*/report.html")
+    content = first.read_bytes()
+    independent = invoke(project, command(project, "second"))
+    assert independent.returncode == 0, independent.stdout + independent.stderr
+    assert len(list(project.glob("运行/p*/report.html"))) == 2
+    assert first.read_bytes() == content
+    assert len(list(project.glob("临时/*/exit.json"))) == 4
+    for item in project.glob("临时/**/*"):
+        assert len(str(item).encode("utf-16-le")) // 2 <= 220
+
+
 def test_serial_batch_publishes_one_offline_report_on_resume(project):
     urls = []
     for _ in range(2):
@@ -264,7 +279,8 @@ def test_interrupted_dispatcher_and_independent_task(project):
             (project / "released").touch()
             if caller.poll() is None:
                 caller.wait(timeout=60)
-    wait_for(lambda: list((project / "task.json.runs").glob("*/exit.json")))
+    held_id = json.loads((project / "task.json").read_text())["batches"]["batch"]["runs"][0]["run_id"]
+    wait_for(lambda: any(json.loads(f.read_text())["run_id"] == held_id for f in (project / "临时").glob("*/exit.json")))
     assert subprocess.run(args, cwd=project, timeout=90).returncode == 0
     rows = json.loads((project / "task.json").read_text())["batches"]["batch"]["runs"]
     assert len(rows) == 2 and rows[0]["exited_ns"] <= rows[1]["started_ns"]

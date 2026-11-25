@@ -15,7 +15,7 @@ def read(path):
 def publish(path, value):
     path = Path(path)
     with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent,
-                                     prefix=path.name + ".", delete=False) as stream:
+                                     prefix=".ui-", delete=False) as stream:
         temporary = Path(stream.name)
         try:
             json.dump(value, stream, ensure_ascii=False, indent=2)

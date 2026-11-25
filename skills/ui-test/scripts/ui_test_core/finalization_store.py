@@ -103,7 +103,7 @@ class FinalizationStore:
         path.parent.mkdir(parents=True, exist_ok=True)
         if cls._verify_existing(path, payload, conflict_code=conflict_code):
             return "existing"
-        temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+        temporary = path.with_name(f".{uuid.uuid4().hex}.tmp")
         try:
             with temporary.open("xb") as stream:
                 stream.write(payload)
@@ -141,7 +141,8 @@ class FinalizationStore:
         safe_role = self._safe_identifier(role, error_code="E_FINALIZATION_ROLE_INVALID")
         payload = self._document_bytes(document)
         descriptor = self.describe_document(document)
-        stage_path = self.staging_root / transaction / f"{safe_role}-{descriptor['content_hash'][7:]}.json"
+        from .path_utils import short_id
+        stage_path = self.staging_root / short_id(transaction) / f"{short_id(safe_role, descriptor['content_hash'])}.json"
         self._publish_immutable(stage_path, payload, conflict_code="E_FINALIZATION_STAGING_CONFLICT")
         return {**descriptor, "staging_ref": self._relative_ref(stage_path), "role": safe_role}
 

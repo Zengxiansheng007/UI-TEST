@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ui_test_core.asset_revision import encoded, replace
+from ui_test_core.artifact_layout import ProjectLayout
 from ui_test_core.case_contracts import canonical_hash
 from ui_test_core.run_evidence_linker import build_evidence_index_v2, build_run_result_v5
 from ui_test_core.stage_write_budget import StagePermitLedger
@@ -41,18 +42,19 @@ def pytest_ui_test_project_config_path():
 
 
 def pytest_ui_test_execution_evidence_root():
-    return str(ROOT/"execution-evidence")
+    return str(ROOT/"运行"/"执行证据")
 
 
 def pytest_ui_test_finalization_target_v1(run_id, node_id, attempt_store):
-    return {"run_root":str(ROOT/"runs"/run_id)}
+    context = attempt_store.read_execution_context(run_id=run_id, node_id=node_id)
+    return {"run_root":str(ProjectLayout(ROOT).formal_attempt(context["session_id"], run_id))}
 
 
 def pytest_ui_test_build_finalization_candidate_v1(run_id,node_id,transaction_id,pre_terminal_events_hash,
                                                   pytest_phase_status,attempt_store):
     c = attempt_store.read_execution_context(run_id=run_id,node_id=node_id)
     ref, sha = attempt_store.read_execution_context_ref_and_hash(run_id=run_id,node_id=node_id)
-    out = ROOT/"runs"/run_id
+    out = ProjectLayout(ROOT).formal_attempt(c["session_id"], run_id)
     use = json.loads((out/"use.json").read_bytes())
     assert (run_id,c["attempt_ref"],c["case_id"]) == (use["run_id"],use["attempt_ref"],use["case_id"])
     phases = use["phase_results"]

@@ -12,6 +12,14 @@ FIXTURE = ROOT / "fixtures" / "source_packet_valid.json"
 
 
 class A2AHandoffCliTests(unittest.TestCase):
+    def test_project_bundle_is_owned_by_the_requested_stage(self):
+        with tempfile.TemporaryDirectory() as td:
+            subprocess.run([sys.executable, str(SCRIPT), str(FIXTURE), "--project", td,
+                            "--stage", "midscene", "--stage-run-id", "run41"], check=True)
+            paths = list((Path(td) / "运行").glob("m*/交接/*.json"))
+            self.assertEqual(len(paths), 1)
+            self.assertIn("handoff_packet", json.loads(paths[0].read_text("utf8")))
+
     def test_cli_writes_output(self):
         with tempfile.TemporaryDirectory() as td:
             out = Path(td) / "out.json"

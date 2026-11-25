@@ -7,6 +7,7 @@ import os
 import re
 from pathlib import Path, PureWindowsPath
 from typing import Any
+from .path_utils import short_id
 
 
 class PathPlanningError(ValueError):
@@ -31,8 +32,11 @@ ASSET_TYPES: dict[str, dict[str, Any]] = {
     "case_manifest": {"root": "execution", "case": True, "path": ("manifest.json",)},
     "run_result": {"root": "execution", "run": True, "path": ("run-result.json",)},
     "run_evidence": {"root": "execution", "run": True, "path": ("evidence",), "ref": True},
-    "run_report": {"root": "execution", "run": True, "path": ("report", "report.html")},
+    "run_report": {"root": "execution", "run": True, "path": ("report.html",)},
     "run_trace": {"root": "execution", "run": True, "path": ("trace", "trace.zip")},
+    "repair": {"root": "execution", "run": True, "path": ("修复",), "ref": True, "ext": ".json"},
+    "recovery": {"root": "execution", "run": True, "path": ("恢复",), "ref": True, "ext": ".json"},
+    "handoff": {"root": "execution", "run": True, "path": ("交接",), "ref": True, "ext": ".json"},
     "staging": {"root": "staging", "run": True, "path": ()},
     "experience_candidate": {"root": "knowledge", "path": ("candidate",), "ref": True, "ext": ".json"},
     "experience_observed": {"root": "knowledge", "path": ("observed",), "ref": True, "ext": ".json"},
@@ -49,41 +53,46 @@ def plan_asset_path(config: dict[str, Any], asset_type: str, selection: dict[str
         raise PathPlanningError("E_ASSET_TYPE_UNKNOWN")
     if {"root", "target_root", "output_dir", "target_path"}.intersection(selection):
         raise PathPlanningError("E_CALLER_ROOT_FORBIDDEN")
-    scope_parts, resolved = _resolve_scope(config, selection)
+    _, resolved = _resolve_scope(config, selection)
     governance = config["asset_governance"]
     root_kind = spec["root"]
-    if root_kind == "execution":
+    if root_kind in {"execution", "staging"}:
         root = PureWindowsPath(governance["execution_asset_root"])
-        parts = scope_parts
+        configured = PureWindowsPath(config.get("config_path", "")).parent
+        if configured != root and configured.is_relative_to(root) and not configured.relative_to(root).parts[0].startswith("_"):
+            parts = list(configured.relative_to(root).parts)
+        else:
+            parts = ["项目-" + short_id(resolved["project_group"], resolved["product"])]
     elif root_kind == "knowledge":
         root = PureWindowsPath(governance["knowledge_root"])
         relative = PureWindowsPath(config["knowledge_space"]["relative_path"])
         parts = list(relative.parts)
-    else:
-        root = PureWindowsPath(governance["staging_root"])
-        parts = scope_parts
+    if asset_type.startswith("shared_"):
+        parts.extend(["共享", short_id(resolved["system"], *resolved["module_path"], resolved["function"])])
     if spec.get("case"):
-        parts.extend(["cases", _required_identifier(selection, "case_id", _RUN_ID), "branches", _required_identifier(selection, "branch_id", _RUN_ID)])
+        parts.extend(["用例", "c" + short_id(_required_identifier(selection, "case_id", _RUN_ID), _required_identifier(selection, "branch_id", _RUN_ID))])
     if spec.get("run"):
         run_id = _required_identifier(selection, "run_id", _RUN_ID)
         year = str(selection.get("year", ""))
         month = str(selection.get("month", ""))
         if not re.fullmatch(r"20\d{2}", year) or not re.fullmatch(r"0[1-9]|1[0-2]", month):
             raise PathPlanningError("E_RUN_PARTITION_INVALID")
-        parts.extend([
-            "cases", _required_identifier(selection, "case_id", _RUN_ID),
-            "branches", _required_identifier(selection, "branch_id", _RUN_ID),
-            "runs", year, month, run_id,
-        ])
         if root_kind == "staging":
-            parts.append(asset_type)
+            parts.extend(["临时", "t" + short_id(run_id)])
+        else:
+            stage = selection.get("stage", "playwright")
+            if stage not in ("playwright", "midscene"):
+                raise PathPlanningError("E_STAGE_INVALID")
+            parts.extend(["运行", ("p" if stage == "playwright" else "m") + short_id(run_id)])
     parts.extend(spec["path"])
     if spec.get("case_filename"):
-        parts.append("test_" + _required_identifier(selection, "case_id", _RUN_ID).lower().replace("-", "_").replace(".", "_") + ".py")
+        parts.append("test_case.py")
     if spec.get("ref"):
         reference = _required_identifier(selection, "asset_id", _RUN_ID)
-        parts.append(reference + spec.get("ext", ""))
+        parts.append((reference if root_kind == "knowledge" else short_id(reference)) + spec.get("ext", ""))
     target = root.joinpath(*parts)
+    if root_kind != "knowledge" and len(str(target).encode("utf-16-le")) // 2 + 40 > 220:
+        raise PathPlanningError("E_ARTIFACT_PATH_BUDGET")
     _assert_windows_containment(root, target)
     return {
         "schema_version": "ui-test.path-plan.v1",
