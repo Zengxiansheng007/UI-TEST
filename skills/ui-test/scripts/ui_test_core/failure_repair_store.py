@@ -223,6 +223,7 @@ class FailureRepairEventStore:
                 if pending:
                     self._write_projections(events, event["occurred_at"])
                     self.intent_path.unlink(missing_ok=True)
+                self._link_case_event(existing)
                 return {"status": "duplicate", "event_id": existing["event_id"], "event_count": len(events)}
             self._validate_existing_projections(events)
             self._check_repair_gate(event, events)
@@ -247,7 +248,15 @@ class FailureRepairEventStore:
             readback = self._all_events()
             if not any(item["event_id"] == event["event_id"] for item in readback):
                 raise FailureRepairStoreError("E_HISTORY_READBACK_FAILED")
+            self._link_case_event(event)
             return {"status": "appended", "event_id": event["event_id"], "event_count": len(readback)}
+
+    def _link_case_event(self, event):
+        from .artifact_layout import ProjectLayout
+        project = ProjectLayout.from_evidence(self.history_root)
+        if project:
+            owner = project.case_dir(event["case_id"], event["branch_id"])
+            project.link_related(owner, "修复", event["event_id"], self.history_root / f"{event['log_date']}.jsonl")
 
     def _write_projections(self, events: list[dict[str, Any]], generated_at: str) -> None:
         index, unfinished = self._project(events, generated_at)

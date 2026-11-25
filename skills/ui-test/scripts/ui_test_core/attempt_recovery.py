@@ -51,6 +51,7 @@ class AttemptRecovery:
                         return {"recovery_type": "unknown-owner"}
                 existing = self._store.read_recovery_events(**identity)
                 if existing:
+                    self._link_recovery(run_root, identity)
                     return {"recovery_type": existing[-1]["event_type"], "recovered_from": existing[-1]["recovered_from"]}
                 if receipt is not None:
                     state = "receipt_without_terminal"
@@ -65,8 +66,17 @@ class AttemptRecovery:
                     attempt_dir_name=derive_attempt_directory_name(**identity),
                     recovery_type=kind, recovered_from=state, code="E_PREVIOUS_ATTEMPT_" + kind.upper(),
                 )
+                self._link_recovery(run_root, identity)
                 return {"recovery_type": kind, "recovered_from": state}
         except FileLockBusy:
             return {"recovery_type": "active"}
         except (OSError, KeyError, ValueError, FinalizationStoreError):
             return {"recovery_type": "unknown-owner"}
+
+    def _link_recovery(self, run_root, identity):
+        from .artifact_layout import ProjectLayout
+        project = ProjectLayout.from_evidence(run_root)
+        if project:
+            source = self._store.recovery_file(**identity)
+            if source.resolve().is_relative_to(project.root.resolve()):
+                project.link_related(Path(run_root), "恢复", identity["run_id"], source)

@@ -5,6 +5,21 @@ from scripts.ui_test_core.release_verifier import verify_release
 from tests.fixtures_v2 import compiled_v2
 
 
+def test_project_plan_compiles_in_case_and_stages_in_project_temp(tmp_path):
+    from scripts.ui_test_core.case_sync import save_project_plan
+    from pathlib import Path
+    compiled, _ = compiled_v2(tmp_path / "test-data.json")
+    plan = save_project_plan(tmp_path, compiled, "长中文名😀" * 50)
+    case = Path(plan["target"])
+    assert case.parent == tmp_path / "用例"
+    assert (case / "plan.json").is_file()
+    result = apply_sync_plan(plan, lambda: compiled, case)
+    assert result["status"] == "applied", result
+    assert (Path(result["release_path"]) / "playwright-test.py").is_file()
+    assert list((tmp_path / "临时").iterdir())
+    assert max(len(str(p).encode("utf-16-le")) // 2 for p in tmp_path.rglob("*")) <= 220
+
+
 def test_dry_run_is_write_free_and_apply_is_idempotent(tmp_path):
     compiled, _ = compiled_v2(tmp_path / "test-data.json")
     target = tmp_path / "formal-copy"

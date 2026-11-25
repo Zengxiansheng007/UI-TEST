@@ -8,6 +8,8 @@ const delivery = await runExplorationStage({
   runId, outputRoot, python, nativeReplay, // Optional existing local replay file
   cases: [{
     id: 'read-row', attempt: '1',
+    planSource: __filename, // Project-local module defining this callback. Its loaded project imports are retained.
+    dependencies: [], // Additional project-relative JavaScript or JSON plan dependencies loaded dynamically.
     run: async (record, stop, capture) => {
       const visible = await aiQuery('string, visible title of the target row');
       await capture(page, {step_id: 'inspect', action: 'Inspect target row'}, {

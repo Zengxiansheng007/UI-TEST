@@ -121,6 +121,8 @@ def pytest_collection_finish(session):
     manifest = {"nodes": nodes, "r2": has_write, "session_id": config._ui_test_dispatch_session,
                 "evidence_root": str(Path(root).resolve())}
     if request["collect"]:
+        from .formal_catalog import selected_cases
+        manifest["owners"] = selected_cases(items)
         from .project_config import load_project_config
         project = load_project_config(config.hook.pytest_ui_test_project_config_path(), purpose="execute")
         manifest.update(r2_nodes=[item.nodeid for item in items if item.get_closest_marker("r2")],

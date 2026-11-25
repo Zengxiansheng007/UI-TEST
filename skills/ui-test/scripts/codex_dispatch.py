@@ -1,4 +1,5 @@
 """Dispatch selected formal nodes serially or under a task-scoped parallel instruction."""
+from datetime import datetime, timezone
 import argparse
 import hashlib
 import json
@@ -12,6 +13,8 @@ import uuid
 from pathlib import Path
 
 from ui_test_core.codex_dispatch_state import publish, read, transaction
+from ui_test_core.artifact_layout import ProjectLayout, checked_path, dispatch_task_ref, short_id
+from ui_test_core.path_utils import io_path
 from ui_test_core.file_lock import FileLockBusy, exclusive_file_lock
 
 
@@ -38,7 +41,7 @@ def pytest_launch(task, batch_ref, scope, extra, helper, manifest, *, collect=Fa
         args.append("--ui-execution-origin=codex-cli")
         if run_id is not None:
             args += ["--ui-run-id", run_id]
-    request = {"task_ref": "CODEX-" + digest(os.path.normcase(str(task))), "batch_ref": batch_ref,
+    request = {"task_ref": dispatch_task_ref(task), "batch_ref": batch_ref,
                "scope": scope, "collect": collect, "manifest": str(manifest), "r2": "--ui-r2-approved" in extra}
     if group:
         request.update(group=group, workers=workers)
@@ -49,7 +52,10 @@ def pytest_launch(task, batch_ref, scope, extra, helper, manifest, *, collect=Fa
 
 
 def collect_manifest(task, batch_ref, scope, extra, helper):
-    with tempfile.TemporaryDirectory() as directory:
+    project = ProjectLayout.from_evidence(task) or ProjectLayout(task.parent)
+    staging = project.temp_dir(short_id(dispatch_task_ref(task), batch_ref, "collection"))
+    staging.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="c-", dir=staging) as directory:
         manifest = Path(directory) / "collection.json"
         command, env = pytest_launch(task, batch_ref, scope, extra, helper, manifest, collect=True)
         exitcode = subprocess.run(command, env=env).returncode
@@ -59,7 +65,11 @@ def collect_manifest(task, batch_ref, scope, extra, helper):
 
 
 def run_directory(task, run_id):
-    return task.parent / (task.name + ".runs") / run_id
+    old = task.parent / (task.name + ".runs") / run_id
+    if io_path(old).is_dir():
+        return old  # Continue an observer reserved before this layout was introduced.
+    project = ProjectLayout.from_evidence(task) or ProjectLayout(task.parent)
+    return project.temp_dir(short_id(dispatch_task_ref(task), run_id))
 
 
 def observe_child(task, batch_ref, run_id, extra, helper):
@@ -153,6 +163,8 @@ def dispatch(task, batch_ref, scope, extra, helper, parallel_intent=None):
     if not task.is_absolute() or not re.fullmatch(r"[\w.-]{1,128}", batch_ref, re.ASCII):
         raise ValueError("E_CODEX_TASK_PATH_OR_BATCH_REF")
     task = task.resolve()
+    checked_path(task, extra_units=5)  # The task journal's existing cross-process lock adds ".lock".
+    checked_path(task.parent / ".ui-xxxxxxxx")  # The atomic journal file uses an independent temporary name.
     inherited = os.environ.get(TASK_ENV)
     if inherited and Path(inherited).resolve() != task:
         raise ValueError("E_CODEX_TASK_REF_MISMATCH")
@@ -174,12 +186,16 @@ def dispatch(task, batch_ref, scope, extra, helper, parallel_intent=None):
     with transaction(task) as state:
         existing = state["batches"].get(batch_ref)
     if existing is None:
-        nodes = collect_manifest(task, batch_ref, scope, extra, helper)["nodes"]
+        manifest = collect_manifest(task, batch_ref, scope, extra, helper)
+        nodes = manifest["nodes"]
     while True:
         with transaction(task) as state:
             if batch_ref not in state["batches"]:
                 state["batches"][batch_ref] = dict(signature=signature, project=str(Path.cwd()), mode="serial",
+                                                   started_at=datetime.now(timezone.utc).isoformat(),
                                                    selected=scope, nodes=nodes, runs=[], status="pending")
+                from ui_test_core.formal_catalog import begin_batch
+                begin_batch(dispatch_task_ref(task), batch_ref, manifest, state["batches"][batch_ref]["started_at"])
             batch = state["batches"][batch_ref]
             if batch["signature"] != signature or batch["mode"] != "serial":
                 raise ValueError("E_CODEX_BATCH_INPUT_CHANGED")

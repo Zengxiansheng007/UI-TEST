@@ -25,6 +25,9 @@ def capture_step(page, step, *, context, run_root, point, object_ref, observatio
     target = (root / relative).resolve()
     if relative.is_absolute() or relative.drive or ".." in relative.parts or not target.is_relative_to(root):
         raise ValueError("Invalid screenshot path")
+    if root.parent.parent.name == "运行":
+        from .artifact_layout import checked_path
+        checked_path(target)
     image = {key: context[key] for key in ("run_id", "case_id", "attempt_ref")}
     image.update(stage="playwright", step_id=step["step_id"], point=point, object_ref=object_ref,
                  observation=observation, caption=" · ".join((object_ref, point, observation)),

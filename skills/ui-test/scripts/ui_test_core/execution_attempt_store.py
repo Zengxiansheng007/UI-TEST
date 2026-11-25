@@ -186,16 +186,37 @@ class ExecutionAttemptStore:
         return self._evidence_root / "attempts" / derive_attempt_directory_name(run_id=run_id, node_id=node_id)
 
     @contextmanager
-    def attempt_ownership(self, *, run_id: str, node_id: str, recovery: bool = False):
+    def attempt_ownership(self, *, run_id: str, node_id: str, recovery: bool = False, case_id: str | None = None):
         """Claim a fresh attempt, or try the original owner's existing lock."""
         directory = self._attempt_dir(run_id=run_id, node_id=node_id)
         if not recovery:
+            self._reject_historical_owner(run_id, node_id, case_id)
             try:
                 directory.mkdir(parents=True, exist_ok=False)  # Never attach a new owner to old evidence.
             except FileExistsError as exc:
                 raise ExecutionAttemptStoreError("E_ATTEMPT_START_ALREADY_EXISTS") from exc
         with exclusive_file_lock(directory / "owner.lock", blocking=False, existing_only=recovery):
             yield
+
+    def _reject_historical_owner(self, run_id, node_id, case_id):
+        base = self._evidence_root
+        if base.name != "执行证据" or base.parent.name != "运行":
+            return
+        project = base.parent.parent
+        old_attempt = project / "execution-evidence" / "attempts" / derive_attempt_directory_name(run_id=run_id, node_id=node_id)
+        if old_attempt.exists():
+            raise ExecutionAttemptStoreError("E_ATTEMPT_START_ALREADY_EXISTS")
+        if Path(run_id).name != run_id or run_id in {".", ".."}:
+            raise ExecutionAttemptStoreError("E_ATTEMPT_IDENTITY_REQUIRED")
+        if (project / "runs" / run_id).exists():
+            raise ExecutionAttemptStoreError("E_ATTEMPT_START_ALREADY_EXISTS")
+        if case_id and Path(case_id).name == case_id and case_id not in {".", ".."}:
+            old_run = project / "cases" / case_id / "runs" / run_id
+            if any((old_run / name).exists() for name in ("execution-started", "pending.json", "approval-record.json")):
+                raise ExecutionAttemptStoreError("E_ATTEMPT_START_ALREADY_EXISTS")
+
+    def recovery_file(self, *, run_id: str, node_id: str) -> Path:
+        return self._attempt_dir(run_id=run_id, node_id=node_id) / "recovery.jsonl"
 
     @staticmethod
     def _target_digest(run_root: str | Path) -> str:

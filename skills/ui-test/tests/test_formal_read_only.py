@@ -11,7 +11,8 @@ pytest_plugins = ["pytester"]
 
 def test_read_only_formal_batch_commits_actual_assertions(pytester, monkeypatch):
     monkeypatch.setenv("PYTHONUTF8", "1")
-    cfg = pytester.makefile(".yaml", project=_V21_CONFIG_YAML)
+    cfg = pytester.path / "ui-test.project.yaml"
+    cfg.write_text(_V21_CONFIG_YAML, encoding="utf8")
     pytester.makeconftest(_PLUGIN_CONTEST + f'''
 import json
 from scripts.ui_test_core.case_contracts import canonical_hash
@@ -67,8 +68,11 @@ def test_read_row(ui_test_execution_context, expected):
     assert "E_FINALIZATION_READ_ONLY_BOUNDARY_MISMATCH" in result.stdout.str()
     session_file, = (pytester.path / "evidence/sessions").glob("*.json")
     nodes = json.loads(session_file.read_text())["nodes"]
-    report, = (pytester.path / "evidence").rglob("execution-summary.json")
+    report, = (pytester.path / "运行").rglob("execution-summary.json")
     cases = {c["node_id"]: c for c in json.loads(report.read_text(encoding="utf8"))["cases"]}
+    footer = (report.parent/"report.html").read_text("utf8").split('<footer id="agent">', 1)[1]
+    assert "来源未知" in footer and "本阶段证据索引" in footer and "执行时入口" in footer
+    assert len(footer.split("<h3>")) - 1 == 3
     for node in nodes:
         root = pytester.path / "runs" / node["run_id"]
         closure = FinalizationTransaction(root).read_committed()
@@ -79,6 +83,11 @@ def test_read_row(ui_test_execution_context, expected):
         assert node["finalization_status"] == "committed"
         assert closure["receipt"]["status"] == "committed"
         v5 = closure["run_result"]
+        context = json.loads((pytester.path / "evidence" / v5["execution_context_ref"]).read_text("utf8"))
+        binding = context["binding"]
+        assert binding["node_id"] == node["node_id"]
+        assert (pytester.path / binding["entry"]).read_bytes() == runner.read_bytes()
+        assert any(dep["source"] == "conftest.py" for dep in binding["dependencies"])
         assert v5["overall_status"] == v5["pytest_phase_status"]["call"] == node["disposition"]
         assert (v5["write_state"], v5["submit_count"]) == ("not_attempted", 0)
         assert cases[node["node_id"]]["run_result_hash"] == v5["run_result_hash"]

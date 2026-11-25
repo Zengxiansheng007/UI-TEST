@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT.parents[1] / 'skills/ui-test/scripts'))
 pytest_plugins = ('ui_test_core.pytest_runtime_plugin',)  # 所有正式节点显式加载唯一控制层。
-from project_runtime import read, save, digest, paths, compiled, branch_root, PracticeRuntime
+from project_runtime import read, save, digest, paths, compiled, branch_root, attempt_root, PracticeRuntime
 from ui_test_core.case_contracts import canonical_hash
 from ui_test_core.reuse_outcome import reuse_verdict
 from ui_test_core.release_verifier import verify_release
@@ -22,20 +22,20 @@ def pytest_ui_test_project_config_path():
     return str(ROOT / 'ui-test.project.yaml')  # 使用当前工作树的项目配置。
 
 def pytest_ui_test_execution_evidence_root():
-    return str(ROOT / 'execution-evidence')
+    return str(ROOT / '运行' / '执行证据')
 
 def pytest_ui_test_finalization_target_v1(run_id, node_id, attempt_store):
     context = attempt_store.read_execution_context(run_id=run_id, node_id=node_id)
-    return {'run_root': str(branch_root(context['case_id']) / 'runs' / run_id)}  # 核心事务拥有提交与receipt。
+    return {'run_root': str(attempt_root(context))}
 
 def pytest_ui_test_build_finalization_candidate_v1(run_id, node_id, transaction_id, pre_terminal_events_hash, pytest_phase_status, attempt_store):
     context = attempt_store.read_execution_context(run_id=run_id, node_id=node_id)
-    run_root = branch_root(context['case_id']) / 'runs' / run_id
+    run_root = attempt_root(context)
     pending = read(run_root / 'pending.json')
     assert pending['context'] == context
     passed = all(value == 'passed' for value in pytest_phase_status.values())
     if passed:
-        expected = compiled(context['case_id'])['resolved_ir']['resolved_steps']
+        expected = compiled(context['case_id'], context['branch_id'])['resolved_ir']['resolved_steps']
         if [row['step_id'] for row in pending['steps']] != [step['source_step_id'] for step in expected]:
             raise ValueError('E_SOURCE_STEPS_INCOMPLETE')
         for row in pending['steps']:

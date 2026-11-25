@@ -6,6 +6,17 @@ const { test } = require('node:test');
 const { fileURLToPath } = require('node:url');
 const { runExplorationStage } = require('../skills/ui-test-explore/scripts/exploration_stage.cjs');
 
+test('a historical exploration run ID cannot start UI actions again', async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'legacy-'));
+  t.after(() => fs.rmSync(root, {recursive:true, force:true}));
+  fs.mkdirSync(path.join(root, 'midscene', 'old'), {recursive:true});
+  let calls = 0;
+  await assert.rejects(runExplorationStage({outputRoot:root, runId:'old', cases:[{
+    id:'one', run() { calls++; }
+  }]}), {code:'EEXIST'});
+  assert.equal(calls, 0);
+});
+
 test('one exploration link retains the whole batch, its observations and stopping point', async (t) => {
   const outputRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'explore-test-'));
   t.after(() => fs.rmSync(outputRoot, { recursive: true, force: true }));
@@ -78,5 +89,36 @@ test('archived observations retain attempts, stopped plan and missing evidence',
   assert.match(conflict.stderr,/E_STAGE_IMAGE_IDENTITY/);
   assert.equal(conflict.stdout,'');
   assert.equal(fs.existsSync(path.join(copyRoot,'report.html')),false);
+  assert.equal(fs.readFileSync(delivery.report_html,'utf8'),html);
+});
+
+test('the same case can run attempt 1 on two branches with distinct capture owners', async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'branches-'));
+  t.after(() => fs.rmSync(root, {recursive:true, force:true}));
+  const bytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64');
+  const page = {frames: () => [], screenshot: async () => bytes};
+  const cases = ['primary','secondary'].map(branch_id => ({
+    id:'shared', branch_id, attempt:'1',
+    async run(record, stop, capture) {
+      await capture(page,{step_id:'read',action:'Inspect'}, {point:'query',object_ref:'row',observation:branch_id});
+    }
+  }));
+  await assert.rejects(runExplorationStage({outputRoot:root,runId:'duplicate',cases:[cases[0],cases[0]]}),
+    /distinct case attempts/);
+  const delivery = await runExplorationStage({outputRoot:root,runId:'branches',cases});
+  const summary = JSON.parse(fs.readFileSync(delivery.execution_summary));
+  assert.deepEqual(summary.cases.map(r => [r.case_id,r.branch_id,r.attempt_ref]),
+    [['shared','primary','1'],['shared','secondary','1']]);
+  const html = fs.readFileSync(delivery.report_html,'utf8');
+  for (const branch of ['primary','secondary']) assert.ok(html.includes('shared / '+branch));
+  const archive = JSON.parse(fs.readFileSync(delivery.observations));
+  const [first, second] = archive.cases.map(item => item.steps[0].images[0]);
+  Object.assign(second,first,{branch_id:'secondary'}); // Original receipt still belongs to primary.
+  fs.writeFileSync(delivery.observations,JSON.stringify(archive));
+  const result = require('node:child_process').spawnSync('python',['-X','utf8',
+    path.resolve(__dirname,'../skills/ui-test-explore/scripts/publish_observations.py'),'--archive',delivery.observations],
+    {encoding:'utf8'});
+  assert.notEqual(result.status,0);
+  assert.match(result.stderr,/E_EXPLORATION_IMAGE_IDENTITY/);
   assert.equal(fs.readFileSync(delivery.report_html,'utf8'),html);
 });

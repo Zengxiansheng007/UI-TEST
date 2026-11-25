@@ -16,7 +16,11 @@ python -B -m pytest -q $node --ui-run-id $run --ui-r2-approved --ui-execution-or
 `--ui-r2-approved` 表示本次任务已授权在公开 TodoMVC 可见页面执行源用例规定的操作。每次新执行分配新 ID。已有运行的结果和回执按原 ID 读回。
 
 ```powershell
-$root = Join-Path $branch "runs/$run"
+$roots = @('运行', (Join-Path $branch 'runs'), 'runs') | Where-Object { Test-Path -LiteralPath $_ }
+$receipts = Get-ChildItem -LiteralPath $roots -Filter finalization-commit.json -Recurse
+$match = @($receipts | Where-Object { (Get-Content $_.FullName -Raw -Encoding utf8 | ConvertFrom-Json).run_id -eq $run })
+if ($match.Count -ne 1) { throw '未能定位唯一正式提交' }
+$root = $match[0].Directory.Parent.FullName
 $final = Join-Path $root 'finalization'
 $commit = Get-Content (Join-Path $final 'finalization-commit.json') -Raw -Encoding utf8 | ConvertFrom-Json
 $result = Get-Content (Join-Path $final $commit.run_result_ref) -Raw -Encoding utf8 | ConvertFrom-Json

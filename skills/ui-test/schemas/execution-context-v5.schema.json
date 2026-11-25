@@ -29,6 +29,7 @@
     "execution_channel"
   ],
   "properties": {
+    "binding": {"type":"object","required":["entry","source","sha256","node_id","dependencies","version"]},
     "schema_version": {
       "const": "ui-test.execution-context.v5"
     },

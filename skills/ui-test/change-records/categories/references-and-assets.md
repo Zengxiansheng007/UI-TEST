@@ -124,3 +124,5 @@ pytest controller 和 Codex 整批收尾核对已提交的会话与各用例 V5�
 - [CR-20261124-135 · R0 正式断言、V5 与零提交收据](../entries/2026/2026-11/CR-20261124-135-read-only-finalization.md)
 
 - [CR-20261124-036 · 代表图与来源](../entries/2026/2026-11/CR-20261124-036-representative-images.md)
+
+- [CR-20261125-043 · 旧项目脚本与报告原位登记](../entries/2026/2026-11/CR-20261125-043-legacy-discovery.md)

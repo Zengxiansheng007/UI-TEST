@@ -3,7 +3,17 @@
 from __future__ import annotations
 
 import os
+import hashlib
+import json
 from pathlib import Path
+
+
+def short_id(*identity):
+    """Hash a tuple of logical identifiers without mixing component boundaries."""
+    if not all(isinstance(part, str) and part.strip() for part in identity):
+        raise ValueError("E_ARTIFACT_IDENTITY")
+    encoded = json.dumps(identity, ensure_ascii=False, separators=(",", ":")).encode("utf8")
+    return hashlib.sha256(encoded).hexdigest()[:16]
 
 
 def canonical_display_path(path: str | Path) -> Path:

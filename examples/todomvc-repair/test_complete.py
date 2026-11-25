@@ -8,6 +8,7 @@ from urllib.parse import urlsplit
 import pytest
 from playwright.sync_api import expect
 from ui_test_core.asset_revision import AssetCatalog, digest, encoded, replace
+from ui_test_core.artifact_layout import ProjectLayout
 from ui_test_core.stage_capture import capture_step
 from ui_test_core.reusable_assets import check_selected_pauses, inside, select_asset
 from ui_test_core.reuse_outcome import ReuseFailure, failure_outcome
@@ -25,7 +26,7 @@ def test_two_rows(browser, ui_test_execution_context):
     assert re.fullmatch(r"[A-Za-z0-9_-]{1,40}", run)
     project = Path(__file__).resolve().parent
     from todomvc_page import TodoPage  # Copied unchanged from the public base project during setup.
-    out = project / "runs" / run
+    out = ProjectLayout(project).formal_attempt(context.session_id, run)
     out.mkdir(parents=True, exist_ok=False)  # An existing attempt cannot dispatch again.
     ledger = begin(context,out)
     catalog = AssetCatalog(project)

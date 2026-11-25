@@ -1,5 +1,6 @@
 """Schedule precisely the formal nodes covered by a current user instruction."""
 import importlib.util
+from datetime import datetime, timezone
 import json
 import os
 import subprocess
@@ -269,6 +270,7 @@ def dispatch_parallel(task, batch_ref, selectors, extra, helper, path, signature
             raise ValueError("E_CODEX_XDIST_UNAVAILABLE")
         method = "independent" if requested == "independent" or not manifest["xdist"] else "xdist"
         fresh = dict(signature=signature, project=str(Path.cwd()), mode="parallel", selected=selectors,
+                     started_at=datetime.now(timezone.utc).isoformat(),
                      nodes=manifest["nodes"], runs=[], groups={}, status="pending", method=method, max_workers=max_workers,
                      instruction_ref=data["instruction_ref"], task_ref=str(task), intent_hash=intent_hash,
                      r2_nodes=manifest["r2_nodes"], serial_constraints=manifest["serial_constraints"], accepted_conflicts={})
@@ -277,6 +279,9 @@ def dispatch_parallel(task, batch_ref, selectors, extra, helper, path, signature
         with transaction(task) as state:
             if batch_ref not in state["batches"]:
                 state["batches"][batch_ref] = fresh
+                from .formal_catalog import begin_batch
+                from .artifact_layout import dispatch_task_ref
+                begin_batch(dispatch_task_ref(task), batch_ref, manifest, fresh["started_at"])
             batch = state["batches"][batch_ref]
             if batch.get("intent_hash") != intent_hash or batch["signature"] != signature:
                 raise ValueError("E_CODEX_BATCH_INPUT_CHANGED")
