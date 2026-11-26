@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 
 from ui_test_core.case_contracts import canonical_hash, validate_document
+from ui_test_core.stage_delivery import formal_step
 from ui_test_core.strict_json import loads_strict
 
 
@@ -36,12 +37,20 @@ def network_summary(fact, owner, session):
             "evidence_ref": safe_identity(fact.get("evidence_ref"))}
 
 
-def pictures(step, owner, root):
+def pictures(step, owner, root, formal_refs=None):
+    if formal_refs is not None:
+        # Apply the same sealed-step bindings as the formal report before opening any image.
+        items = formal_step(step, root, {"evidence_refs": formal_refs}).get("images", [])
+        return picture_rows(items, owner, root)
     items = list(step.get("images") or ([step["ui_evidence"]] if step.get("ui_evidence") else []))
     seen = {img.get("path") for img in items}
     for ref in step.get("evidence_refs", []):
         if ref not in seen and Path(ref).suffix.lower() in {".png", ".gif", ".jpg", ".jpeg", ".webp", ".bmp"}:
             items.append({"path": ref, "sha256": step.get("screenshot_sha256") if ref == step.get("screenshot_ref") else None})
+    return picture_rows(items, owner, root)
+
+
+def picture_rows(items, owner, root):
     rows = []
     for img in items:
         if not isinstance(img, dict) or any(img.get(k, v) != v for k, v in owner.items()):
@@ -120,7 +129,8 @@ def build_index(source, *, run_root=None):
             for field in ("session_id", "node_id"):
                 if field in case or field in doc:
                     capture_owner[field] = case.get(field, doc.get(field))
-            images = pictures(step, capture_owner, root)
+            formal_refs = doc["evidence_refs"] if doc.get("schema_version") == "ui-test.run-result.v5" else None
+            images = pictures(step, capture_owner, root, formal_refs)
             if images and step.get("status") in {"not_executed", "not-executed"}:
                 raise ValueError("E_UNEXECUTED_IMAGE")
             network = network_summary(step.get("network_evidence"), owner, case.get("session_id", doc.get("session_id")))
