@@ -114,6 +114,46 @@
           "run-catalog"
         ]
       }
+    },
+    {
+      "name": "assets",
+      "kind": "capability",
+      "description": "查明 UI 项目当前适用的资产版本、选择理由、依赖与启停记录。",
+      "inputs": [
+        "项目资产声明、能力、用例和授权条件"
+      ],
+      "requires": [
+        "项目、环境和步骤范围"
+      ],
+      "outputs": [
+        "生效版本、限定范围与待核对发现"
+      ],
+      "aliases": [],
+      "route": {
+        "state": [
+          "assets"
+        ]
+      }
+    },
+    {
+      "name": "experience",
+      "kind": "capability",
+      "description": "查阅 UI 测试策略的来源及适用范围，或登记已有有效步骤的候选经验。",
+      "inputs": [
+        "查询范围或已有步骤原件"
+      ],
+      "requires": [
+        "项目范围和可追溯来源"
+      ],
+      "outputs": [
+        "带来源的经验查询或候选记录"
+      ],
+      "aliases": [],
+      "route": {
+        "state": [
+          "experience"
+        ]
+      }
     }
   ]
 }

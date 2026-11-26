@@ -1,0 +1,5 @@
+interface:
+  display_name: "UI Test Assets"
+  short_description: "Check effective UI asset versions, scopes, pauses and dependencies"
+policy:
+  allow_implicit_invocation: true

@@ -34,6 +34,8 @@ def main():
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("catalog")
     commands.add_parser("resolve").add_argument("name")
+    for capability in ("assets", "experience"):
+        commands.add_parser(capability).add_argument("--input", type=Path, required=True)
     report = commands.add_parser("execution-report", aliases=["ui-test-execution-report"])
     source = report.add_mutually_exclusive_group(required=True)
     source.add_argument("--observations", type=Path)
@@ -49,10 +51,14 @@ def main():
             result = suite.catalog
         elif args.command == "resolve":
             result = dict(skill=str(suite.skill_path(args.name)), core_scripts=str(root / "scripts"))
+        elif args.command in ("assets", "experience"):
+            owner = suite.load_package(args.command)
+            request = json.loads(args.input.read_text(encoding="utf-8-sig"))
+            result = owner.query(**request)
         else:
             owner = suite.load_package("execution-report")
             result = owner.rebuild(args.observations, args.session, args.output)
-        print(json.dumps(result, ensure_ascii=True))
+        print(json.dumps(result, ensure_ascii=True, sort_keys=args.command in ('assets', 'experience')))
     except (ValueError, OSError, KeyError, TypeError) as exc:
         parser.exit(2, str(exc) + "\n")
 
