@@ -11,4 +11,3 @@ Recommended priority:
 7. coordinate click as last-resort fallback and always mark high risk.
 
 Do not suggest frontend test-contract additions unless explicitly allowed by the user.
-
