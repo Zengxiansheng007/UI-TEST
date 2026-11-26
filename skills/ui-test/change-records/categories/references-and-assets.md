@@ -132,3 +132,5 @@ pytest controller 和 Codex 整批收尾核对已提交的会话与各用例 V5�
 - [CR-20261127-060 · Step evidence and review routing](../entries/2026/2026-11/CR-20261127-060-step-evidence-routing.md)
 
 - [CR-20261127-061 · 历史运行查询](../entries/2026/2026-11/CR-20261127-061-run-catalog.md)
+
+- [CR-20261127-063](../entries/2026/2026-11/CR-20261127-063-verify-script-build.md) Verification and script building.
