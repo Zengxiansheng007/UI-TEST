@@ -1,5 +1,5 @@
 """Resolve capability implementations from the same installation as this runtime."""
-from importlib import util
+from importlib import import_module, util
 import json
 import os
 from pathlib import Path
@@ -60,12 +60,14 @@ class Suite:
         return package
 
 
-def selected_suite(root=None):
+def selected_suite(root=None, *, _loading_bridge=None):
     current = Path(__file__).resolve().parents[2]
     # Historical pytest projects import scripts.ui_test_core through the main Skill.
     # Bind the already-loaded modules before the report owner imports canonical names.
     if __package__ == "scripts.ui_test_core":
         for alias, module in list(sys.modules.items()):
+            if alias == _loading_bridge:  # The forwarding module is still being imported.
+                continue
             if alias == __package__ or alias.startswith(__package__ + "."):
                 canonical = alias.removeprefix("scripts.")
                 existing = sys.modules.setdefault(canonical, module)
@@ -79,3 +81,15 @@ def selected_suite(root=None):
     if root is not None and Path(root).resolve() != current:
         raise ValueError(f"E_SUITE_CONFLICT: loaded {current}, requested {root}")
     return Suite(current)
+
+def owner_module(skill, name, caller):
+    """Resolve historical imports and retain one module identity across both core namespaces."""
+    package = selected_suite(_loading_bridge=caller).load_package(skill)
+    target = import_module(package.__name__ + "." + name)
+    canonical = "ui_test_core." + name
+    existing = sys.modules.get(canonical)
+    if existing is not None and existing not in (sys.modules.get(caller), target):
+        raise ValueError("E_SUITE_RUNTIME_CONFLICT: " + canonical)
+    if caller != "__main__":
+        sys.modules[caller] = sys.modules[canonical] = target
+    return target

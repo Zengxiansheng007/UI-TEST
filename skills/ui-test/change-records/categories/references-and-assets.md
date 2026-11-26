@@ -130,3 +130,5 @@ pytest controller 和 Codex 整批收尾核对已提交的会话与各用例 V5�
 - [CR-20261127-058 · Selected stage report owner](../entries/2026/2026-11/CR-20261127-058-report-suite.md) — Select a single suite catalog, core and report owner for both producers.
 
 - [CR-20261127-060 · Step evidence and review routing](../entries/2026/2026-11/CR-20261127-060-step-evidence-routing.md)
+
+- [CR-20261127-062 · Asset and experience owners](../entries/2026/2026-11/CR-20261127-062-asset-experience-owners.md)
