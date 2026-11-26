@@ -15,3 +15,5 @@
 - [CR-20261124-138 · 阶段交付复核修复](../entries/2026/2026-11/CR-20261124-138-stage-publication-review.md)
 
 - [CR-20261125-046 · 阶段原件与关联报告](../entries/2026/2026-11/CR-20261125-046-stage-links.md)
+
+- [CR-20261127-058 · Selected stage report owner](../entries/2026/2026-11/CR-20261127-058-report-suite.md) — Delegate prior commands and imports to the selected report owner.

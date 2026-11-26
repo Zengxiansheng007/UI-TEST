@@ -109,3 +109,5 @@ Track normative routing, workflow, validation and escalation changes in `SKILL.m
 
 
 - [CR-20261125-054 · 从已批准批次继续归档与释放](../entries/2026/2026-11/CR-20261125-054-resume-archive.md)
+
+- [CR-20261127-058 · Selected stage report owner](../entries/2026/2026-11/CR-20261127-058-report-suite.md) — Select a single suite catalog, core and report owner for both producers.

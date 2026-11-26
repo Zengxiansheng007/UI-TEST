@@ -46,3 +46,5 @@ Document batch review inputs, output status, and historical case reports. [Chang
 - [CR-20261124-034 · 阶段报告离线审阅](../entries/2026/2026-11/CR-20261124-034-stage-reading.md)
 
 - [CR-20261124-036 · 代表图与来源](../entries/2026/2026-11/CR-20261124-036-representative-images.md)
+
+- [CR-20261127-058 · Selected stage report owner](../entries/2026/2026-11/CR-20261127-058-report-suite.md) — Delegate prior commands and imports to the selected report owner.

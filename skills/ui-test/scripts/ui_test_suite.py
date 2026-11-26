@@ -1,0 +1,61 @@
+"""Run a command using the explicitly selected UI-Test installation."""
+import argparse
+import json
+import os
+from pathlib import Path
+import sys
+
+
+def choose_root(explicit=None):
+    locations = [explicit] if explicit else os.environ.get("UI_TEST_SUITE", "").split(os.pathsep)
+    roots = list(dict.fromkeys(Path(p).resolve() for p in locations if p)) or [Path(__file__).resolve().parents[1]]
+    if len(roots) != 1:
+        raise ValueError("E_SUITE_AMBIGUOUS: select --suite from " + ", ".join(map(str, roots)))
+    root = roots[0]
+    if not (root / "references/capabilities.json").is_file() or not (root / "scripts/ui_test_core/__init__.py").is_file():
+        raise ValueError(f"E_SUITE_MISSING: {root}")
+    return root
+
+
+def activate(explicit=None):
+    root = choose_root(explicit)
+    loaded = sys.modules.get("ui_test_core")
+    if loaded is not None and Path(loaded.__file__).resolve().parents[2] != root:
+        raise ValueError("E_SUITE_CONFLICT: start a fresh process for " + str(root))
+    scripts = str(root / "scripts")
+    if scripts not in sys.path[:1]:
+        sys.path.insert(0, scripts)
+    return root
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--suite", help="selected main ui-test Skill directory")
+    commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("catalog")
+    commands.add_parser("resolve").add_argument("name")
+    report = commands.add_parser("execution-report", aliases=["ui-test-execution-report"])
+    source = report.add_mutually_exclusive_group(required=True)
+    source.add_argument("--observations", type=Path)
+    source.add_argument("--session", type=Path)
+    report.add_argument("--output", required=True, type=Path)
+    args = parser.parse_args()
+    try:
+        root = activate(args.suite)
+        os.environ["UI_TEST_SUITE"] = str(root)
+        from ui_test_core.suite import selected_suite
+        suite = selected_suite(root)
+        if args.command == "catalog":
+            result = suite.catalog
+        elif args.command == "resolve":
+            result = dict(skill=str(suite.skill_path(args.name)), core_scripts=str(root / "scripts"))
+        else:
+            owner = suite.load_package("execution-report")
+            result = owner.rebuild(args.observations, args.session, args.output)
+        print(json.dumps(result, ensure_ascii=True))
+    except (ValueError, OSError, KeyError, TypeError) as exc:
+        parser.exit(2, str(exc) + "\n")
+
+
+if __name__ == "__main__":
+    main()

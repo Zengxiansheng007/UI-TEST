@@ -25,6 +25,8 @@ Generate governed UI automation execution reports from already collected run evi
 - Resolve report paths through the active project config and Path Planner under `D:\UI-Test`; never write formal UI-Test reports to C-drive workspaces.
 - Refuse reporting when active release status is not `in_sync` or generated asset fingerprints drift.
 
+The canonical owner is `$execution-report`. Existing commands below load the same selected implementation. To rebuild a separate copy, open the selected main Skill's scripts directory and run `python ui_test_suite.py execution-report --help`.
+
 ## Workflow
 
 1. Return the actual link printed at the normal stage boundary. In a multi-case batch this single HTML covers all recorded cases and attempts. A separate exploration has its own link.

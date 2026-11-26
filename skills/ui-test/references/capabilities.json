@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "name": "execution-report",
+      "kind": "capability",
+      "description": "Rebuild an offline UI exploration or formal execution report from the original stage.",
+      "inputs": [
+        "Midscene observations or verified pytest V5 session"
+      ],
+      "requires": [
+        "original stage evidence"
+      ],
+      "outputs": [
+        "offline HTML",
+        "execution summary",
+        "evidence index"
+      ],
+      "aliases": [
+        "ui-test-execution-report"
+      ],
+      "route": {
+        "state": [
+          "report"
+        ]
+      }
+    },
+    {
+      "name": "plan",
+      "kind": "capability",
+      "description": "Prepare a UI automation plan with source-grounded assertions and a validated main Packet.",
+      "inputs": [
+        "Source case or business objective and source material"
+      ],
+      "requires": [
+        "Identifiable scope, current task identity and observable business oracle"
+      ],
+      "outputs": [
+        "Plan and Packet 3.0 or clarification items"
+      ],
+      "aliases": [
+        "ui-test-plan"
+      ],
+      "route": {
+        "state": [
+          "requirements-review",
+          "plan"
+        ]
+      }
+    }
+  ]
+}

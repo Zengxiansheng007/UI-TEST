@@ -31,14 +31,16 @@ def read_text(path: Path) -> str:
 
 def validate_skill(root: Path) -> list[dict[str, str]]:
     findings: list[dict[str, str]] = []
+    from report_compat import runtime
+    assets = runtime().skill_path("execution-report") / "assets"
     required = [
         root / "SKILL.md",
         root / "agents" / "openai.yaml",
         root / "references" / "report-contract.md",
         root / "scripts" / "generate_report.py",
         root / "scripts" / "image_viewer.py",
-        root / "assets" / "image-viewer.css",
-        root / "assets" / "image-viewer.js",
+        assets / "image-viewer.css",
+        assets / "image-viewer.js",
         root / "assets" / "sample-run.json",
         root / "docs" / "requirement-anchor.json",
         root / "docs" / "development-plan.md",
@@ -117,7 +119,8 @@ def validate_generated_layout(root: Path) -> list[dict[str, str]]:
         findings.append(finding("P0", "canonical-run-result-missing", "run-result.json not found", root))
     else:
         canonical = json.loads(read_text(run_results[0]))
-        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "ui-test" / "scripts"))
+        from report_compat import runtime
+        runtime()
         from ui_test_core.run_evidence_linker import canonical_hash, validate_document
         digest = canonical_hash({k: v for k, v in canonical.items() if k != "run_result_hash"})
         if validate_document(canonical, "run-result-v5.schema.json") or digest != canonical.get("run_result_hash"):

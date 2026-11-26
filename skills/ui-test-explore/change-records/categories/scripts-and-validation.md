@@ -31,3 +31,5 @@ See the linked change records.
 - [CR-20261125-045 · 阶段中断补登](../entries/2026/2026-11/CR-20261125-045-replay.md)
 
 - [CR-20261125-046 · 阶段原件与关联报告](../entries/2026/2026-11/CR-20261125-046-stage-links.md)
+
+- [CR-20261127-058 · Selected stage report owner](../entries/2026/2026-11/CR-20261127-058-report-suite.md) — Validate observations with the selected report owner before reserving originals.

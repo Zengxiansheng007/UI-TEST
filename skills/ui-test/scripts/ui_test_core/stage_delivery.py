@@ -1,5 +1,4 @@
 """Read sealed worker results and publish at the enclosing controller's boundary."""
-import sys
 from pathlib import Path
 
 from .case_contracts import canonical_hash, validate_document
@@ -13,14 +12,9 @@ from .stage_origin import recorded_origin
 
 
 def report_engine():
-    package = Path(__file__).resolve().parents[3] / "ui-test-execution-report" / "scripts"
-    if not (package / "stage_report.py").is_file():
-        raise ValueError("E_STAGE_REPORT_PACKAGE_REQUIRED: ui-test-execution-report")
-    if str(package) not in sys.path:
-        sys.path.insert(0, str(package))
-    import generate_report
-    import stage_report
-    return generate_report, stage_report
+    from .suite import selected_suite
+    owner = selected_suite().load_package("execution-report")
+    return owner.generate_report, owner.stage_report
 
 
 def formal_step(step, run_root, evidence_index=None):
