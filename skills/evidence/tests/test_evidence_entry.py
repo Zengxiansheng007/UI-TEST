@@ -3,6 +3,10 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import hashlib
+import importlib
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -49,3 +53,20 @@ def test_stale_response_and_foreign_image(tmp_path):
     source.write_text(json.dumps(batch), "utf8")
     conflict = invoke("evidence", source)
     assert conflict.returncode == 2 and conflict.stderr.strip() == "E_IMAGE_OWNER"
+
+
+def test_formal_images_require_this_steps_binding(tmp_path, monkeypatch):
+    scripts = ROOT / "skills/ui-test/scripts"
+    monkeypatch.syspath_prepend(str(scripts))
+    monkeypatch.setenv("UI_TEST_SUITE", str(scripts.parent))
+    owner = importlib.import_module("ui_test_core.suite").selected_suite().load_package("evidence")
+    picture = tmp_path / "other-step.png"
+    picture.write_bytes(b"controlled bytes")
+    digest = hashlib.sha256(picture.read_bytes()).hexdigest()
+    step = {"images": [{"path": picture.name, "sha256": digest}], "evidence_refs": []}
+    with pytest.raises(ValueError, match="E_STAGE_IMAGE_REF"):
+        owner.pictures(step, {}, tmp_path, [picture.name])
+    step["evidence_refs"] = [picture.name]
+    assert owner.pictures(step, {}, tmp_path, [picture.name]) == [{"path": picture.name, "sha256": digest}]
+    del step["images"]
+    assert owner.pictures(step, {}, tmp_path, [picture.name]) == [{"missing_reason": "see-original"}]
