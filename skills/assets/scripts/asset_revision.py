@@ -146,4 +146,3 @@ def deliver_event(directory, event):
         if not conflict.is_file():
             replace(conflict, data)
         return "conflict"
-
