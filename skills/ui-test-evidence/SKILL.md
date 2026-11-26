@@ -5,6 +5,10 @@ description: Build Solution D evidence indexes for UI automation. Use when colle
 
 # UI Test Evidence
 
+## Compatibility entry
+
+Resolve the selected suite's $evidence capability and pass the original UI request, inputs and identifiers unchanged. Use its [compatibility CLI](scripts/inspect_steps.py) and return the resulting JSON or missing-material diagnosis. The legacy packet next_action only advises the orchestrator. Independent invocation ends after this delivery.
+
 ## Purpose
 
 Collect and normalize evidence so humans and Codex can determine what really happened.
