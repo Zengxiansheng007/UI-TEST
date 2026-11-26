@@ -1,0 +1,5 @@
+interface:
+  display_name: "UI Step Evidence"
+  short_description: "Trace UI observations to their original steps"
+policy:
+  allow_implicit_invocation: true
