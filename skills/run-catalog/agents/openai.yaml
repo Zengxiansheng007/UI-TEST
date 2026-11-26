@@ -1,0 +1,5 @@
+interface:
+  display_name: "Run Catalog"
+  short_description: "Find the plan or script used in a recorded UI test run"
+policy:
+  allow_implicit_invocation: true

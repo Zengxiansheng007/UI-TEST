@@ -47,6 +47,26 @@
           "plan"
         ]
       }
+    },
+    {
+      "name": "run-catalog",
+      "kind": "capability",
+      "description": "Register stages or retrieve the version actually used in an attempt.",
+      "inputs": [
+        "Project and stage, case, attempt identity or stage original"
+      ],
+      "requires": [
+        "Project-scoped stage records"
+      ],
+      "outputs": [
+        "Stage and attempt catalog, historical script or plan, SQLite and HTML index"
+      ],
+      "aliases": [],
+      "route": {
+        "state": [
+          "run-catalog"
+        ]
+      }
     }
   ]
 }
