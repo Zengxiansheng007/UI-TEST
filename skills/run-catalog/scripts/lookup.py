@@ -57,19 +57,25 @@ def lookup(project, *, stage=None, case=None, branch=None, attempt=None, origina
                 require(source, "stage original")
                 require(row["report_ref"], sid + ": report_ref")
                 matches[sid] = dict(stage_id=sid, stage_type=row["stage_type"], original=source,
-                                    report_ref=row["report_ref"], attempts=[])
+                                    report_ref=row["report_ref"], cases=[], attempts=[])
+            cases = matches[sid]["cases"]
+            if row["case_id"] is not None:
+                owner = {k: row[k] for k in ("case_id", "branch_id", "case_status")}
+                if not cases or cases[-1] != owner:  # Rows are ordered by case and branch.
+                    cases.append(owner)
+            if row["attempt_ref"] is None:
+                continue  # A reserved case or empty stage contributes zero attempts.
             fields = ("case_id","branch_id","case_status","attempt_ref","status","version","entry","node_id",
                       "execution_ref","evidence_ref","sha256")
             item = {key: row[key] for key in fields}
             item["dependencies"] = json.loads(row["dependencies"] or "[]")
-            if row["attempt_ref"] is not None:
-                key = "/".join(str(row[k]) for k in ("stage_id","case_id","branch_id","attempt_ref"))
-                require(row["entry"], key + ": version binding", row["sha256"])
-                for dep in item["dependencies"]:
-                    require(dep["entry"], key + ": dependency", dep["sha256"])
-                for field in ("execution_ref", "evidence_ref"):
-                    if row[field]:
-                        require(row[field], key + ": " + field)
+            key = "/".join(str(row[k]) for k in ("stage_id","case_id","branch_id","attempt_ref"))
+            require(row["entry"], key + ": version binding", row["sha256"])
+            for dep in item["dependencies"]:
+                require(dep["entry"], key + ": dependency", dep["sha256"])
+            for field in ("execution_ref", "evidence_ref"):
+                if row[field]:
+                    require(row[field], key + ": " + field)
             matches[sid]["attempts"].append(item)
     status = "not_found"
     if matches:

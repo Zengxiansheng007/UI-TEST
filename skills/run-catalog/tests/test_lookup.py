@@ -60,3 +60,18 @@ def test_real_entries_and_historical_selection(tmp_path):
         assert db.execute("SELECT stage_id, case_id, version FROM run_attempts ORDER BY stage_id").fetchall() == [
             ("one", "C1", "V1"), ("two", "C1", "V1")]
     assert "C1" in (tmp_path / "index.html").read_text(encoding="utf8")
+
+
+def test_lookup_preserves_unexecuted_branch_without_counting_an_attempt(tmp_path):
+    original = seed(tmp_path, "partial")
+    doc = json.loads(original.read_bytes())
+    doc["cases"].append(dict(case_id="C2", branch_id="reserved", status="not-executed", attempts=[]))
+    original.write_text(json.dumps(doc), encoding="utf8")
+
+    case = json.loads(cli(tmp_path, "--case", "C2"))["matches"][0]
+    assert case["attempts"] == []
+    expected = dict(case_id="C2", branch_id="reserved", case_status="not-executed")
+    assert case["cases"] == [expected]
+    stage = json.loads(cli(tmp_path, "--stage", "partial"))["matches"][0]
+    assert stage["cases"] == [dict(case_id="C1", branch_id="main", case_status="passed"), expected]
+    assert [attempt["attempt_ref"] for attempt in stage["attempts"]] == ["try1"]
