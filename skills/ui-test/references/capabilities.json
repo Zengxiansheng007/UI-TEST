@@ -154,6 +154,46 @@
           "experience"
         ]
       }
+    },
+    {
+      "name": "verify",
+      "kind": "capability",
+      "description": "Verify observed UI behavior against declared postconditions and harden recorded actions.",
+      "inputs": [
+        "action, expected result, observation and evidence reference"
+      ],
+      "requires": [
+        "observable deterministic postcondition"
+      ],
+      "outputs": [
+        "checks with source and bounded fallback"
+      ],
+      "aliases": [
+        "ui-test-verify"
+      ],
+      "route": {
+        "state": [
+          "verify"
+        ],
+        "next_action": [
+          "verify"
+        ]
+      }
+    },
+    {
+      "name": "script-build",
+      "kind": "capability",
+      "description": "Compile versioned pytest scripts for UI source cases without starting a formal attempt.",
+      "inputs": [
+        "source case, test data, bindings and page module registry"
+      ],
+      "requires": [
+        "versioned dependency material and source assertions"
+      ],
+      "outputs": [
+        "pytest script, release manifest and compile receipt"
+      ],
+      "aliases": []
     }
   ]
 }

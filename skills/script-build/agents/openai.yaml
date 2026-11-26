@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build UI test script"
+  short_description: "Compile a versioned pytest-playwright case."
+  default_prompt: "Use $script-build to compile the supplied source case, test data, and dependencies into a versioned pytest script."
