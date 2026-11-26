@@ -49,6 +49,53 @@
       }
     },
     {
+      "name": "evidence",
+      "kind": "capability",
+      "description": "整理 UI 测试步骤、截图及被动监听证据",
+      "inputs": [
+        "RunResult V5 或 Midscene observations.json"
+      ],
+      "requires": [
+        "运行、用例、尝试及步骤身份"
+      ],
+      "outputs": [
+        "带来源与缺项的步骤证据索引"
+      ],
+      "aliases": [
+        "ui-test-evidence"
+      ],
+      "route": {
+        "state": [
+          "evidence"
+        ],
+        "next_action": [
+          "collect-evidence"
+        ]
+      }
+    },
+    {
+      "name": "review",
+      "kind": "capability",
+      "description": "分析本次 UI 测试为何失败，给出失败归因、原件依据及处理范围。普通 Python 代码评审使用代码评审入口。",
+      "inputs": [
+        "本次 UI 执行原件或步骤证据索引"
+      ],
+      "requires": [
+        "可定位的来源原件"
+      ],
+      "outputs": [
+        "失败原因、依据及待核实项"
+      ],
+      "aliases": [
+        "ui-test-review"
+      ],
+      "route": {
+        "state": [
+          "review"
+        ]
+      }
+    },
+    {
       "name": "run-catalog",
       "kind": "capability",
       "description": "Register stages or retrieve the version actually used in an attempt.",
