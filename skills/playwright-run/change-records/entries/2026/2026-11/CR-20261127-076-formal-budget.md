@@ -37,6 +37,8 @@ The formal run.py regression selects A and B in one serial batch with one approv
 
 The unchanged closed P05 workflow claim resumed in a read-only check with invocation disabled and produced its original PB-dba814a4c8bf9568 report of 15 nodes. Both skill packages passed validate_create_skill.py --require-change-records with zero findings.
 
+The follow-up regression checks the controller after worker exit. The old worker failed during setup without publishing the pre-attempt reason. Its session therefore could not be reconciled with the reserved run, and an invalid import in interruption reporting prevented persistence. The worker now records a pre-attempt denial. The controller matches its exit, session hash, node and reserved run and checks that no attempt started. The delivered report preserves A's V5 and gives B's reason. Invoking the same command again returns the same failed batch without another attempt.
+
 ## Safety And Privacy
 
 Tests use synthetic local files and no secret values. The protected effect is the suite write permit under the reviewed scripts.

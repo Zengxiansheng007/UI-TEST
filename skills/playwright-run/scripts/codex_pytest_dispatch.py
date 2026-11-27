@@ -134,6 +134,8 @@ def pytest_collection_finish(session):
         return  # worker 只校验实际收集集合，controller 独占汇总文件。
     manifest = {"nodes": nodes, "r2": has_write, "session_id": config._ui_test_dispatch_session,
                 "evidence_root": str(Path(root).resolve())}
+    if not request["collect"] and not request.get("workers"):
+        manifest["reserved_run_id"] = config.getoption("--ui-run-id")
     if request["collect"]:
         from ui_test_core.formal_catalog import selected_cases
         manifest["owners"] = selected_cases(items)

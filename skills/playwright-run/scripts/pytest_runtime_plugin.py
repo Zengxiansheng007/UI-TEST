@@ -593,6 +593,11 @@ def pytest_collection_modifyitems(
         item.stash[_ATTEMPT_STORE_KEY] = attempt_store
 
 
+def _deny_budget_before_attempt(item, code):
+    item.stash[_NOT_EXECUTED] = code  # The protected attempt and all project fixtures have not started.
+    pytest.fail(code, pytrace=False)
+
+
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtest_setup(item: pytest.Item) -> None:
     """在 item 执行前检查 marker 错误码，确保在 BrowserContext 前失败。
@@ -635,7 +640,7 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
         if budget_path or budget_sha or formal_entry:
             authorized = context.approved and context.risk_level == "r2-ui-write-test"
             if authorized and not (budget_path and budget_sha):
-                pytest.fail("E_FORMAL_BUDGET_REQUIRED", pytrace=False)
+                _deny_budget_before_attempt(item, "E_FORMAL_BUDGET_REQUIRED")
             phases = context.config_summary.get("stage_write_budget", {}).get("phase_ids", ["single"])
             bound = ItemBudget(Path(budget_path or "."), budget_sha, item.config.getoption("--ui-batch-id"),
                                getattr(context, "task_ref", None), Path.cwd() / "临时" / "formal-write-permits", context.run_id, item.nodeid,
@@ -643,12 +648,13 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
                                deepcopy(context.config_summary.get("stage_write_budget")))
             if authorized:
                 if not bound.path.resolve().is_relative_to(Path.cwd().resolve()):
-                    pytest.fail("E_FORMAL_BUDGET_PROJECT", pytrace=False)
+                    _deny_budget_before_attempt(item, "E_FORMAL_BUDGET_PROJECT")
 
                 try:
                     bound.check()
                 except (OSError, ValueError) as exc:
-                    pytest.fail(str(exc), pytrace=False)
+                    code = str(exc) if str(exc).startswith('E_FORMAL_BUDGET_') else 'E_FORMAL_BUDGET_INVALID'
+                    _deny_budget_before_attempt(item, code)
             locks.enter_context(bind_item(bound))
         for decision in config["effective_concurrency"]["serial_constraints"]:
             nodes = tuple(decision.get("node_ids", ()))
