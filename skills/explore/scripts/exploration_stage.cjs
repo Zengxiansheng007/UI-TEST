@@ -5,6 +5,7 @@ const { spawnSync } = require('node:child_process');
 const { pathToFileURL } = require('node:url');
 
 const { caseCapture } = require('./stage_capture.cjs');
+const { openContinuationWindow } = require('./continuation_window.cjs');
 
 class ExplorationStop extends Error {}
 class UnknownWrite extends ExplorationStop {}
@@ -135,8 +136,19 @@ async function runExplorationStage({ runId, outputRoot, cases, page, nativeRepla
       if (binding.error || binding.status !== 0) throw new Error(binding.stderr || 'Exploration plan binding failed');
       row.binding = JSON.parse(binding.stdout);
       row.version = row.binding.version;
+      let freshPage;
+      if (waiting.size) {
+        try {
+          const opened = await openContinuationWindow(page);
+          freshPage = opened.page;
+          row.browser_window = opened.evidence;
+        } catch {
+          row.reason = 'Waiting for a verified separate browser window in the authorized context';
+          waiting.add(item.id);
+          continue;
+        }
+      }
       checkpoint('attempt', {...row, status: 'running'});
-      const freshPage = waiting.size ? await page.context().newPage() : undefined;
       const activePage = freshPage || page;
       const captureEvidence = caseCapture(row, output, item.maskSelectors);
       async function capture(target, step, moment) {

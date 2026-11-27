@@ -9,7 +9,7 @@
 
 ## Summary
 
-Keep the unknown result and screenshot on the original step, wait for its dependencies and continue independent work on fresh pages.
+Keep the unknown result and screenshot on the original step, wait for its dependencies and continue independent work in verified separate browser windows.
 
 ## Context And Problem
 
@@ -21,7 +21,7 @@ Batch fixture, delivery contract and loopback browser regression.
 
 ## Decision And Alternatives
 
-Use the original browser context for an independent page. Hold a legacy callback that cannot consume the fresh page.
+Create the independent top-level window in the original browser context and verify the distinct browser window IDs. Hold a legacy callback that cannot consume the fresh page.
 
 ## Detailed Change
 
@@ -35,7 +35,7 @@ Uninterrupted callbacks and ordinary declared stops retain their existing behavi
 
 The record-only path retains a masked unknown-scene capture or a specific missing-image reason. The duplicate identity check preserves the first recorded observation. Legacy and canonical entry regressions exercise historical callback compatibility.
 
-Loopback Chromium test write_pause.test.cjs checks one click, retained screenshot, dependent hold and independent fresh page. test_unknown_exploration_handoff.py checks the selected workflow CLI stops before formal execution.
+Loopback Chromium test write_pause.test.cjs checks one click, retained screenshot, dependent hold and distinct window IDs for the independent case. A separate negative test with unavailable window verification checks that the callback waits. test_unknown_exploration_handoff.py checks the selected workflow CLI stops before formal execution.
 
 ## Safety And Privacy
 
