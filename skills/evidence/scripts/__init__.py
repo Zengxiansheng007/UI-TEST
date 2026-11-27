@@ -108,13 +108,16 @@ def source_cases(doc):
         raise ValueError("E_STEP_SOURCE_REQUIRED")
 
 
-def build_index(source, *, run_root=None):
+def build_index(source, *, run_root=None, allow_empty_attempts=False):
     source = Path(source).resolve()
     root = Path(run_root or source.parent).resolve()
     raw = source.read_bytes()
     doc = loads_strict(raw.decode("utf-8"))
     rows, seen = [], set()
     for case, steps, prefix in source_cases(doc):
+        if (allow_empty_attempts and doc.get("stage") == "midscene" and steps == []
+                and case.get("status") in {"blocked", "not-executed"}):
+            continue  # The stage retains the stopping point; no observation exists for this attempt.
         if not isinstance(steps, list) or not steps:
             raise ValueError("E_STEP_MATERIAL_REQUIRED")
         for i, step in enumerate(steps):

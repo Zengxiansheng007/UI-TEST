@@ -211,6 +211,34 @@
       "aliases": [
         "ui-test-a2a-handoff"
       ]
+    },
+    {
+      "name": "explore",
+      "kind": "capability",
+      "description": "Run an authorized Midscene exploration and return this stage.",
+      "inputs": [
+        "existing exploration plan and authorized page"
+      ],
+      "requires": [
+        "current packet, page and model permissions"
+      ],
+      "outputs": [
+        "observations",
+        "step evidence",
+        "stage record",
+        "offline report"
+      ],
+      "aliases": [
+        "ui-test-explore"
+      ],
+      "route": {
+        "state": [
+          "explore"
+        ],
+        "next_action": [
+          "explore"
+        ]
+      }
     }
   ]
 }

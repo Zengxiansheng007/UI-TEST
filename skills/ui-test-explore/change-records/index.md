@@ -64,3 +64,5 @@ See issue-specific detail records.
 - [CR-20261125-046 · 阶段原件与关联报告](entries/2026/2026-11/CR-20261125-046-stage-links.md)
 
 - [CR-20261127-058 · Selected stage report owner](entries/2026/2026-11/CR-20261127-058-report-suite.md) — Validate observations with the selected report owner before reserving originals.
+
+- [CR-20261127-069 · Standalone exploration](entries/2026/2026-11/CR-20261127-069-standalone-exploration.md) — Existing fixtures and archived-observation commands resolve the selected explorer. The canonical Skill owns instructions, observations and return semantics.
