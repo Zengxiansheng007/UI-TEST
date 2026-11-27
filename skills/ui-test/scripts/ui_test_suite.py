@@ -37,6 +37,8 @@ def main(argv=None, *, quiet=False):
     commands.add_parser("resolve").add_argument("name")
     for capability in ("assets", "experience"):
         commands.add_parser(capability).add_argument("--input", type=Path, required=True)
+    checkpoint = commands.add_parser("checkpoint-schema", aliases=["ui-test-checkpoint-schema"])
+    checkpoint.add_argument("arguments", nargs=argparse.REMAINDER)
     handoff = commands.add_parser("a2a-handoff", aliases=["ui-test-a2a-handoff"])
     handoff.add_argument("source", type=Path)
     handoff.add_argument("--review-notes", type=Path)
@@ -69,6 +71,8 @@ def main(argv=None, *, quiet=False):
             owner = suite.load_package(args.command)
             request = json.loads(args.input.read_text(encoding="utf-8-sig"))
             result = owner.query(**request)
+        elif args.command in ("checkpoint-schema", "ui-test-checkpoint-schema"):
+            return suite.load_package("checkpoint-schema").main(args.arguments)
         elif args.command in ("a2a-handoff", "ui-test-a2a-handoff"):
             result = suite.load_package("a2a-handoff").deliver(args)
         else:

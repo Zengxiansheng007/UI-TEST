@@ -144,3 +144,5 @@ pytest controller 和 Codex 整批收尾核对已提交的会话与各用例 V5�
 - [CR-20261127-070 · Formal execution owner](../entries/2026/2026-11/CR-20261127-070-playwright-run.md)
 
 - [CR-20261127-071 · Selected suite routing](../entries/2026/2026-11/CR-20261127-071-selected-suite-routing.md)
+
+[CR-20261127-065](../entries/2026/2026-11/CR-20261127-065-checkpoint.md) — Checkpoint validation and suite routing.
