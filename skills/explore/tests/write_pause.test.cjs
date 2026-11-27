@@ -22,7 +22,21 @@ test('reusing a recorded identity cannot replace an earlier observation', async 
   });
 });
 
-test('one unknown write pauses its case and dependants; independent reads use a fresh page', async t => {
+test('unavailable window verification leaves the independent callback waiting', async t => {
+  const root = fs.mkdtempSync(path.join(process.env.UI_TEST_PAUSE_EVIDENCE || os.tmpdir(),'window-'));
+  if (!process.env.UI_TEST_PAUSE_EVIDENCE) t.after(() => fs.rmSync(root,{recursive:true,force:true}));
+  let runs = 0;
+  const page = {context:() => ({browser:() => null})};
+  const cases = [{id:'A',captureUnknown:false,run(record) {record({action:'Submit',write_state:'unknown'});}},
+    {id:'C',dependsOn:[],usesStagePage:true,run() {runs++;}}];
+  const delivery = await runExplorationStage({runId:'waiting',outputRoot:root,page,cases});
+  const [,independent] = JSON.parse(fs.readFileSync(delivery.observations)).cases;
+  assert.equal(runs,0);
+  assert.equal(independent.status,'not-executed');
+  assert.match(independent.reason,/verified separate browser window/);
+});
+
+test('one unknown write pauses its case and dependants; independent reads use a separate window', async t => {
   const {chromium} = require(process.env.UI_TEST_PLAYWRIGHT || 'playwright');
   const root = fs.mkdtempSync(path.join(process.env.UI_TEST_PAUSE_EVIDENCE || os.tmpdir(), 'pause-'));
   if (!process.env.UI_TEST_PAUSE_EVIDENCE) t.after(() => fs.rmSync(root,{recursive:true,force:true}));
@@ -33,10 +47,20 @@ test('one unknown write pauses its case and dependants; independent reads use a 
   await new Promise(resolve => server.listen(0,'127.0.0.1',resolve));
   t.after(() => server.close());
   const url = 'http://127.0.0.1:' + server.address().port;
-  const browser = await chromium.launch({headless:true});
+  const browser = await chromium.launch({channel:'chromium',headless:process.env.UI_TEST_HEADED !== '1'});
   t.after(() => browser.close());
   const context = await browser.newContext();
   const original = await context.newPage();
+  async function windowId(page) {
+    const session = await context.newCDPSession(page);
+    try {
+      const {windowId} = await session.send('Browser.getWindowForTarget');
+      assert.ok(Number.isInteger(windowId));
+      return windowId;
+    } finally { await session.detach(); }
+  }
+  const originalWindow = await windowId(original);
+  let continuedWindow;
   await original.goto(url);
   let dependentRuns = 0;
   let freshReads = 0;
@@ -51,6 +75,9 @@ test('one unknown write pauses its case and dependants; independent reads use a 
     {id:'B',dependsOn:['A'],run() { dependentRuns++; }},
     {id:'C',dependsOn:[],usesStagePage:true,async run(record,stop,capture,page) {
       assert.notEqual(page,original);
+      assert.equal(page.context(),context);
+      continuedWindow = await windowId(page);
+      assert.notEqual(continuedWindow,originalWindow);
       assert.equal(page.url(),'about:blank');
       await page.goto(url);
       record({action:'Read title',actual_result:await page.locator('p').innerText()});
@@ -74,6 +101,7 @@ test('one unknown write pauses its case and dependants; independent reads use a 
   assert.equal(rows[0].steps.length,1);
   assert.equal(rows[0].steps[0].step_id,'submit');
   assert.equal(rows[0].steps[0].write_state,'write_outcome_unknown');
+  assert.deepEqual(rows[2].browser_window,{original_window_id:originalWindow,window_id:continuedWindow});
   assert.ok(fs.existsSync(rows[0].steps[0].images[0].path));
   assert.equal(rows[3].steps[0].images[0].point,'unknown');
   assert.ok(fs.existsSync(rows[3].steps[0].images[0].path));
