@@ -6,6 +6,8 @@ For a batch containing writes, provide `page` from the fixture's authorized Play
 
 When a submitted write has no deterministic result, call the awaited capture with the original step ID, action, `write_state: 'write_outcome_unknown'` and the unknown observation. Alternatively capture the scene first and call `record` with that step ID, action and write state. Let the resulting stop propagate. Serial fixture actions must finish before reporting their outcome. The original attempt remains blocked for confirmation. Dependent cases and repeated attempts wait. The runner opens a new page for each declared independent case in the same authorized context. It withholds callbacks that cannot establish independence and accept a fresh page. Review the original identity, screenshot and read-only result evidence before any separately authorized resumption. Never repeat the submission to determine its outcome.
 
+If `record` first reports the unknown write, the fixture captures the masked active page at the stop boundary unless that step already has an unknown-scene capture. Provide a page only within its authorized capture scope. Set `captureUnknown: false` on a case whose scope excludes that screenshot. The report retains the specific reason for a missing image when the page or capture permission is unavailable.
+
 ```js
 const { runExplorationStage } = require(pathToExploreSkill + '/scripts/exploration_stage.cjs');
 const delivery = await runExplorationStage({

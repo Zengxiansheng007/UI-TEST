@@ -6,6 +6,22 @@ const path = require('node:path');
 const http = require('node:http');
 const {runExplorationStage} = require('../scripts/exploration_stage.cjs');
 
+test('reusing a recorded identity cannot replace an earlier observation', async t => {
+  const root = fs.mkdtempSync(path.join(process.env.UI_TEST_PAUSE_EVIDENCE || os.tmpdir(), 'identity-'));
+  if (!process.env.UI_TEST_PAUSE_EVIDENCE) t.after(() => fs.rmSync(root,{recursive:true,force:true}));
+  const cases = [{id:'A',run(record) {
+    record({step_id:'original',action:'Read label',actual_result:'First observed label'});
+    record({step_id:'original',action:'Read label',actual_result:'A different label'});
+  }}];
+  await assert.rejects(runExplorationStage({outputRoot:root,runId:'identity',cases}), error => {
+    assert.match(error.cause.message,/Conflicting recorded step identity/);
+    const [row] = JSON.parse(fs.readFileSync(error.delivery.observations)).cases;
+    assert.equal(row.steps.length,1);
+    assert.equal(row.steps[0].actual_result,'First observed label');
+    return true;
+  });
+});
+
 test('one unknown write pauses its case and dependants; independent reads use a fresh page', async t => {
   const {chromium} = require(process.env.UI_TEST_PLAYWRIGHT || 'playwright');
   const root = fs.mkdtempSync(path.join(process.env.UI_TEST_PAUSE_EVIDENCE || os.tmpdir(), 'pause-'));
@@ -39,7 +55,13 @@ test('one unknown write pauses its case and dependants; independent reads use a 
       await page.goto(url);
       record({action:'Read title',actual_result:await page.locator('p').innerText()});
       freshReads++;
-    }}
+    }},
+    {id:'record-only',dependsOn:[],usesStagePage:true,async run(record,stop,capture,page) {
+      await page.goto(url);
+      await page.getByText('Submit').click();
+      record({step_id:'send',action:'Submit second fixture',actual_result:'No receipt',write_state:'write_unknown'});
+    }},
+    {id:'legacy-unbound',run() { throw new Error('Legacy callback reused'); }}
   ];
   const result = await runExplorationStage({runId:'unknown',outputRoot:root,page:original,cases});
   assert.equal(await original.locator('body').getAttribute('data-clicks'),'1');
@@ -47,10 +69,13 @@ test('one unknown write pauses its case and dependants; independent reads use a 
   assert.equal(freshReads,1);
   assert.equal(result.next_action,'review');
   const rows = JSON.parse(fs.readFileSync(result.observations)).cases;
-  assert.deepEqual(rows.map(row=>row.status),['blocked','not-executed','observed']);
+  assert.deepEqual(rows.map(row=>row.status),['blocked','not-executed','observed','blocked','not-executed']);
   assert.match(rows[1].reason,/A/);
   assert.equal(rows[0].steps.length,1);
   assert.equal(rows[0].steps[0].step_id,'submit');
   assert.equal(rows[0].steps[0].write_state,'write_outcome_unknown');
   assert.ok(fs.existsSync(rows[0].steps[0].images[0].path));
+  assert.equal(rows[3].steps[0].images[0].point,'unknown');
+  assert.ok(fs.existsSync(rows[3].steps[0].images[0].path));
+  assert.match(rows[4].reason,/dependencies and a fresh stage page/);
 });

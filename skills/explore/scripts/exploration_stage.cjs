@@ -92,8 +92,11 @@ async function runExplorationStage({ runId, outputRoot, cases, page, nativeRepla
       }
     }
     let pause;
+    let unknownStep;
+    const recorded = new Set(); // Only a capture-created step may be completed by its first record.
     function checkWrite(step) {
       if (!unknownWrites.has(step.write_state)) return;
+      unknownStep = step;
       step.write_state = 'write_outcome_unknown';
       step.status = 'unknown';
       const position = row.planned_steps.findIndex(planned => planned.step_id === step.step_id);
@@ -106,7 +109,9 @@ async function runExplorationStage({ runId, outputRoot, cases, page, nativeRepla
       if (typeof step?.action !== 'string' || !step.action.trim()) throw new Error('Missing action');
       const copy = structuredClone({step_id: String(row.steps.length + 1), ...step});
       const previous = row.steps.find(entry => entry.step_id === copy.step_id);
-      if (previous && previous.action !== copy.action) throw new Error('Conflicting recorded step identity');
+      if (recorded.has(copy.step_id) || (previous && previous.action !== copy.action))
+        throw new Error('Conflicting recorded step identity');
+      recorded.add(copy.step_id);
       if (previous) Object.assign(previous, copy, previous.images ? {images:previous.images} : {});
       else row.steps.push(copy);
       checkWrite(previous || copy);
@@ -121,7 +126,8 @@ async function runExplorationStage({ runId, outputRoot, cases, page, nativeRepla
     }
     try {
       const selected = { planned_steps: row.planned_steps, callback: Function.prototype.toString.call(item.run),
-        ...(item.dependsOn !== undefined && {dependsOn:item.dependsOn}), ...(item.usesStagePage && {usesStagePage:true}) };
+        ...(item.dependsOn !== undefined && {dependsOn:item.dependsOn}), ...(item.usesStagePage && {usesStagePage:true}),
+        ...(item.captureUnknown === false && {captureUnknown:false}) };
       const binding = spawnSync(python, ['-X', 'utf8', bridge, '--bind-plan', outputRoot], {
         input: JSON.stringify({node_id: row.node_id, selected_plan: selected, dependencies: planDependencies(item, outputRoot)}),
         encoding: 'utf8', windowsHide: true
@@ -148,6 +154,15 @@ async function runExplorationStage({ runId, outputRoot, cases, page, nativeRepla
         await item.run(record, stop, capture, activePage);
         if (pause) throw pause;
       } finally {
+        if (unknownStep && !unknownStep.images?.some(image => image.point === 'unknown')) {
+          const allowedPage = item.captureUnknown === false ? undefined : activePage;
+          const image = await captureEvidence(allowedPage, unknownStep, {point:'unknown',
+            object_ref:unknownStep.object_ref || row.case_id,
+            observation:unknownStep.actual_result || 'Original write result unconfirmed'});
+          if (!allowedPage) image.missing_reason = item.captureUnknown === false
+            ? 'Unknown-scene screenshot excluded by the case capture scope'
+            : 'No authorized active page supplied for the unknown write';
+        }
         // Leave the original scene available for read-only reconciliation of an unknown result.
         if (freshPage && !pause) await freshPage.close();
       }

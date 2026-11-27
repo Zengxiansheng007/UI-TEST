@@ -33,6 +33,8 @@ Uninterrupted callbacks and ordinary declared stops retain their existing behavi
 
 ## Validation Evidence
 
+The record-only path retains a masked unknown-scene capture or a specific missing-image reason. The duplicate identity check preserves the first recorded observation. Legacy and canonical entry regressions exercise historical callback compatibility.
+
 Loopback Chromium test write_pause.test.cjs checks one click, retained screenshot, dependent hold and independent fresh page. test_unknown_exploration_handoff.py checks the selected workflow CLI stops before formal execution.
 
 ## Safety And Privacy
