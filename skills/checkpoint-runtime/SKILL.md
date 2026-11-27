@@ -1,0 +1,54 @@
+---
+name: checkpoint-runtime
+description: Plan, validate, and execute R0/R1 read-only cross-session UI checkpoint recovery by system, module, and function button. Use when Codex needs to load a checkpoint registry, validate auth-reference freshness without exposing state, plan fresh current-session login/module/page/button recovery, produce a dry-run report, or perform explicitly approved public-site Playwright verification. Do not use for R2/R3 writes, private-site execution without approval, credential creation, or historical browser-state reuse.
+---
+
+Recovery consumes a current-session T05 observation or verifies the declared visible UI features. A stale observation requires fresh UI evidence. Do not initiate network queries, replay requests or save raw browser traces to establish recovery.
+
+# UI-Test Checkpoint Runtime
+
+## Operating Rules
+
+- Support only R0/R1 read-only recovery. Reject create, submit, save, update, delete, approve, publish, pay, deploy, and other write semantics.
+- Default to `dry-run`. Treat `live-public` as approval-gated browser execution for the exact public URLs, runtime root, Node executable, Playwright module, proxy, and evidence directory.
+- Do not access a private system or send page content to an external model without explicit approval for that execution. A private R1 adapter must use a fresh current-session Page and credentials supplied only to that process in memory.
+- Keep real credentials, cookies, tokens, and `storageState` content outside the Skill, reports, RAG, handoff packets, and version control. Runtime assets may contain only governed references and redacted metadata.
+- Do not write to `D:\midscene\checkpoint-runtime` or another real runtime root unless the user explicitly approves that exact destination.
+- Preserve `run_id`, `correlation_id`, failure attribution, evidence references, and blocked reasons in the generated report.
+- Use independent `project_group`, `product`, `system`, `module_path`, `function`, `checkpoint`, `environment`, and `risk_level` identity fields. Legacy single `module` identity is migration-only.
+- For module readiness pass --ready-packet with the current Packet 3.0, --run-id, and a module_ready manifest configuration containing login_selector, feature_selectors and ttl_seconds. A ModuleReadyContext 2.0 requires verified host, current authenticated session, exact route and either two independent visible features or one feature plus a matching natural response with business success, and is valid only for its exact session/run until expiry.
+- Checkpoint direct routes optimize Midscene exploration only. Formal Python pytest-playwright regression always executes the complete precondition Flow.
+
+## Independent current-page entry
+
+Resolve `checkpoint-runtime` with the selected main Skill's `ui_test_suite.py --suite <ui-test> resolve checkpoint-runtime`. Set `UI_TEST_SUITE` to that same main Skill when importing from a separately located capability. Read the approved definition for the target module before using its selectors. With the caller's live Playwright Page, Packet 3.0, session ID and the definition's module_ready configuration (including target_url and module_id), call `checkpoint_runtime.context.recover_current(page, packet=packet, session_id=session_id, config=config)`. For an already reviewed natural request, use the existing capture_context listener around the approved read-only navigation. Keep the browser session alive if the caller will consume the context. A saved report from a completed CLI process is historical evidence.
+
+Use `validate_context` with the same live Page and current binding before reuse. If the Page, context, visible identity, independent features, scope, session or freshness evidence is missing, report that gap. Return the current result to the caller immediately. Cross-stage scheduling belongs to the main entry.
+
+## Workflow
+
+1. Read [the runtime contract](references/runtime-contract.md) before planning a recovery or interpreting runtime assets.
+2. Resolve the exact runtime root, `system_id`, `module_id`, optional `button_id`, and `environment_alias`.
+3. Confirm the registry, system manifest, module manifest, checkpoint index, and auth reference exist and pass schema validation.
+4. Run `scripts/run_checkpoint_runtime.py` in `dry-run` mode unless the user approved `live-public` execution.
+5. Inspect the report for `result`, `blocked`, `executed_chain`, `failure_attribution`, redaction status, and evidence references.
+6. If blocked or stale, report the root cause and required upstream change. Do not silently reauthenticate, rewrite locators, expand risk scope, or downgrade assertions.
+7. For an approved public run, supply explicit Node and Playwright paths and verify that no write request was permitted.
+
+## Decision Rules
+
+- Use dry-run for registry validation, recovery-chain planning, stale detection, and safety review.
+- Use `live-public` only for public, non-sensitive UI verification after approval.
+- Stop on R2/R3 risk, a write-classified button, expired/missing auth metadata, schema incompatibility, an unknown target, or unresolved requirement ambiguity.
+- A single successful session recommends `validated`; only a two-independent-session aggregator may recommend `eligible`. Promotion to `active` and writes to the real runtime root remain separately governed.
+- Keep runtime assets organized by stable `system_id/module_id/function_button_id`; never infer ownership by scanning arbitrary directories.
+
+## Validation
+
+- Static validation: verify frontmatter, referenced files, Python syntax, fixture schema, and absence of embedded secrets.
+- Behavioral validation is available at `tests/run_tests.py`; executing target Skill tests remains an explicit action.
+- A valid dry-run report must exclude raw state paths and secret values, preserve correlation identifiers, and block write actions deterministically.
+
+## Escalation
+
+Ask before private-site browser execution, real login-state reuse or creation, dependency installation, global Skill updates, writes to a real runtime root, or any action outside R0/R1.

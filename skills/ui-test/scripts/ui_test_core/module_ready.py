@@ -102,6 +102,22 @@ def observe_target(page, target_url, login_selector):
     }
 
 
+def visible_features(page, selectors):
+    return page.evaluate("""selectors => {
+            const unique = new Set(), result = [];
+            for (const selector of selectors) {
+                const nodes = document.querySelectorAll(selector);
+                if (nodes.length !== 1 || unique.has(nodes[0])) continue;
+                const node = nodes[0];
+                if (node.getBoundingClientRect().width && node.getBoundingClientRect().height &&
+                    getComputedStyle(node).visibility === 'visible') {
+                    unique.add(node); result.push(selector);
+                }
+            }
+            return result;
+        }""", selectors)
+
+
 class ModuleReadyObserver:
     """Attach before the authorized UI action. Store only matched, redacted results."""
     def __init__(self, page, *, packet, session_id, config):
@@ -172,19 +188,7 @@ class ModuleReadyObserver:
         if self.closed:
             raise ValueError("E_OBSERVATION_WINDOW_CLOSED")
         checks = observe_target(self.page, config["target_url"], config["login_selector"])
-        features = self.page.evaluate("""selectors => {
-            const unique = new Set(), result = [];
-            for (const selector of selectors) {
-                const nodes = document.querySelectorAll(selector);
-                if (nodes.length !== 1 || unique.has(nodes[0])) continue;
-                const node = nodes[0];
-                if (node.getBoundingClientRect().width && node.getBoundingClientRect().height &&
-                    getComputedStyle(node).visibility === 'visible') {
-                    unique.add(node); result.push(selector);
-                }
-            }
-            return result;
-        }""", config["feature_selectors"])
+        features = visible_features(self.page, config["feature_selectors"])
         network = self._business_evidence()
         self.close()
         ref = network["evidence_ref"] if network else None
@@ -210,6 +214,9 @@ def consume_ready_context(context, *, packet, session_id, page, config):
         or context.get("target_digest") != hashlib.sha256(config["target_url"].encode()).hexdigest()
         or context.get("module_id") != config["module_id"]):
         return {"ok": False, "code": "E_MODULE_TARGET_CHANGED", "blocking": True}
+    current_features = visible_features(page, config.get("feature_selectors", []))
+    if not set(context.get("ui_features_verified") or []).issubset(current_features):
+        return {"ok": False, "code": "E_MODULE_TARGET_CHANGED", "blocking": True, "missing": "visible_features"}
     network = context.get("network_evidence")
     if network:
         rule = config.get("response") or {}

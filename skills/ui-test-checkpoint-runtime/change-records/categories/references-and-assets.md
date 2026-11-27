@@ -12,3 +12,5 @@ See the linked change records.
 
 
 - [CR-20261118-006 Readiness schema](../entries/2026/2026-11/CR-20261118-006-module-ready.md)
+
+- [CR-20261127-066](../entries/2026/2026-11/CR-20261127-066-current-session.md)
