@@ -270,6 +270,23 @@
       "aliases": [
         "ui-test-checkpoint-schema"
       ]
+    },
+    {
+      "name": "checkpoint-runtime",
+      "kind": "capability",
+      "description": "Recover a selected checkpoint on the current read-only page and return its readiness evidence.",
+      "inputs": [
+        "approved checkpoint definition, current page, session and Packet"
+      ],
+      "requires": [
+        "read-only scope and visible identity"
+      ],
+      "outputs": [
+        "ModuleReadyContext 2.0 or missing readiness evidence"
+      ],
+      "aliases": [
+        "ui-test-checkpoint-runtime"
+      ]
     }
   ]
 }
