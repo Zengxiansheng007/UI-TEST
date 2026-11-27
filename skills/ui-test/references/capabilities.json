@@ -239,6 +239,26 @@
           "explore"
         ]
       }
+    },
+    {
+      "name": "playwright-run",
+      "kind": "capability",
+      "description": "Execute selected formal pytest nodes and return their sealed Playwright stage report.",
+      "inputs": [
+        "qualified pytest nodes, project and environment"
+      ],
+      "requires": [
+        "current preconditions and stage-scoped authorization"
+      ],
+      "outputs": [
+        "attempts, V5 assertions and evidence, formal stage HTML"
+      ],
+      "aliases": [],
+      "route": {
+        "state": [
+          "playwright-run"
+        ]
+      }
     }
   ]
 }
