@@ -33,7 +33,7 @@ def deliver(batch, output, *, archived=False):
         with source.open("x", encoding="utf8") as stream:
             json.dump(batch, stream, ensure_ascii=False, indent=2)
     steps = output / "step-evidence.json"
-    if not archived:
+    if not archived or not steps.is_file():  # Recovery may find only the reserved observations.
         from ui_test_core.codex_dispatch_state import publish
         index = suite.load_package("evidence").build_index(source, allow_empty_attempts=True)
         publish(steps, index)
@@ -46,8 +46,7 @@ def deliver(batch, output, *, archived=False):
         record = output / "stage.json"
         if record.is_file():
             delivery["stage_record"] = str(record)
-    if steps.is_file():
-        delivery["step_evidence"] = str(steps)
+    delivery["step_evidence"] = str(steps)
     if cases[0].get("native_replay_url"):
         delivery["native_replay_url"] = cases[0]["native_replay_url"]
     return dict(delivery, observations=str(source))
