@@ -362,3 +362,14 @@ def pytest_ui_test_build_finalization_candidate_v1(run_id, node_id, transaction_
     row, = json.loads((project / "task.json").read_text())["batches"]["batch"]["runs"]
     assert row["node_result"]["finalization_status"] == "failed" and row["node_result"]["receipt_hash"]
     assert row["disposition"] == "unknown" and (project / "spent").read_text() == "1"
+
+def test_interrupted_batch_reports_unknown_and_unstarted(project):
+    sample = project / "test_sample.py"
+    sample.write_text(sample.read_text() + "\n    import os\n    os._exit(23)\n")
+    result = invoke(project, command(project))
+    assert result.returncode == 75
+    report, = project.rglob("report.html")
+    assert report.as_uri() in result.stdout
+    summary = json.loads(report.with_name("execution-summary.json").read_bytes())
+    assert [(row["node_id"], row["status"]) for row in summary["cases"]] == [
+        (NODES[0], "unknown"), (NODES[1], "not_executed")]
