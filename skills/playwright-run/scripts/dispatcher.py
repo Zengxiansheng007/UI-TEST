@@ -48,6 +48,15 @@ def pytest_launch(task, batch_ref, scope, extra, helper, manifest, *, collect=Fa
             args += ["--ui-run-id", run_id]
     request = {"task_ref": dispatch_task_ref(task), "batch_ref": batch_ref,
                "scope": scope, "collect": collect, "manifest": str(manifest), "r2": "--ui-r2-approved" in extra}
+    if os.environ.get("UI_TEST_REQUIRE_FORMAL_V5") == "1":
+        # A project addopts setting cannot supply or replace a caller's reviewed limits.
+        options = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
+        options.add_argument("--ui-write-budget")
+        options.add_argument("--ui-write-budget-sha256")
+        budget, _ = options.parse_known_args(extra)
+        request["write_budget"] = [budget.ui_write_budget, budget.ui_write_budget_sha256]
+        if request["r2"] and not all(request["write_budget"]):
+            raise ValueError("E_FORMAL_BUDGET_REQUIRED")
     if group:
         request.update(group=group, workers=workers)
     env = dict(os.environ, UI_TEST_CODEX_REQUEST=json.dumps(request), UI_TEST_CODEX_TASK_REF=str(task))

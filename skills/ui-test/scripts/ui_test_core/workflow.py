@@ -150,7 +150,18 @@ def finish_formal(suite, project, layout, trace, env, formal, obs, delivery, fin
     if formal.get("r2_approved") is True:
         if not formal.get("write_budget_ref") or formal["write_budget_ref"] not in formal["files"]:
             raise ValueError("E_WORKFLOW_FORMAL_WRITE_BUDGET")
-        argv += ["--", "--ui-r2-approved"]
+        from .formal_write_budget import read_budget
+        budget_path = path_in(project, formal["write_budget_ref"])
+        budget_sha = formal["files"][formal["write_budget_ref"]]
+        # Closed historic claims only read their existing results. They never dispatch again.
+        closed = (trace / "formal-claim.json").is_file() and (trace / "formal-exit.json").is_file()
+        limits = {} if closed else read_budget(budget_path, budget_sha, batch, dispatch_task_ref(task))
+        for row in nodes:
+            limit = limits.get(row["node"])
+            if limit and limit[:2] != (row["case_id"], row["branch_id"]):
+                raise ValueError("E_FORMAL_BUDGET_NODE")
+        argv += ["--", "--ui-r2-approved", "--ui-write-budget", str(budget_path),
+                 "--ui-write-budget-sha256", budget_sha]
     fresh = take_claim(trace / "formal-claim.json", dict(request_sha256=fingerprint, observed=delivery["observations_sha256"]))
     if fresh:
         code = invoke(argv, project, env)
