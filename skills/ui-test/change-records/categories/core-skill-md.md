@@ -113,3 +113,5 @@ Track normative routing, workflow, validation and escalation changes in `SKILL.m
 - [CR-20261127-058 · Selected stage report owner](../entries/2026/2026-11/CR-20261127-058-report-suite.md) — Select a single suite catalog, core and report owner for both producers.
 
 - [CR-20261127-071 · Selected suite routing](../entries/2026/2026-11/CR-20261127-071-selected-suite-routing.md)
+
+- [CR-20261127-068](../entries/2026/2026-11/CR-20261127-068-artifact-governance.md)

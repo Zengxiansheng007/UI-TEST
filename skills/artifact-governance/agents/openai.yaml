@@ -1,0 +1,4 @@
+interface:
+  display_name: "UI-Test Artifact Governance"
+  short_description: "Inventory, verify, archive and restore UI test artifacts"
+  default_prompt: "Use $artifact-governance to inspect and govern the specified project artifacts."

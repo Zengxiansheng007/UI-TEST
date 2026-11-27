@@ -205,3 +205,5 @@ pytest controller 和 Codex 整批收尾核对已提交的会话与各用例 V5�
 - [CR-20261127-066](entries/2026/2026-11/CR-20261127-066-current-session.md)
 
 [CR-20261127-067](entries/2026/2026-11/CR-20261127-067-repair.md) — Scoped repair ownership.
+
+- [CR-20261127-068](entries/2026/2026-11/CR-20261127-068-artifact-governance.md)
