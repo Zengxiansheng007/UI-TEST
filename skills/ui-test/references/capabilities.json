@@ -2,6 +2,20 @@
   "schema_version": 1,
   "entries": [
     {
+      "name": "ui-test",
+      "kind": "workflow",
+      "description": "按授权和当前阶段前置承接完整 Web UI 测试流程。",
+      "inputs": [
+        "项目入口及业务目标"
+      ],
+      "requires": [
+        "明确范围、当前阶段授权及业务预期"
+      ],
+      "outputs": [
+        "已执行阶段的交付物及下一阶段决定"
+      ]
+    },
+    {
       "name": "execution-report",
       "kind": "capability",
       "description": "Rebuild an offline UI exploration or formal execution report from the original stage.",
@@ -108,12 +122,7 @@
       "outputs": [
         "Stage and attempt catalog, historical script or plan, SQLite and HTML index"
       ],
-      "aliases": [],
-      "route": {
-        "state": [
-          "run-catalog"
-        ]
-      }
+      "aliases": []
     },
     {
       "name": "assets",
@@ -128,12 +137,7 @@
       "outputs": [
         "生效版本、限定范围与待核对发现"
       ],
-      "aliases": [],
-      "route": {
-        "state": [
-          "assets"
-        ]
-      }
+      "aliases": []
     },
     {
       "name": "experience",
@@ -148,12 +152,7 @@
       "outputs": [
         "带来源的经验查询或候选记录"
       ],
-      "aliases": [],
-      "route": {
-        "state": [
-          "experience"
-        ]
-      }
+      "aliases": []
     },
     {
       "name": "verify",

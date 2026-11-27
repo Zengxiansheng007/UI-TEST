@@ -31,16 +31,7 @@ From this skill directory run `python scripts/project_governance.py inventory <p
 
 `ui-test` is the only active normative entrypoint. `ui-test-system` is a compatibility-only redirect and owns no packet, state, route, evidence, checkpoint, or completion rule.
 
-| State or capability | Child Skill |
-| --- | --- |
-| `plan` | `ui-test-plan` |
-| `explore` | `ui-test-explore` with the pinned Midscene Adapter |
-| `verify` | `ui-test-verify` and deterministic Playwright postconditions |
-| `evidence` | `ui-test-evidence` |
-| `review` | `ui-test-review` |
-| `checkpoint` | `ui-test-checkpoint-runtime` plus `ui-test-checkpoint-schema` |
-| `report` | `ui-test-execution-report` from canonical `RunResult` |
-| A2A conversion | `ui-test-a2a-handoff` |
+For a Packet, run `python scripts/ui_test_suite.py route <packet.json>` from the selected installation. Open the returned Skill and use its actual entry after checking the task authorization and prerequisites. The decision matches next_action before state. Resolve ambiguity with the listed candidates before proceeding. For an explicit child task, use `resolve <registered-name>` on this same CLI. Choose the child by matching the requested deliverable to [the selected catalog](references/capabilities.json). Only the main workflow decides whether another business stage may begin after a delivery.
 
 Project-specific scope, budgets, retention, model boundaries, and runtime environment-key names come from a versioned `ui-test.project.yaml`; generic Skill files must not embed a project group, product, private URL, knowledge-space root, credential, Cookie, Token, or storage state.
 

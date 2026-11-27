@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts.ui_test_core.completion import evaluate_release, validate_rtm
 from scripts.ui_test_core.evidence import attachment
@@ -12,7 +13,8 @@ from scripts.ui_test_core.midscene_adapter import MidsceneAdapter
 from scripts.ui_test_core.project_config import ProjectConfigError, load_project_config
 from scripts.ui_test_core.retry_policy import ActionTokenLedger, RetryBudget, retry_scope_for_action, run_bounded
 from scripts.ui_test_core.risk_policy import split_by_risk, validate_action_risk
-from scripts.ui_test_core.routing import legacy_route_decision, route_packet
+from scripts.ui_test_core.routing import legacy_route_decision, route_packet, select_packet
+from scripts.ui_test_core.suite import selected_suite
 from scripts.ui_test_core.secret_governance import quarantine_record, scan_value
 from scripts.ui_test_core.verifier import reconcile_midscene, verify_postcondition
 
@@ -40,6 +42,35 @@ class RoutingSafetyTests(unittest.TestCase):
         self.assertEqual(route_packet(packet)["route"], "ui-test-evidence")
         packet.update(state="evidence", next_action="evidence")
         self.assertFalse(route_packet(packet)["ok"])
+
+    def test_current_entry_returns_installed_owner_and_match_reason(self):
+        packet = valid_packet()
+        packet.update(state="verify", next_action="collect-evidence")
+        decision = select_packet(packet)
+        self.assertEqual(decision["route"], "evidence")
+        self.assertEqual(decision["matched_by"], "next_action")
+        self.assertEqual(Path(decision["skill"]), ROOT.parent / "evidence")
+
+    def test_same_level_ambiguity_and_workflow_exclusion(self):
+        packet = valid_packet()
+        packet.update(state="verify", next_action="collect-evidence")
+        suite = selected_suite()
+        workflow = next(item for item in suite.catalog["entries"] if item["kind"] == "workflow")
+        workflow["route"] = {"next_action": ["collect-evidence"]}
+        with patch(select_packet.__module__ + ".selected_suite", return_value=suite):
+            self.assertEqual(select_packet(packet)["route"], "evidence")
+            suite.catalog["entries"].append({"kind": "capability", "name": "other",
+                                             "route": {"next_action": ["collect-evidence"]}})
+            problem = select_packet(packet)["problem"]
+            self.assertEqual(problem["code"], "E_ROUTE_AMBIGUOUS")
+            self.assertEqual(problem["candidates"], ["evidence", "other"])
+
+    def test_routes_only_use_packet_enumerations(self):
+        properties = json.loads((ROOT / "schemas/ui-test-packet-v3.schema.json").read_text("utf8"))["properties"]
+        for entry in selected_suite().catalog["entries"]:
+            for field, values in entry.get("route", {}).items():
+                self.assertIn(field, ("state", "next_action"))
+                self.assertTrue(set(values) <= set(properties[field]["enum"]), entry["name"])
 
     def test_invalid_route_returns_problem_details(self):
         packet = valid_packet()
