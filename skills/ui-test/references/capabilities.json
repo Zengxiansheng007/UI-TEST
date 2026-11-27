@@ -1,0 +1,330 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "name": "ui-test",
+      "kind": "workflow",
+      "description": "按授权和当前阶段前置承接完整 Web UI 测试流程。",
+      "inputs": [
+        "项目入口及业务目标"
+      ],
+      "requires": [
+        "明确范围、当前阶段授权及业务预期"
+      ],
+      "outputs": [
+        "已执行阶段的交付物及下一阶段决定"
+      ]
+    },
+    {
+      "name": "execution-report",
+      "kind": "capability",
+      "description": "Rebuild an offline UI exploration or formal execution report from the original stage.",
+      "inputs": [
+        "Midscene observations or verified pytest V5 session"
+      ],
+      "requires": [
+        "original stage evidence"
+      ],
+      "outputs": [
+        "offline HTML",
+        "execution summary",
+        "evidence index"
+      ],
+      "aliases": [
+        "ui-test-execution-report"
+      ],
+      "route": {
+        "state": [
+          "report"
+        ]
+      }
+    },
+    {
+      "name": "plan",
+      "kind": "capability",
+      "description": "Prepare a UI automation plan with source-grounded assertions and a validated main Packet.",
+      "inputs": [
+        "Source case or business objective and source material"
+      ],
+      "requires": [
+        "Identifiable scope, current task identity and observable business oracle"
+      ],
+      "outputs": [
+        "Plan and Packet 3.0 or clarification items"
+      ],
+      "aliases": [
+        "ui-test-plan"
+      ],
+      "route": {
+        "state": [
+          "requirements-review",
+          "plan"
+        ]
+      }
+    },
+    {
+      "name": "evidence",
+      "kind": "capability",
+      "description": "整理 UI 测试步骤、截图及被动监听证据",
+      "inputs": [
+        "RunResult V5 或 Midscene observations.json"
+      ],
+      "requires": [
+        "运行、用例、尝试及步骤身份"
+      ],
+      "outputs": [
+        "带来源与缺项的步骤证据索引"
+      ],
+      "aliases": [
+        "ui-test-evidence"
+      ],
+      "route": {
+        "state": [
+          "evidence"
+        ],
+        "next_action": [
+          "collect-evidence"
+        ]
+      }
+    },
+    {
+      "name": "review",
+      "kind": "capability",
+      "description": "分析本次 UI 测试为何失败，给出失败归因、原件依据及处理范围。普通 Python 代码评审使用代码评审入口。",
+      "inputs": [
+        "本次 UI 执行原件或步骤证据索引"
+      ],
+      "requires": [
+        "可定位的来源原件"
+      ],
+      "outputs": [
+        "失败原因、依据及待核实项"
+      ],
+      "aliases": [
+        "ui-test-review"
+      ],
+      "route": {
+        "state": [
+          "review"
+        ]
+      }
+    },
+    {
+      "name": "run-catalog",
+      "kind": "capability",
+      "description": "Register stages or retrieve the version actually used in an attempt.",
+      "inputs": [
+        "Project and stage, case, attempt identity or stage original"
+      ],
+      "requires": [
+        "Project-scoped stage records"
+      ],
+      "outputs": [
+        "Stage and attempt catalog, historical script or plan, SQLite and HTML index"
+      ],
+      "aliases": []
+    },
+    {
+      "name": "assets",
+      "kind": "capability",
+      "description": "查明 UI 项目当前适用的资产版本、选择理由、依赖与启停记录。",
+      "inputs": [
+        "项目资产声明、能力、用例和授权条件"
+      ],
+      "requires": [
+        "项目、环境和步骤范围"
+      ],
+      "outputs": [
+        "生效版本、限定范围与待核对发现"
+      ],
+      "aliases": []
+    },
+    {
+      "name": "experience",
+      "kind": "capability",
+      "description": "查阅 UI 测试策略的来源及适用范围，或登记已有有效步骤的候选经验。",
+      "inputs": [
+        "查询范围或已有步骤原件"
+      ],
+      "requires": [
+        "项目范围和可追溯来源"
+      ],
+      "outputs": [
+        "带来源的经验查询或候选记录"
+      ],
+      "aliases": []
+    },
+    {
+      "name": "verify",
+      "kind": "capability",
+      "description": "Verify observed UI behavior against declared postconditions and harden recorded actions.",
+      "inputs": [
+        "action, expected result, observation and evidence reference"
+      ],
+      "requires": [
+        "observable deterministic postcondition"
+      ],
+      "outputs": [
+        "checks with source and bounded fallback"
+      ],
+      "aliases": [
+        "ui-test-verify"
+      ],
+      "route": {
+        "state": [
+          "verify"
+        ],
+        "next_action": [
+          "verify"
+        ]
+      }
+    },
+    {
+      "name": "script-build",
+      "kind": "capability",
+      "description": "Compile versioned pytest scripts for UI source cases without starting a formal attempt.",
+      "inputs": [
+        "source case, test data, bindings and page module registry"
+      ],
+      "requires": [
+        "versioned dependency material and source assertions"
+      ],
+      "outputs": [
+        "pytest script, release manifest and compile receipt"
+      ],
+      "aliases": []
+    },
+    {
+      "name": "a2a-handoff",
+      "kind": "capability",
+      "description": "Build a local UI-test handoff bundle from a validated main Packet.",
+      "inputs": [
+        "UI-test Packet 3.0; optional revision notes"
+      ],
+      "requires": [
+        "Valid scope, identity, lineage and safe artifact references"
+      ],
+      "outputs": [
+        "handoff_packet, prompt_packet and artifact_refs"
+      ],
+      "aliases": [
+        "ui-test-a2a-handoff"
+      ]
+    },
+    {
+      "name": "explore",
+      "kind": "capability",
+      "description": "Run an authorized Midscene exploration and return this stage.",
+      "inputs": [
+        "existing exploration plan and authorized page"
+      ],
+      "requires": [
+        "current packet, page and model permissions"
+      ],
+      "outputs": [
+        "observations",
+        "step evidence",
+        "stage record",
+        "offline report"
+      ],
+      "aliases": [
+        "ui-test-explore"
+      ],
+      "route": {
+        "state": [
+          "explore"
+        ],
+        "next_action": [
+          "explore"
+        ]
+      }
+    },
+    {
+      "name": "playwright-run",
+      "kind": "capability",
+      "description": "Execute selected formal pytest nodes and return their sealed Playwright stage report.",
+      "inputs": [
+        "qualified pytest nodes, project and environment"
+      ],
+      "requires": [
+        "current preconditions and stage-scoped authorization"
+      ],
+      "outputs": [
+        "attempts, V5 assertions and evidence, formal stage HTML"
+      ],
+      "aliases": []
+    },
+    {
+      "name": "checkpoint-schema",
+      "kind": "capability",
+      "description": "Validate reusable checkpoint definitions or derive a Packet and handoff from execution facts.",
+      "inputs": [
+        "Definition, or complete execution snapshot"
+      ],
+      "requires": [
+        "Current task and step facts for capture"
+      ],
+      "outputs": [
+        "Validation, snapshot, Packet or local handoff bundle"
+      ],
+      "aliases": [
+        "ui-test-checkpoint-schema"
+      ]
+    },
+    {
+      "name": "checkpoint-runtime",
+      "kind": "capability",
+      "description": "Recover a selected checkpoint on the current read-only page and return its readiness evidence.",
+      "inputs": [
+        "approved checkpoint definition, current page, session and Packet"
+      ],
+      "requires": [
+        "read-only scope and visible identity"
+      ],
+      "outputs": [
+        "ModuleReadyContext 2.0 or missing readiness evidence"
+      ],
+      "aliases": [
+        "ui-test-checkpoint-runtime"
+      ]
+    },
+    {
+      "name": "repair",
+      "kind": "capability",
+      "description": "Prepare a scoped asset repair candidate from a confirmed failure and its original business assertion.",
+      "inputs": [
+        "Project, scope, failure run, original case bindings and candidate source"
+      ],
+      "requires": [
+        "Confirmed cause, committed attempt evidence and authorization for this scope"
+      ],
+      "outputs": [
+        "Candidate identity, affected cases and source-bound verification or pending scope"
+      ],
+      "aliases": [],
+      "route": {
+        "state": [
+          "repair"
+        ],
+        "next_action": [
+          "repair"
+        ]
+      }
+    },
+    {
+      "name": "artifact-governance",
+      "kind": "capability",
+      "description": "Inventory, preview, approve, verify, archive, release and separately restore UI stage files.",
+      "inputs": [
+        "project, stage use and current asset declarations; preview, approval or archive as requested"
+      ],
+      "requires": [
+        "explicit batch approval before archiving and releasing originals"
+      ],
+      "outputs": [
+        "inventory, preview, archive verification, release receipt or isolated restored historical files"
+      ],
+      "aliases": []
+    }
+  ]
+}

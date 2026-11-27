@@ -102,6 +102,22 @@ def observe_target(page, target_url, login_selector):
     }
 
 
+def visible_features(page, selectors):
+    return page.evaluate("""selectors => {
+            const unique = new Set(), result = [];
+            for (const selector of selectors) {
+                const nodes = document.querySelectorAll(selector);
+                if (nodes.length !== 1 || unique.has(nodes[0])) continue;
+                const node = nodes[0];
+                if (node.getBoundingClientRect().width && node.getBoundingClientRect().height &&
+                    getComputedStyle(node).visibility === 'visible') {
+                    unique.add(node); result.push(selector);
+                }
+            }
+            return result;
+        }""", selectors)
+
+
 class ModuleReadyObserver:
     """Attach before the authorized UI action. Store only matched, redacted results."""
     def __init__(self, page, *, packet, session_id, config):
@@ -172,19 +188,7 @@ class ModuleReadyObserver:
         if self.closed:
             raise ValueError("E_OBSERVATION_WINDOW_CLOSED")
         checks = observe_target(self.page, config["target_url"], config["login_selector"])
-        features = self.page.evaluate("""selectors => {
-            const unique = new Set(), result = [];
-            for (const selector of selectors) {
-                const nodes = document.querySelectorAll(selector);
-                if (nodes.length !== 1 || unique.has(nodes[0])) continue;
-                const node = nodes[0];
-                if (node.getBoundingClientRect().width && node.getBoundingClientRect().height &&
-                    getComputedStyle(node).visibility === 'visible') {
-                    unique.add(node); result.push(selector);
-                }
-            }
-            return result;
-        }""", config["feature_selectors"])
+        features = visible_features(self.page, config["feature_selectors"])
         network = self._business_evidence()
         self.close()
         ref = network["evidence_ref"] if network else None
@@ -198,9 +202,26 @@ class ModuleReadyObserver:
         identity["ui_observations"] = {ui_ref: {"verified_selectors": sig["ui_features_verified"], **checks}}
         identity["target_digest"] = hashlib.sha256(config["target_url"].encode()).hexdigest()
         generated = datetime.now(timezone.utc)
-        return build_module_ready_context(session_id=self.session_id, run_id=packet["run"]["run_id"], identity=identity,
+        context = build_module_ready_context(session_id=self.session_id, run_id=packet["run"]["run_id"], identity=identity,
             signature=sig, generated_at=generated.isoformat(), expires_at=(generated+timedelta(seconds=config["ttl_seconds"])).isoformat(),
             evidence_refs=[ui_ref] + ([ref] if ref else []), auth_reference_digest=None, policy_fingerprint=None)
+        if network:
+            from .case_contracts import canonical_hash
+            captures = getattr(self.page, "_ui_test_response_captures", {})
+            # Keep the live provenance on the originating Page; prune expired captures.
+            self.page._ui_test_response_captures = {key: end for key, end in captures.items() if end > generated}
+            self.page._ui_test_response_captures[canonical_hash(context)] = instant(context["expires_at"])
+        return context
+
+
+def matches_response_rule(network, rule):
+    """Compare one response to the reviewed listener configuration."""
+    import hashlib
+    return (isinstance(network, dict) and isinstance(rule, dict)
+            and all(isinstance(rule.get(key), str) and rule[key] for key in ("method", "path", "success_field"))
+            and network.get("method") == rule["method"]
+            and network.get("path_digest") == hashlib.sha256(rule["path"].encode()).hexdigest()
+            and network.get("assertion_digest") == hashlib.sha256(rule["success_field"].encode()).hexdigest())
 
 
 def consume_ready_context(context, *, packet, session_id, page, config):
@@ -210,12 +231,12 @@ def consume_ready_context(context, *, packet, session_id, page, config):
         or context.get("target_digest") != hashlib.sha256(config["target_url"].encode()).hexdigest()
         or context.get("module_id") != config["module_id"]):
         return {"ok": False, "code": "E_MODULE_TARGET_CHANGED", "blocking": True}
+    current_features = visible_features(page, config.get("feature_selectors", []))
+    if not set(context.get("ui_features_verified") or []).issubset(current_features):
+        return {"ok": False, "code": "E_MODULE_TARGET_CHANGED", "blocking": True, "missing": "visible_features"}
     network = context.get("network_evidence")
     if network:
         rule = config.get("response") or {}
-        if (not isinstance(network, dict) or network.get("method") != rule.get("method")
-                or not all(isinstance(rule.get(key), str) and rule[key] for key in ("path", "success_field"))
-                or network.get("path_digest") != hashlib.sha256(rule["path"].encode()).hexdigest()
-                or network.get("assertion_digest") != hashlib.sha256(rule["success_field"].encode()).hexdigest()):
+        if not matches_response_rule(network, rule):
             return {"ok": False, "code": "E_MODULE_RESPONSE_RULE_CHANGED", "blocking": True}
     return validate_module_ready_context(context, session_id=session_id, run_id=packet["run"]["run_id"])

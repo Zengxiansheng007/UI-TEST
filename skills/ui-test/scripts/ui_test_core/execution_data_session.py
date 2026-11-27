@@ -184,6 +184,19 @@ class ExecutionDataSession:
         if snapshot.get("stage_write_budget") != self.stage_write_budget:
             raise ExecutionDataError("E_EXECUTION_STAGE_BUDGET_DRIFT")
         consume = self._stage_ledger.reserve(phase_id)
+        # Both supported import names use the instance owned by the active pytest plugin.
+        import sys
+        provider = sys.modules.get("ui_test_core.formal_write_budget")
+        active = provider.active if provider else None
+        if active is None and os.environ.get("UI_TEST_REQUIRE_FORMAL_V5") == "1":
+            raise ExecutionDataError("E_FORMAL_BUDGET_ITEM_REQUIRED")
+        if active is not None:
+            check = active.reserve(self.run_id, self.parameter_manifest["case_id"],
+                                   self.parameter_manifest["branch_id"], phase_id or "single", self.stage_write_budget)
+            def consume_scoped():
+                check()
+                consume()
+            return BusinessWritePermit(self.run_id, self._snapshot_hash, _on_consume=consume_scoped)
         return BusinessWritePermit(run_id=self.run_id, snapshot_hash=self._snapshot_hash, _on_consume=consume)
 
     def record_business_write_result(self, phase_id: str | None, write_state: str) -> None:

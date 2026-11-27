@@ -1,26 +1,18 @@
 """Read sealed worker results and publish at the enclosing controller's boundary."""
-import sys
 from pathlib import Path
 
 from .case_contracts import canonical_hash, validate_document
-from .artifact_layout import ProjectLayout, batch_stage_id, dispatch_task_ref
 from .execution_attempt_store import ExecutionAttemptStore
 from .finalization_transaction import FinalizationTransaction
 from .path_utils import canonical_display_path, io_path
 from .session_evidence import verify_node_evidence
 from .strict_json import load_strict_json
-from .stage_origin import recorded_origin
 
 
 def report_engine():
-    package = Path(__file__).resolve().parents[3] / "ui-test-execution-report" / "scripts"
-    if not (package / "stage_report.py").is_file():
-        raise ValueError("E_STAGE_REPORT_PACKAGE_REQUIRED: ui-test-execution-report")
-    if str(package) not in sys.path:
-        sys.path.insert(0, str(package))
-    import generate_report
-    import stage_report
-    return generate_report, stage_report
+    from .suite import selected_suite
+    owner = selected_suite().load_package("execution-report")
+    return owner.generate_report, owner.stage_report
 
 
 def formal_step(step, run_root, evidence_index=None):
@@ -126,6 +118,8 @@ def formal_cases(source, *, session_hash=None, batch_id=None):
 
 
 def publish_session(source):
+    from .artifact_layout import ProjectLayout
+    from .stage_origin import recorded_origin
     source = canonical_display_path(source)
     cases = formal_cases(source)
     _, engine = report_engine()
@@ -140,7 +134,17 @@ def publish_session(source):
     return delivery
 
 
-def publish_batch(task, batch_id, batch):
+def verify_batch_run_identity(case, row):
+    """A node denied before its attempt has only the dispatcher's reservation."""
+    if (case["status"] == "not_executed" and row["disposition"] == "not_executed"
+            and not case.get("attempt_ref") and not case.get("run_id")):
+        return
+    if case.get("run_id") != row["run_id"]:
+        raise ValueError("E_STAGE_BATCH_IDENTITY")
+
+
+def formal_batch_cases(batch_id, batch):
+    """Reconcile every journal row with the exact sealed session and V5."""
     rows = batch["runs"]
     references = dict.fromkeys((row["session_ref"], row["session_hash"]) for row in rows)
     archive = {}
@@ -158,17 +162,26 @@ def publish_batch(task, batch_id, batch):
         case = archive.pop(key, None)  # A second delivery of the same session row is not another attempt.
         if case is None:
             raise ValueError("E_STAGE_BATCH_IDENTITY")
-        reserved_only = (case["status"] == "not_executed" and not case.get("attempt_ref")
-                         and not case.get("run_id") and row.get("disposition") == "not_executed")
-        if not reserved_only and case.get("run_id") != row["run_id"]:
-            raise ValueError("E_STAGE_BATCH_IDENTITY")
+        verify_batch_run_identity(case, row)
         cases.append(case)
     if archive or set(batch["nodes"]) != {case["node_id"] for case in cases}:
         raise ValueError("E_STAGE_BATCH_IDENTITY")
-    _, engine = report_engine()
-    projects = {project.root if (project := ProjectLayout.from_evidence(source)) else None for source, _ in references}
+    return cases
+
+
+def batch_location(task, batch_id, batch):
+    from .artifact_layout import ProjectLayout, batch_stage_id, dispatch_task_ref
+    references = {row["session_ref"] for row in batch["runs"]}
+    projects = {project.root if (project := ProjectLayout.from_evidence(source)) else None for source in references}
     project = ProjectLayout(projects.pop()) if len(projects) == 1 and None not in projects else ProjectLayout(task.parent)
-    batch_id = batch_stage_id(dispatch_task_ref(task), batch_id)
+    return project, batch_stage_id(dispatch_task_ref(task), batch_id)
+
+
+def publish_batch(task, batch_id, batch):
+    from .stage_origin import recorded_origin
+    cases = formal_batch_cases(batch_id, batch)
+    _, engine = report_engine()
+    project, batch_id = batch_location(task, batch_id, batch)
     output = project.reserve_run("playwright", batch_id)
     delivery = engine.publish_stage_report("playwright", batch_id, cases, output,
                                            origin=recorded_origin(output, "playwright", batch_id))

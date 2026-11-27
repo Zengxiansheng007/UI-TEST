@@ -31,16 +31,7 @@ From this skill directory run `python scripts/project_governance.py inventory <p
 
 `ui-test` is the only active normative entrypoint. `ui-test-system` is a compatibility-only redirect and owns no packet, state, route, evidence, checkpoint, or completion rule.
 
-| State or capability | Child Skill |
-| --- | --- |
-| `plan` | `ui-test-plan` |
-| `explore` | `ui-test-explore` with the pinned Midscene Adapter |
-| `verify` | `ui-test-verify` and deterministic Playwright postconditions |
-| `evidence` | `ui-test-evidence` |
-| `review` | `ui-test-review` |
-| `checkpoint` | `ui-test-checkpoint-runtime` plus `ui-test-checkpoint-schema` |
-| `report` | `ui-test-execution-report` from canonical `RunResult` |
-| A2A conversion | `ui-test-a2a-handoff` |
+For a Packet, run `python scripts/ui_test_suite.py route <packet.json>` from the selected installation. Open the returned Skill and use its actual entry after checking the task authorization and prerequisites. The decision matches next_action before state. Resolve ambiguity with the listed candidates before proceeding. For an explicit child task, use `resolve <registered-name>` on this same CLI. Choose the child by matching the requested deliverable to [the selected catalog](references/capabilities.json). Only the main workflow decides whether another business stage may begin after a delivery.
 
 Project-specific scope, budgets, retention, model boundaries, and runtime environment-key names come from a versioned `ui-test.project.yaml`; generic Skill files must not embed a project group, product, private URL, knowledge-space root, credential, Cookie, Token, or storage state.
 
@@ -212,3 +203,15 @@ Before declaring success, confirm:
 ## Escalation
 
 Ask before private-page model export, any R2 write, global Skill installation, dependency installation, production access, or destructive migration. Block R3, API business creation, credential persistence, unapproved external disclosure, and any run whose project config, approval record, path plan, or sensitive scan is invalid. 2.2及更早配置不可用于新正式执行；未指定用例或缺少 `transaction-v1` 能力必须在 BrowserContext 前失败。
+
+## Complete UI workflow
+
+For a multi-stage task, use the [workflow request and approval contract](references/selected-workflow.md) and run the main suite's `workflow` command. Check each returned delivery and stop reason. An explicit child task returns after that child's delivery. Continue to use the documented compatibility entry for any owner awaiting migration.
+
+## Selected installation
+
+Read [the capability catalog](references/capabilities.json) from this main Skill. Run `python scripts/ui_test_suite.py --suite <main-skill-directory> catalog` for its machine-readable entries. Set `UI_TEST_SUITE` to this absolute directory when invoking existing producers from another location. The installation manifest [suite-layout.json](references/suite-layout.json) maps relocated capability names to skill directories relative to this main Skill or absolute paths.
+
+Use the same launcher with `resolve <name-or-alias>` for the selected owner directory and shared Python scripts directory. Use the returned core scripts path as PYTHONPATH for a standalone Python producer.
+
+For a standalone project inventory, retention preview, approved archival, release or isolated restoration, resolve artifact-governance in the selected suite and return its operation result.

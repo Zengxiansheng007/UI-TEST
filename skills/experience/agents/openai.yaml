@@ -1,0 +1,5 @@
+interface:
+  display_name: "UI Test Experience"
+  short_description: "Find evidence-backed UI test strategies for an exact project scope"
+policy:
+  allow_implicit_invocation: true

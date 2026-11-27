@@ -39,3 +39,5 @@ Checkpoint integration is covered by its own ticket.
 ## Detail Records
 
 - [CR-20260822-001](entries/2026/2026-08/CR-20260822-001-ui-test-asset-governance.md)
+
+- [CR-20261127-064 · Selected-suite handoff](entries/2026/2026-11/CR-20261127-064-selected-handoff.md)

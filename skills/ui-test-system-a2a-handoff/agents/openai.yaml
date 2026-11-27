@@ -1,0 +1,6 @@
+interface:
+  display_name: "ui-test-system-a2a-handoff (archived)"
+  short_description: "Return the archived entry's replacement"
+  default_prompt: "Use $ui-test-system-a2a-handoff to identify its replacement."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,83 @@
+{
+  "packet_id": "AP34-P57-PLAN",
+  "objective": "核对公开练习区 34 三步表单的本轮输入、复核和单次提交后的可见结果",
+  "scope": {
+    "project_group": "public-testing",
+    "product": "Automation Playground",
+    "system": "github-pages",
+    "module_path": [
+      "section-34"
+    ],
+    "function": "wizard",
+    "checkpoint": "wizard-visible",
+    "environment": "public",
+    "risk_level": "r2-ui-write-test"
+  },
+  "case": {
+    "case_id": "AP-34"
+  },
+  "branch": {
+    "branch_id": "main"
+  },
+  "run": {
+    "run_id": "PLAN-AP34-SAMPLE",
+    "started_at": "2026-11-27T00:00:00Z"
+  },
+  "lineage": {
+    "anchor_id": "UI-TEST-57-AC11",
+    "source_refs": [
+      "https://github.com/Zengxiansheng007/UI-TEST/issues/59",
+      "https://github.com/ghanendra-sdet/automation-playground/blob/82246d8b4f31d548a5173effb8516f1a2a384e6c/README.md#sections"
+    ]
+  },
+  "artifact_refs": [
+    "playground-coverage.csv"
+  ],
+  "constraints": [
+    "Use synthetic inputs only, bind fresh run identity and sample values before execution.",
+    "Only the declared public page. Each approved phase permits one submission. Stop on unknown result. No direct API requests or replay."
+  ],
+  "history_status": "complete",
+  "steps": [
+    {
+      "step_id": "open",
+      "action": "navigate",
+      "risk_level": "r0-read-only",
+      "intent": "打开 https://ghanendra-sdet.github.io/automation-playground/ 的第 34 区",
+      "postcondition": "可见三步表单",
+      "required": true
+    },
+    {
+      "step_id": "entry",
+      "action": "fill",
+      "risk_level": "r2-ui-write-test",
+      "intent": "录入虚构姓名 Lin Sample、用户名 lin-ap34；选择 qa 角色",
+      "postcondition": "填写值与选择项读回一致",
+      "required": true
+    },
+    {
+      "step_id": "review",
+      "action": "assert",
+      "risk_level": "r0-read-only",
+      "intent": "进入复核页，截图保存三项复核值",
+      "postcondition": "复核页同时显示 Lin Sample、lin-ap34、qa",
+      "required": true
+    },
+    {
+      "step_id": "submit",
+      "action": "submit",
+      "risk_level": "r2-ui-write-test",
+      "intent": "复核通过后单击一次提交；回执未知立即停止",
+      "postcondition": "出现可见提交回执",
+      "required": true
+    },
+    {
+      "step_id": "result",
+      "action": "assert",
+      "risk_level": "r0-read-only",
+      "intent": "保存结果截图并核对浏览器端反馈",
+      "postcondition": "Wizard submitted successfully!",
+      "required": true
+    }
+  ]
+}

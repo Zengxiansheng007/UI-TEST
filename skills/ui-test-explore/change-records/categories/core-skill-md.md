@@ -48,3 +48,5 @@ Track core-skill-md changes for this candidate Skill.
 ### CR-20261120-027 · 编写前核对共享状态
 
 根据已有观察关联写方、读方、对象与断言，避免主动请求。 验证及范围见[详细变更记录](../entries/2026/2026-11/CR-20261120-027-shared-state.md)。
+
+- [CR-20261127-069 · Standalone exploration](../entries/2026/2026-11/CR-20261127-069-standalone-exploration.md) — Existing fixtures and archived-observation commands resolve the selected explorer. The canonical Skill owns instructions, observations and return semantics.

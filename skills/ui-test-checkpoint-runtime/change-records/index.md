@@ -40,3 +40,5 @@ See issue-specific detail records.
 ## Detail Records
 
 - [CR-20260822-001](entries/2026/2026-08/CR-20260822-001-ui-test-asset-governance.md)
+
+- [CR-20261127-066](entries/2026/2026-11/CR-20261127-066-current-session.md)

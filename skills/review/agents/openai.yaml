@@ -1,0 +1,5 @@
+interface:
+  display_name: "UI Failure Review"
+  short_description: "Explain recorded UI test failures and their supporting evidence"
+policy:
+  allow_implicit_invocation: true

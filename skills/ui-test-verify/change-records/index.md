@@ -44,3 +44,5 @@ See individual change records.
 ## Detail Records
 
 - [CR-20260822-001](entries/2026/2026-08/CR-20260822-001-ui-test-asset-governance.md)
+
+- [CR-20261127-063](entries/2026/2026-11/CR-20261127-063-verify-script-build.md) Verification and script building.

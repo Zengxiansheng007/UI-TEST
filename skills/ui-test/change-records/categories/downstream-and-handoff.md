@@ -8,11 +8,16 @@
 
 ## Outline
 
+- [CR-20261127-076 · Formal write budget](../entries/2026/2026-11/CR-20261127-076-formal-budget.md)
+
 - [CR-20261120-022](../entries/2026/2026-11/CR-20261120-022-formal-concurrency.md) · 单节点报告可核对新会话与原 V5 逐例结果。
 
 - CR-20261120-026 · 入口与共享待办示例、决定复用函数及针对性测试。
 
 ## Detailed Records
+
+- [CR-20261127-075](../entries/2026/2026-11/CR-20261127-075-unknown-write.md)
+- [CR-20261127-078 · Network verification](../entries/2026/2026-11/CR-20261127-078-network-review.md) Live and recorded consumers share response rule matching.
 
 ### CR-20261120-022 · 正式执行
 
@@ -25,3 +30,11 @@
 - [CR-20261124-135 · R0 正式断言、V5 与零提交收据](../entries/2026/2026-11/CR-20261124-135-read-only-finalization.md)
 
 - [CR-20261124-036 · 代表图与来源](../entries/2026/2026-11/CR-20261124-036-representative-images.md)
+
+- [CR-20261127-062 · Asset and experience owners](../entries/2026/2026-11/CR-20261127-062-asset-experience-owners.md)
+
+- [CR-20261127-072 · Approved multi-stage workflow](../entries/2026/2026-11/CR-20261127-072-selected-workflow.md)
+
+### CR-20261127-076 · Scoped formal write permits
+
+The approved node and phase limit restricts protected writes before the click. See the [change and controlled regression evidence](../entries/2026/2026-11/CR-20261127-076-formal-budget.md).

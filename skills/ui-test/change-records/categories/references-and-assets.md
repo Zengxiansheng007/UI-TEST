@@ -6,6 +6,8 @@ Changes affecting references-and-assets.
 
 ## Outline
 
+- [CR-20261127-076 · Formal write budget](../entries/2026/2026-11/CR-20261127-076-formal-budget.md)
+
 - [CR-20261120-031 · 主包文件基线](../entries/2026/2026-11/CR-20261120-031-authoritative-session.md)
 
 - [CR-20261120-022](../entries/2026/2026-11/CR-20261120-022-formal-concurrency.md) · 新增 2.4 配置模板及 V5 上下文、V2 会话契约，兼容 2.3 和历史结果。
@@ -15,6 +17,8 @@ Changes affecting references-and-assets.
 See the linked change records.
 
 ## Detailed Records
+
+- [CR-20261127-075](../entries/2026/2026-11/CR-20261127-075-unknown-write.md)
 
 ### CR-20261120-031 · 主包文件基线
 
@@ -126,3 +130,35 @@ pytest controller 和 Codex 整批收尾核对已提交的会话与各用例 V5�
 - [CR-20261124-036 · 代表图与来源](../entries/2026/2026-11/CR-20261124-036-representative-images.md)
 
 - [CR-20261125-043 · 旧项目脚本与报告原位登记](../entries/2026/2026-11/CR-20261125-043-legacy-discovery.md)
+
+- [CR-20261127-058 · Selected stage report owner](../entries/2026/2026-11/CR-20261127-058-report-suite.md) — Select a single suite catalog, core and report owner for both producers.
+
+- [CR-20261127-060 · Step evidence and review routing](../entries/2026/2026-11/CR-20261127-060-step-evidence-routing.md)
+
+- [CR-20261127-061 · 历史运行查询](../entries/2026/2026-11/CR-20261127-061-run-catalog.md)
+
+- [CR-20261127-062 · Asset and experience owners](../entries/2026/2026-11/CR-20261127-062-asset-experience-owners.md)
+
+- [CR-20261127-063](../entries/2026/2026-11/CR-20261127-063-verify-script-build.md) Verification and script building.
+
+- [CR-20261127-064 · Selected-suite handoff](../entries/2026/2026-11/CR-20261127-064-selected-handoff.md)
+
+- [CR-20261127-069 · Standalone exploration](../entries/2026/2026-11/CR-20261127-069-standalone-exploration.md) — The selected suite resolves explore and ui-test-explore to a single owner.
+
+- [CR-20261127-070 · Formal execution owner](../entries/2026/2026-11/CR-20261127-070-playwright-run.md)
+
+- [CR-20261127-071 · Selected suite routing](../entries/2026/2026-11/CR-20261127-071-selected-suite-routing.md)
+
+[CR-20261127-065](../entries/2026/2026-11/CR-20261127-065-checkpoint.md) — Checkpoint validation and suite routing.
+
+- [CR-20261127-066](../entries/2026/2026-11/CR-20261127-066-current-session.md)
+
+[CR-20261127-067](../entries/2026/2026-11/CR-20261127-067-repair.md) — Offline repair and historical compatibility.
+
+- [CR-20261127-068](../entries/2026/2026-11/CR-20261127-068-artifact-governance.md)
+
+- [CR-20261127-072 · Approved multi-stage workflow](../entries/2026/2026-11/CR-20261127-072-selected-workflow.md)
+
+### CR-20261127-076 · Scoped formal write permits
+
+The approved node and phase limit restricts protected writes before the click. See the [change and controlled regression evidence](../entries/2026/2026-11/CR-20261127-076-formal-budget.md).

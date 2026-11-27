@@ -1,0 +1,6 @@
+interface:
+  display_name: "UI stage report"
+  short_description: "Rebuild a stage report from original UI evidence"
+  default_prompt: "Use $execution-report to rebuild the report from these original stage records."
+policy:
+  allow_implicit_invocation: true

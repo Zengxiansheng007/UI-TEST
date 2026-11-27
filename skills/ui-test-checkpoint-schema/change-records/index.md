@@ -39,3 +39,7 @@ Installation remains pending.
 ## Detail Records
 
 - [CR-20260822-001](entries/2026/2026-08/CR-20260822-001-ui-test-asset-governance.md)
+
+[CR-20261127-065](entries/2026/2026-11/CR-20261127-065-checkpoint.md) · [Scripts and validation](categories/scripts-and-validation.md)
+
+[downstream-and-handoff](categories/downstream-and-handoff.md)

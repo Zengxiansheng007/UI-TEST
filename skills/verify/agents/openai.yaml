@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verify UI action"
+  short_description: "Review one UI action using deterministic postconditions."
+  default_prompt: "Use $verify to check the observed action against its declared expected result and identify bounded fallback."

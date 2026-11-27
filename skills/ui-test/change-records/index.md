@@ -6,6 +6,11 @@
 
 ## Latest Changes
 
+- [CR-20261127-079 · Offline batch report](entries/2026/2026-11/CR-20261127-079-batch-reader.md)
+- [CR-20261127-075 · Unknown write pause](entries/2026/2026-11/CR-20261127-075-unknown-write.md)
+- [CR-20261127-076 · Scoped write permits](entries/2026/2026-11/CR-20261127-076-formal-budget.md)
+- [CR-20261127-078 · Network verification](entries/2026/2026-11/CR-20261127-078-network-review.md) Live and recorded consumers share response rule matching.
+
 - [CR-20261124-037 · 阶段异常与尝试归属](entries/2026/2026-11/CR-20261124-037-stage-outcomes.md)
 
 - [CR-20261120-022 · 正式运行配置、进程所有权与恢复](entries/2026/2026-11/CR-20261120-022-formal-concurrency.md)
@@ -181,3 +186,33 @@ pytest controller 和 Codex 整批收尾核对已提交的会话与各用例 V5�
 
 
 - [CR-20261125-054 · 从已批准批次继续归档与释放](entries/2026/2026-11/CR-20261125-054-resume-archive.md)
+
+- [CR-20261127-058 · Selected stage report owner](entries/2026/2026-11/CR-20261127-058-report-suite.md) — Select a single suite catalog, core and report owner for both producers.
+
+- [CR-20261127-060 · Step evidence and review routing](entries/2026/2026-11/CR-20261127-060-step-evidence-routing.md)
+
+- [CR-20261127-061 · 历史运行查询](entries/2026/2026-11/CR-20261127-061-run-catalog.md)
+
+- [CR-20261127-062 · Asset and experience owners](entries/2026/2026-11/CR-20261127-062-asset-experience-owners.md)
+
+- [CR-20261127-063](entries/2026/2026-11/CR-20261127-063-verify-script-build.md) Verification and script building.
+
+- [CR-20261127-064 · Selected-suite handoff](entries/2026/2026-11/CR-20261127-064-selected-handoff.md)
+
+- [CR-20261127-069 · Standalone exploration](entries/2026/2026-11/CR-20261127-069-standalone-exploration.md) — The selected suite resolves explore and ui-test-explore to a single owner.
+
+- [CR-20261127-070 · Formal execution owner](entries/2026/2026-11/CR-20261127-070-playwright-run.md)
+
+- [CR-20261127-071 · Selected suite routing](entries/2026/2026-11/CR-20261127-071-selected-suite-routing.md)
+
+[CR-20261127-065](entries/2026/2026-11/CR-20261127-065-checkpoint.md) · [Scripts and validation](categories/scripts-and-validation.md)
+
+- [CR-20261127-066](entries/2026/2026-11/CR-20261127-066-current-session.md)
+
+[CR-20261127-067](entries/2026/2026-11/CR-20261127-067-repair.md) — Scoped repair ownership.
+
+- [CR-20261127-068](entries/2026/2026-11/CR-20261127-068-artifact-governance.md)
+
+- [CR-20261127-072 · Approved multi-stage workflow](entries/2026/2026-11/CR-20261127-072-selected-workflow.md)
+
+- [CR-20261127-074 · Independent report reader](entries/2026/2026-11/CR-20261127-074-offline-report.md)

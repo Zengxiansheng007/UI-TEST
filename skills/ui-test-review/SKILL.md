@@ -5,6 +5,10 @@ description: Review UI automation execution quality after Midscene exploration, 
 
 # UI Test Review
 
+## Compatibility entry
+
+Resolve the selected suite's $review capability and pass the original UI request, inputs and identifiers unchanged. Use its [compatibility CLI](scripts/inspect_steps.py) and return the resulting JSON or missing-material diagnosis. The legacy packet next_action only advises the orchestrator. Independent invocation ends after this delivery.
+
 ## Purpose
 
 Review whether the UI automation result is trustworthy and decide what should be repaired, rerun, escalated, or promoted.
