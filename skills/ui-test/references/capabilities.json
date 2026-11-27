@@ -239,6 +239,23 @@
           "explore"
         ]
       }
+    },
+    {
+      "name": "checkpoint-schema",
+      "kind": "capability",
+      "description": "Validate reusable checkpoint definitions or derive a Packet and handoff from execution facts.",
+      "inputs": [
+        "Definition, or complete execution snapshot"
+      ],
+      "requires": [
+        "Current task and step facts for capture"
+      ],
+      "outputs": [
+        "Validation, snapshot, Packet or local handoff bundle"
+      ],
+      "aliases": [
+        "ui-test-checkpoint-schema"
+      ]
     }
   ]
 }
