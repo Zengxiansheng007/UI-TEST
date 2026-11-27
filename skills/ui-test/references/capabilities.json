@@ -259,6 +259,21 @@
           "playwright-run"
         ]
       }
+    },
+    {
+      "name": "artifact-governance",
+      "kind": "capability",
+      "description": "Inventory, preview, approve, verify, archive, release and separately restore UI stage files.",
+      "inputs": [
+        "project, stage use and current asset declarations; preview, approval or archive as requested"
+      ],
+      "requires": [
+        "explicit batch approval before archiving and releasing originals"
+      ],
+      "outputs": [
+        "inventory, preview, archive verification, release receipt or isolated restored historical files"
+      ],
+      "aliases": []
     }
   ]
 }

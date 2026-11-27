@@ -218,3 +218,5 @@ Ask before private-page model export, any R2 write, global Skill installation, d
 Read [the capability catalog](references/capabilities.json) from this main Skill. Run `python scripts/ui_test_suite.py --suite <main-skill-directory> catalog` for its machine-readable entries. Set `UI_TEST_SUITE` to this absolute directory when invoking existing producers from another location. The installation manifest [suite-layout.json](references/suite-layout.json) maps relocated capability names to skill directories relative to this main Skill or absolute paths.
 
 Use the same launcher with `resolve <name-or-alias>` for the selected owner directory and shared Python scripts directory. Use the returned core scripts path as PYTHONPATH for a standalone Python producer.
+
+For a standalone project inventory, retention preview, approved archival, release or isolated restoration, resolve artifact-governance in the selected suite and return its operation result.
