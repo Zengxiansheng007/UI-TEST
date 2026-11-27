@@ -37,6 +37,8 @@ The formal run.py regression selects A and B in one serial batch with one approv
 
 The unchanged closed P05 workflow claim resumed in a read-only check with invocation disabled and produced its original PB-dba814a4c8bf9568 report of 15 nodes. Both skill packages passed validate_create_skill.py --require-change-records with zero findings.
 
+A three-node offline regression covers the subsequent worker interruption. A has a sealed passing V5, B was denied before an attempt, and C has an unconfirmed outcome. Both delivery paths now apply the same reserved-run identity rule, preserving the actual run match for attempted nodes. The interruption report retains all three cases in selection order and a repeated invocation starts no new worker.
+
 ## Safety And Privacy
 
 Tests use synthetic local files and no secret values. The protected effect is the suite write permit under the reviewed scripts.

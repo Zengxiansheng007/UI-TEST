@@ -134,6 +134,15 @@ def publish_session(source):
     return delivery
 
 
+def verify_batch_run_identity(case, row):
+    """A node denied before its attempt has only the dispatcher's reservation."""
+    if (case["status"] == "not_executed" and row["disposition"] == "not_executed"
+            and not case.get("attempt_ref") and not case.get("run_id")):
+        return
+    if case.get("run_id") != row["run_id"]:
+        raise ValueError("E_STAGE_BATCH_IDENTITY")
+
+
 def formal_batch_cases(batch_id, batch):
     """Reconcile every journal row with the exact sealed session and V5."""
     rows = batch["runs"]
@@ -153,10 +162,7 @@ def formal_batch_cases(batch_id, batch):
         case = archive.pop(key, None)  # A second delivery of the same session row is not another attempt.
         if case is None:
             raise ValueError("E_STAGE_BATCH_IDENTITY")
-        reserved_only = (case["status"] == "not_executed" and not case.get("attempt_ref")
-                         and not case.get("run_id") and row.get("disposition") == "not_executed")
-        if not reserved_only and case.get("run_id") != row["run_id"]:
-            raise ValueError("E_STAGE_BATCH_IDENTITY")
+        verify_batch_run_identity(case, row)
         cases.append(case)
     if archive or set(batch["nodes"]) != {case["node_id"] for case in cases}:
         raise ValueError("E_STAGE_BATCH_IDENTITY")
