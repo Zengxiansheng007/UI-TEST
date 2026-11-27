@@ -32,6 +32,9 @@ def main(argv=None, *, quiet=False):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--suite", help="selected main ui-test Skill directory")
     commands = parser.add_subparsers(dest="command", required=True)
+    flow = commands.add_parser("workflow")
+    flow.add_argument("request", type=Path)
+    flow.add_argument("--approved-sha256")
     commands.add_parser("route").add_argument("packet", type=Path)
     commands.add_parser("catalog")
     commands.add_parser("resolve").add_argument("name")
@@ -58,6 +61,9 @@ def main(argv=None, *, quiet=False):
         suite = selected_suite(root)
         if args.command == "catalog":
             result = suite.catalog
+        elif args.command == "workflow":
+            from ui_test_core.workflow import workflow
+            result = workflow(suite, args.request, args.approved_sha256)
         elif args.command == "route":
             from ui_test_core.routing import select_packet
             result = select_packet(json.loads(args.packet.read_text(encoding="utf-8-sig")))
