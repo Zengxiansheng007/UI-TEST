@@ -12,7 +12,8 @@ OWNER = Path(__file__).resolve().parents[1]
 CORE = OWNER.with_name("ui-test")
 
 
-def test_batch_budget_stops_repeated_and_unlisted_clicks(tmp_path, monkeypatch):
+@pytest.mark.parametrize("interrupted", [False, True], ids=["completed", "interrupted"])
+def test_batch_budget_stops_repeated_and_unlisted_clicks(tmp_path, monkeypatch, interrupted):
     monkeypatch.syspath_prepend(str(CORE/"scripts"))
     from ui_test_core.artifact_layout import dispatch_task_ref
     fixture = CORE/"assets/fixtures/specified-runner"
@@ -22,16 +23,21 @@ def test_batch_budget_stops_repeated_and_unlisted_clicks(tmp_path, monkeypatch):
     (tmp_path/"test_click.py").write_bytes((OWNER/"tests/fixtures/budget_case.py").read_bytes())
     node_a, node_b = "test_click.py::test_a", "test_click.py::test_b"
     row = dict(node=node_a, case_id="CASE-STAGES", branch_id="main", phases={"single": 1})
+    nodes, limits = [node_a, node_b], [row]
+    if interrupted:
+        node_c = "test_click.py::test_c"
+        nodes.append(node_c)
+        limits.append(dict(node=node_c, case_id="CASE-C", branch_id="main", phases={"single": 1}))
     env = dict(os.environ, UI_TEST_SUITE=str(CORE), CONTROLLED_UI_EVIDENCE=str(tmp_path/"evidence"),
                PYTHONPATH=os.pathsep.join([str(CORE), str(CORE/"scripts"), str(CORE/"tests")]))
     budget = tmp_path/"budget.json"
     task = tmp_path/"task.json"
     batch = "one-batch"
     budget.write_text(json.dumps(dict(schema_version="ui-test.formal-write-budget.v1", batch=batch,
-                                      task_ref=dispatch_task_ref(task), nodes=[row])))
+                                      task_ref=dispatch_task_ref(task), nodes=limits)))
     digest = hashlib.sha256(budget.read_bytes()).hexdigest()
     command = [sys.executable, str(OWNER/"scripts/run.py"), "--task-ref", str(task),
-                          "--batch-ref", batch, "--node", node_a, "--node", node_b, "--", "--ui-r2-approved",
+                          "--batch-ref", batch, *[arg for n in nodes for arg in ("--node", n)], "--", "--ui-r2-approved",
                           "--ui-write-budget", str(budget), "--ui-write-budget-sha256", digest]
     run = subprocess.run(command, cwd=tmp_path, env=env, capture_output=True, timeout=240)
     assert run.returncode != 0
@@ -41,7 +47,10 @@ def test_batch_budget_stops_repeated_and_unlisted_clicks(tmp_path, monkeypatch):
     assert any("E_FORMAL_BUDGET_NODE" in log for log in logs), (run.stdout, run.stderr, logs)
     journal = json.loads(task.read_bytes())
     state = journal["batches"][batch]
-    assert journal["active"] is None and state["status"] == "failed"
+    if interrupted:
+        assert journal["active"] == batch and state["runs"][2]["disposition"] == "unknown"
+    else:
+        assert journal["active"] is None and state["status"] == "failed"
     assert state["runs"][1]["disposition"] == "not_executed"
     assert state["runs"][1]["node_result"]["missing_reason"] == "E_FORMAL_BUDGET_NODE"
     assert not state["runs"][1]["node_result"].get("attempt_ref")
@@ -49,11 +58,15 @@ def test_batch_budget_stops_repeated_and_unlisted_clicks(tmp_path, monkeypatch):
     cases = json.loads(report.read_bytes())["cases"]
     assert cases[0]["run_result_hash"] and cases[0]["status"] == "passed"
     assert cases[1]["status"] == "not_executed" and cases[1]["reason"] == "E_FORMAL_BUDGET_NODE"
+    if interrupted:
+        assert [c["node_id"] for c in cases] == nodes and cases[2]["status"] == "unknown"
+    html = report.with_name("report.html")
+    assert "E_FORMAL_BUDGET_NODE" in html.read_text(encoding="utf8") and html.as_uri().encode() in run.stdout
     again = subprocess.run(command, cwd=tmp_path, env=env, capture_output=True, timeout=240)
-    assert again.returncode == run.returncode == 1
+    assert again.returncode == run.returncode == (75 if interrupted else 1)
     assert json.loads(task.read_bytes()) == journal
     assert not (tmp_path/"unlisted.entered").exists()
-    assert state["runs"][0]["disposition"] == "passed" and state["nodes"] == [node_a, node_b]
+    assert state["runs"][0]["disposition"] == "passed" and state["nodes"] == nodes
 
 
 def test_project_batch_intersection_and_consumption_drift(tmp_path, monkeypatch):
@@ -109,3 +122,14 @@ def test_formal_worker_launch_requires_explicit_budget_and_preserves_group_bindi
     _, env = launch(*prefix, supplied, *suffix, group="group", workers=2)
     request = json.loads(env["UI_TEST_CODEX_REQUEST"])
     assert request["workers"] == 2 and request["write_budget"] == ["reviewed.json", "reviewed"]
+
+@pytest.mark.parametrize("case", [
+    {"status": "passed", "run_id": "a-different-run"},
+    {"status": "not_executed", "attempt_ref": "attempts/real"},
+    {"status": "not_executed", "run_id": "a-different-run"},
+])
+def test_interruption_keeps_attempted_run_identity_strict(case, monkeypatch):
+    monkeypatch.syspath_prepend(str(CORE/"scripts"))
+    from ui_test_core.stage_delivery import verify_batch_run_identity
+    with pytest.raises(ValueError, match="E_STAGE_BATCH_IDENTITY"):
+        verify_batch_run_identity(case, {"run_id": "reserved-run", "disposition": "not_executed"})

@@ -35,3 +35,8 @@ def test_a(ui_test_execution_context):
 @pytest.mark.case_id("CASE-B")
 def test_b(ui_test_execution_context):
     Path("unlisted.entered").touch()
+
+
+@pytest.mark.case_id("CASE-C")
+def test_c(ui_test_execution_context):
+    os._exit(23)  # Simulate a worker interruption before it records the outcome.

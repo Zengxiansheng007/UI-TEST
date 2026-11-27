@@ -221,3 +221,5 @@ pytest controller 和 Codex 整批收尾核对已提交的会话与各用例 V5�
 ### CR-20261127-076 · Scoped formal write permits
 
 The approved node and phase limit restricts protected writes before the click. See the [change and controlled regression evidence](../entries/2026/2026-11/CR-20261127-076-formal-budget.md).
+
+CR-20261127-076 also covers a denied reservation followed by an interrupted worker in the same serial report.

@@ -184,7 +184,7 @@ def active_status(task, state):
 
 
 def report_interruption(task, batch_ref, batch, reason):
-    from ui_test_core.stage_delivery import formal_cases, report_engine
+    from ui_test_core.stage_delivery import formal_cases, report_engine, verify_batch_run_identity
     from ui_test_core.stage_origin import recorded_origin
     from ui_test_core.artifact_layout import batch_stage_id
 
@@ -209,8 +209,7 @@ def report_interruption(task, batch_ref, batch, reason):
             if key not in sessions:
                 sessions[key] = {c["node_id"]: c for c in formal_cases(key[0], session_hash=key[1], batch_id=batch_ref)}
             sealed = sessions[key][node]
-            if sealed.get("run_id") != row.get("run_id"):
-                raise ValueError("E_STAGE_BATCH_IDENTITY")
+            verify_batch_run_identity(sealed, row)
             case = sealed
         cases.append(case)
     _, engine = report_engine()
