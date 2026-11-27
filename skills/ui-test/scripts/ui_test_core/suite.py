@@ -26,6 +26,8 @@ class Suite:
 
     def skill_path(self, name):
         name = self.canonical_name(name)
+        if name == "ui-test":  # The workflow lives at the explicitly selected installation.
+            return self.root
         path = (self.root / self.layout.get(name, "../" + name)).resolve()
         if not (path / "SKILL.md").is_file():
             raise ValueError("E_SUITE_CAPABILITY_MISSING: " + str(path))

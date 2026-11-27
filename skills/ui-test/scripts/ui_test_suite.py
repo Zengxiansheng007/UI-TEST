@@ -32,6 +32,7 @@ def main(argv=None, *, quiet=False):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--suite", help="selected main ui-test Skill directory")
     commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("route").add_argument("packet", type=Path)
     commands.add_parser("catalog")
     commands.add_parser("resolve").add_argument("name")
     for capability in ("assets", "experience"):
@@ -57,6 +58,11 @@ def main(argv=None, *, quiet=False):
         suite = selected_suite(root)
         if args.command == "catalog":
             result = suite.catalog
+        elif args.command == "route":
+            from ui_test_core.routing import select_packet
+            result = select_packet(json.loads(args.packet.read_text(encoding="utf-8-sig")))
+            if not result["ok"]:
+                parser.exit(2, json.dumps(result, ensure_ascii=True) + "\n")
         elif args.command == "resolve":
             result = dict(skill=str(suite.skill_path(args.name)), core_scripts=str(root / "scripts"))
         elif args.command in ("assets", "experience"):
