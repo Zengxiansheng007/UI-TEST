@@ -34,7 +34,7 @@ def main(argv=None, *, quiet=False):
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("catalog")
     commands.add_parser("resolve").add_argument("name")
-    for capability in ("assets", "experience"):
+    for capability in ("assets", "experience", "repair"):
         commands.add_parser(capability).add_argument("--input", type=Path, required=True)
     handoff = commands.add_parser("a2a-handoff", aliases=["ui-test-a2a-handoff"])
     handoff.add_argument("source", type=Path)
@@ -59,7 +59,7 @@ def main(argv=None, *, quiet=False):
             result = suite.catalog
         elif args.command == "resolve":
             result = dict(skill=str(suite.skill_path(args.name)), core_scripts=str(root / "scripts"))
-        elif args.command in ("assets", "experience"):
+        elif args.command in ("assets", "experience", "repair"):
             owner = suite.load_package(args.command)
             request = json.loads(args.input.read_text(encoding="utf-8-sig"))
             result = owner.query(**request)

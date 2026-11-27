@@ -259,6 +259,29 @@
           "playwright-run"
         ]
       }
+    },
+    {
+      "name": "repair",
+      "kind": "capability",
+      "description": "Prepare a scoped asset repair candidate from a confirmed failure and its original business assertion.",
+      "inputs": [
+        "Project, scope, failure run, original case bindings and candidate source"
+      ],
+      "requires": [
+        "Confirmed cause, committed attempt evidence and authorization for this scope"
+      ],
+      "outputs": [
+        "Candidate identity, affected cases and source-bound verification or pending scope"
+      ],
+      "aliases": [],
+      "route": {
+        "state": [
+          "repair"
+        ],
+        "next_action": [
+          "repair"
+        ]
+      }
     }
   ]
 }

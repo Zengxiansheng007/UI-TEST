@@ -197,3 +197,5 @@ pytest controller 和 Codex 整批收尾核对已提交的会话与各用例 V5�
 - [CR-20261127-064 · Selected-suite handoff](../entries/2026/2026-11/CR-20261127-064-selected-handoff.md)
 
 - [CR-20261127-070 · Formal execution owner](../entries/2026/2026-11/CR-20261127-070-playwright-run.md)
+
+[CR-20261127-067](../entries/2026/2026-11/CR-20261127-067-repair.md) — Offline repair and historical compatibility.

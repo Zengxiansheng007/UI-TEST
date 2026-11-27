@@ -197,3 +197,5 @@ pytest controller 和 Codex 整批收尾核对已提交的会话与各用例 V5�
 - [CR-20261127-069 · Standalone exploration](entries/2026/2026-11/CR-20261127-069-standalone-exploration.md) — The selected suite resolves explore and ui-test-explore to a single owner.
 
 - [CR-20261127-070 · Formal execution owner](entries/2026/2026-11/CR-20261127-070-playwright-run.md)
+
+[CR-20261127-067](entries/2026/2026-11/CR-20261127-067-repair.md) — Scoped repair ownership.

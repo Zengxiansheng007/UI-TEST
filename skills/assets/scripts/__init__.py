@@ -42,3 +42,15 @@ def query(project=None, capability=None, scope=None, authorization=None, *, bind
     if catalog.revision() != state["revision"]:
         raise ValueError("asset catalog changed during query; retry the query")
     return dict(receipt, decision=decision, pending=pending, pauses=pauses, revision=state["revision"])
+
+
+def repair_snapshot(project):
+    """Read the selected project's immutable revision and declarations without admitting new candidates."""
+    catalog = AssetCatalog(project)
+    state = catalog.state()
+    return catalog, state["revision"], reusable_assets.discover(project, state=state, persist_candidates=False)
+
+
+def check_repair_candidate(project, rows, asset_id, scope):
+    """Verify the candidate's live dependency and pause conditions in its trial project."""
+    return reusable_assets._available(project, rows, asset_id, scope)
