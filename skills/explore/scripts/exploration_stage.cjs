@@ -94,6 +94,7 @@ async function runExplorationStage({ runId, outputRoot, cases, page, nativeRepla
     }
     let pause;
     let unknownStep;
+    let attemptStarted = false;
     const recorded = new Set(); // Only a capture-created step may be completed by its first record.
     function checkWrite(step) {
       if (!unknownWrites.has(step.write_state)) return;
@@ -149,12 +150,19 @@ async function runExplorationStage({ runId, outputRoot, cases, page, nativeRepla
         }
       }
       checkpoint('attempt', {...row, status: 'running'});
+      attemptStarted = true;
       const activePage = freshPage || page;
       const captureEvidence = caseCapture(row, output, item.maskSelectors);
+      async function scopedCapture(target, step, moment) {
+        const excluded = item.captureUnknown === false && (moment.point === 'unknown' || unknownWrites.has(step.write_state));
+        const missingReason = excluded ? 'Unknown-scene screenshot excluded by the case capture scope'
+          : !target ? 'No authorized active page supplied for the unknown write' : undefined;
+        return captureEvidence(target, step, moment, missingReason);
+      }
       async function capture(target, step, moment) {
         if (pause) throw pause;
         if (item.usesStagePage && target !== activePage) throw new Error('Capture belongs to another page');
-        const image = await captureEvidence(target, step, moment);
+        const image = await scopedCapture(target, step, moment);
         if (unknownWrites.has(step.write_state)) {
           const entry = row.steps.find(saved => saved.step_id === step.step_id);
           entry.write_state = step.write_state;
@@ -167,13 +175,9 @@ async function runExplorationStage({ runId, outputRoot, cases, page, nativeRepla
         if (pause) throw pause;
       } finally {
         if (unknownStep && !unknownStep.images?.some(image => image.point === 'unknown')) {
-          const allowedPage = item.captureUnknown === false ? undefined : activePage;
-          const image = await captureEvidence(allowedPage, unknownStep, {point:'unknown',
+          await scopedCapture(activePage, unknownStep, {point:'unknown',
             object_ref:unknownStep.object_ref || row.case_id,
             observation:unknownStep.actual_result || 'Original write result unconfirmed'});
-          if (!allowedPage) image.missing_reason = item.captureUnknown === false
-            ? 'Unknown-scene screenshot excluded by the case capture scope'
-            : 'No authorized active page supplied for the unknown write';
         }
         // Leave the original scene available for read-only reconciliation of an unknown result.
         if (freshPage && !pause) await freshPage.close();
@@ -191,7 +195,7 @@ async function runExplorationStage({ runId, outputRoot, cases, page, nativeRepla
       if (!(error instanceof ExplorationStop)) failure = { cause: error };
       for (const remaining of rows.slice(index + 1)) remaining.reason = 'Batch stopped at ' + item.id;
     } finally {
-      checkpoint('attempt', row);
+      if (attemptStarted) checkpoint('attempt', row);
     }
     if (row.status === 'blocked') break;
   }

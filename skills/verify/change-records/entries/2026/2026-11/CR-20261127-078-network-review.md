@@ -39,3 +39,9 @@ The test uses the local controlled page. Raw response bodies and headers are exc
 ## Risks And Follow-up
 
 Older records missing capture identity or timing report missing evidence. A digest identifies the reviewed file; the authorized input provider owns capture integrity.
+
+## Integrated review at f02292f
+
+Recorded POST review matches the configured method, path and success field.
+
+test_network_review.py passed both browser fixtures. Each fixture performed one button action. The request log contained only the fixture page and its one natural GET or POST. Missing or mismatched rules and non-page evidence were rejected. The create-skill --require-change-records validation reported zero findings.

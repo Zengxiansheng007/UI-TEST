@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import sys
 
+import pytest
 from playwright.sync_api import sync_playwright
 
 CORE = Path(__file__).resolve().parents[2] / "ui-test"
@@ -17,7 +18,8 @@ from ui_test_core.suite import selected_suite
 from ui_test_core.workflow import verify_checks
 
 
-def test_current_response_through_verify_owner(tmp_path):
+@pytest.mark.parametrize("method,endpoint,success_field", [("GET", "/status", "ready"), ("POST", "/submit", "saved")])
+def test_current_response_through_verify_owner(tmp_path, method, endpoint, success_field):
     from importlib import import_module
     owner = selected_suite(CORE).load_package("verify")
     review = import_module(owner.__name__ + ".review_action").review_action
@@ -27,16 +29,21 @@ def test_current_response_through_verify_owner(tmp_path):
         browser = driver.chromium.launch(channel="msedge")
         page = browser.new_page()
         page.route("**/*", lambda route: route.continue_() if route.request.url in (
-            url, url.replace("/case", "/status")) else route.abort())
+            url, url.replace("/case", endpoint)) else route.abort())
         config = dict(target_url=url, module_id="local", login_selector="#identity",
                       feature_selectors=["h1", "#title"], ttl_seconds=180,
-                      response=dict(method="GET", path="/status", success_field="ready"))
+                      response=dict(method=method, path=endpoint, success_field=success_field))
         binding = dict(page=page, packet=packet, config=config, session_id="current")
         def read_status(current_page):
             assert current_page is page
             current_page.goto(url)
-            current_page.locator("#status").click()
-            current_page.get_by_text("Available", exact=True).wait_for()
+            if method == "POST":
+                current_page.locator("#title").fill("Local synthetic item")
+                current_page.locator("#submit").click()
+                current_page.get_by_text("Saved", exact=True).wait_for()
+            else:
+                current_page.locator("#status").click()
+                current_page.get_by_text("Available", exact=True).wait_for()
 
         checkpoint = selected_suite(CORE).load_package("checkpoint-runtime")
         capture = import_module(checkpoint.__name__ + ".checkpoint_runtime.context").capture_context
@@ -68,6 +75,12 @@ def test_current_response_through_verify_owner(tmp_path):
             result, = verify_checks(suite, observations, [check])
             return result["primary"]
 
+        if method == "POST":
+            assert stored()["code"] == "E_CURRENT_NETWORK_EVIDENCE_MISSING"
+            for changed in (dict(method="GET"), dict(path="/status"), dict(success_field="ready")):
+                check["response_rule"] = dict(config["response"], **changed)
+                assert stored()["code"] == "E_CURRENT_NETWORK_EVIDENCE_MISSING"
+            check["response_rule"] = config["response"]
         assert stored()["checks"][0]["mode"] == "recorded" and stored()["passed"]
         source = tmp_path / "check.json"
         source.write_text(json.dumps(check))
@@ -90,5 +103,5 @@ def test_current_response_through_verify_owner(tmp_path):
         step.pop("network_evidence")
         step["observed"] = {"network_readonly": ref}
         assert stored()["code"] == "E_CURRENT_NETWORK_EVIDENCE_MISSING"
-        assert requests == [("GET", "/case"), ("GET", "/status")]
+        assert requests == [("GET", "/case"), (method, endpoint)]
         browser.close()

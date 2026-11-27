@@ -14,13 +14,17 @@ def recorded_response_ref(fact, owner):
     identity = ("run_id", "case_id", "branch_id", "attempt_ref", "step_id", "session_id")
     if not all(isinstance(owner.get(k), str) and owner[k] and fact.get(k) == owner[k] for k in identity):
         return None
-    from ui_test_core.module_ready import instant
+    from ui_test_core.module_ready import instant, matches_response_rule
     try:
         if not instant(owner["started_at"]) <= instant(fact["observed_at"]) <= instant(owner["ended_at"]):
             return None
     except (KeyError, TypeError, ValueError):
         return None
-    if (fact.get("source") != "page-response" or fact.get("method") not in ("GET", "HEAD")
+    rule = owner.get("response_rule")
+    if rule is not None or fact.get("method") not in ("GET", "HEAD"):
+        if not matches_response_rule(fact, rule):
+            return None
+    if (fact.get("source") != "page-response"
             or type(fact.get("status")) is not int or not 200 <= fact["status"] < 300
             or not all(fact.get(k) is True for k in ("request_matched", "response_matched", "business_success"))):
         return None

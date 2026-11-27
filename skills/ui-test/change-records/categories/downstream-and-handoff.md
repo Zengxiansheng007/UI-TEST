@@ -17,7 +17,7 @@
 ## Detailed Records
 
 - [CR-20261127-075](../entries/2026/2026-11/CR-20261127-075-unknown-write.md)
-- [CR-20261127-078 · Network verification](../entries/2026/2026-11/CR-20261127-078-network-review.md)
+- [CR-20261127-078 · Network verification](../entries/2026/2026-11/CR-20261127-078-network-review.md) Live and recorded consumers share response rule matching.
 
 ### CR-20261120-022 · 正式执行
 

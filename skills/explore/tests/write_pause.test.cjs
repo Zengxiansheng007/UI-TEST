@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const http = require('node:http');
+const {execFileSync} = require('node:child_process');
 const {runExplorationStage} = require('../scripts/exploration_stage.cjs');
 
 test('reusing a recorded identity cannot replace an earlier observation', async t => {
@@ -26,12 +27,34 @@ test('unavailable window verification leaves the independent callback waiting', 
   const root = fs.mkdtempSync(path.join(process.env.UI_TEST_PAUSE_EVIDENCE || os.tmpdir(),'window-'));
   if (!process.env.UI_TEST_PAUSE_EVIDENCE) t.after(() => fs.rmSync(root,{recursive:true,force:true}));
   let runs = 0;
-  const page = {context:() => ({browser:() => null})};
-  const cases = [{id:'A',captureUnknown:false,run(record) {record({action:'Submit',write_state:'unknown'});}},
+  let screenshots = 0;
+  const page = {context:() => ({browser:() => null}), frames:() => [], screenshot:() => {screenshots++;}};
+  const cases = [{id:'A',usesStagePage:true,captureUnknown:false,async run(record,stop,capture,activePage) {
+    assert.equal(activePage,page);
+    const step = {step_id:'submit', action:'Submit'};
+    await capture(activePage,step,{point:'unknown',object_ref:'fixture',observation:'Await receipt'});
+    await capture(activePage,{...step,write_state:'unknown'},{point:'ordinary',object_ref:'fixture',observation:'Unconfirmed'});
+  }},
     {id:'C',dependsOn:[],usesStagePage:true,run() {runs++;}}];
   const delivery = await runExplorationStage({runId:'waiting',outputRoot:root,page,cases});
-  const [,independent] = JSON.parse(fs.readFileSync(delivery.observations)).cases;
+  const [original,independent] = JSON.parse(fs.readFileSync(delivery.observations)).cases;
   assert.equal(runs,0);
+  assert.equal(screenshots,0);
+  assert.deepEqual(original.steps[0].images.map(img=>img.point),['unknown','ordinary']);
+  for (const image of original.steps[0].images) {
+    assert.match(image.missing_reason,/excluded by the case capture scope/);
+    assert.equal(image.path,undefined);
+  }
+  const folder = path.dirname(delivery.observations);
+  const events = fs.readdirSync(path.join(folder,'events')).filter(name => name.endsWith('.json'));
+  assert.deepEqual(events.map(name => JSON.parse(fs.readFileSync(path.join(folder,'events',name))).identity[0]),['A']);
+  assert.deepEqual(JSON.parse(fs.readFileSync(delivery.stage_record)).cases.find(c=>c.case_id==='C').attempts,[]);
+  const counts = execFileSync('python', ['-c', [
+    'import sqlite3,sys',
+    'with sqlite3.connect(sys.argv[1]) as db:',
+    ' print(db.execute("SELECT COUNT(*) FROM attempts WHERE case_id=?", ("C",)).fetchone()[0])',
+  ].join('\n'),path.join(root,'runs.sqlite3')],{encoding:'utf8'});
+  assert.equal(counts.trim(),'0');
   assert.equal(independent.status,'not-executed');
   assert.match(independent.reason,/verified separate browser window/);
 });

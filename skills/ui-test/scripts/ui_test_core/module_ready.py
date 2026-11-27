@@ -214,6 +214,16 @@ class ModuleReadyObserver:
         return context
 
 
+def matches_response_rule(network, rule):
+    """Compare one response to the reviewed listener configuration."""
+    import hashlib
+    return (isinstance(network, dict) and isinstance(rule, dict)
+            and all(isinstance(rule.get(key), str) and rule[key] for key in ("method", "path", "success_field"))
+            and network.get("method") == rule["method"]
+            and network.get("path_digest") == hashlib.sha256(rule["path"].encode()).hexdigest()
+            and network.get("assertion_digest") == hashlib.sha256(rule["success_field"].encode()).hexdigest())
+
+
 def consume_ready_context(context, *, packet, session_id, page, config):
     import hashlib
     checks = observe_target(page, config["target_url"], config["login_selector"])
@@ -227,9 +237,6 @@ def consume_ready_context(context, *, packet, session_id, page, config):
     network = context.get("network_evidence")
     if network:
         rule = config.get("response") or {}
-        if (not isinstance(network, dict) or network.get("method") != rule.get("method")
-                or not all(isinstance(rule.get(key), str) and rule[key] for key in ("path", "success_field"))
-                or network.get("path_digest") != hashlib.sha256(rule["path"].encode()).hexdigest()
-                or network.get("assertion_digest") != hashlib.sha256(rule["success_field"].encode()).hexdigest()):
+        if not matches_response_rule(network, rule):
             return {"ok": False, "code": "E_MODULE_RESPONSE_RULE_CHANGED", "blocking": True}
     return validate_module_ready_context(context, session_id=session_id, run_id=packet["run"]["run_id"])

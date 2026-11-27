@@ -44,3 +44,9 @@ The fixture operates on local synthetic data. It issues no model request.
 ## Risks And Follow-up
 
 Callbacks are trusted serial fixture code and must propagate the stop and bind actions to the provided page. This package cannot constrain arbitrary code outside its fixture.
+
+## Integrated review at f02292f
+
+Explicit unknown captures respect scope and waiting cases have zero attempts.
+
+write_pause.test.cjs passed all three serial loopback checks, including zero screenshots for both disallowed explicit capture forms and zero attempts in original events, sealed stage and refreshed SQLite. The create-skill --require-change-records validation reported zero findings.

@@ -39,3 +39,9 @@ The test uses the local controlled page. Raw response bodies and headers are exc
 ## Risks And Follow-up
 
 Older records missing capture identity or timing report missing evidence. A digest identifies the reviewed file; the authorized input provider owns capture integrity.
+
+## Integrated review at f02292f
+
+Live and recorded consumers share response rule matching.
+
+test_network_review.py passed its two live Edge and recorded delivery cases on the loopback fixture. The create-skill --require-change-records validation reported zero findings.
