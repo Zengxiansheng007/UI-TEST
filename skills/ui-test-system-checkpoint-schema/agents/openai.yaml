@@ -1,0 +1,6 @@
+interface:
+  display_name: "ui-test-system-checkpoint-schema (archived)"
+  short_description: "Return the archived entry's replacement"
+  default_prompt: "Use $ui-test-system-checkpoint-schema to identify its replacement."
+policy:
+  allow_implicit_invocation: false

@@ -51,6 +51,9 @@ def test_relocated_report_is_loaded_only_from_selected_suite(tmp_path):
     assert summary["run_id"] == "prior-stage" and summary["cases"][0]["attempt_ref"] == "try-1"
     assert Path(receipt["report_html"]).is_file() and Path(receipt["evidence_index"]).is_file()
     assert original.read_bytes() == before and list(stage.iterdir()) == [original]
+    # The offline formal reader must validate the supplied session without loading the execution controller.
+    bad_session = invoke("--suite", main, "execution-report", "--session", original, "--output", tmp_path / "bad-session")
+    assert bad_session.returncode == 2 and bad_session.stderr.strip() == "E_STAGE_SESSION_IDENTITY"
     (main / "references/suite-layout.json").write_text(json.dumps({"execution-report": "absent"}))
     missing = invoke("--suite", main, "execution-report", "--observations", original, "--output", tmp_path / "missing")
     assert missing.returncode and "E_SUITE_CAPABILITY_MISSING" in missing.stderr

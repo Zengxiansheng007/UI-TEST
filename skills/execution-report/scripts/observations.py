@@ -2,7 +2,7 @@ from collections import Counter
 import json
 import re
 from pathlib import Path
-from ui_test_core.artifact_layout import short_id
+from ui_test_core.path_utils import short_id
 from .generate_report import scan_sensitive
 from .image_viewer import resolve_image_source
 from .stage_report import check_image_identity, step_images

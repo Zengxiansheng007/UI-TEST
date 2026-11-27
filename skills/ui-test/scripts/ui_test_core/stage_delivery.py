@@ -2,13 +2,11 @@
 from pathlib import Path
 
 from .case_contracts import canonical_hash, validate_document
-from .artifact_layout import ProjectLayout, batch_stage_id, dispatch_task_ref
 from .execution_attempt_store import ExecutionAttemptStore
 from .finalization_transaction import FinalizationTransaction
 from .path_utils import canonical_display_path, io_path
 from .session_evidence import verify_node_evidence
 from .strict_json import load_strict_json
-from .stage_origin import recorded_origin
 
 
 def report_engine():
@@ -120,6 +118,8 @@ def formal_cases(source, *, session_hash=None, batch_id=None):
 
 
 def publish_session(source):
+    from .artifact_layout import ProjectLayout
+    from .stage_origin import recorded_origin
     source = canonical_display_path(source)
     cases = formal_cases(source)
     _, engine = report_engine()
@@ -135,6 +135,8 @@ def publish_session(source):
 
 
 def publish_batch(task, batch_id, batch):
+    from .artifact_layout import ProjectLayout, batch_stage_id, dispatch_task_ref
+    from .stage_origin import recorded_origin
     rows = batch["runs"]
     references = dict.fromkeys((row["session_ref"], row["session_hash"]) for row in rows)
     archive = {}

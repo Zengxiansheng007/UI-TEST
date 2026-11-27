@@ -7,6 +7,8 @@ description: Use when a UI test engineer wants to rebuild one offline stage repo
 
 Open the scripts directory of the selected main UI-Test Skill and run `python ui_test_suite.py --suite <ui-test> execution-report --observations <observations.json> --output <new-directory>` for exploration. For formal results, replace `--observations` with `--session <evidence/sessions/SESSION-…json>`. The session must retain its sealed V5, terminal receipts and evidence tree. Ask for the exact source when several stages match.
 
+The [report reader](scripts/__init__.py) loads the producer for the selected input. Both stages use the [shared stage renderer](scripts/stage_report.py).
+
 ## Validation
 
 Read the returned HTML, execution summary and evidence index. Verify the stage ID, case identities and recorded attempts against the supplied original. Return those three artifacts and finish.
