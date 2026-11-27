@@ -65,7 +65,7 @@ def review_recorded_step(observations, check):
     if (observations.get("stage") != "midscene" or case.get("run_id") != owner["run_id"]
             or any(step.get(k, v) != v or check.get(k, v) != v for k, v in owner.items())):
         owner = {}  # Conflicting step, caller or run identities disqualify the response.
-    owner.update(started_at=observations.get("started_at"), ended_at=observations.get("ended_at"))
+    owner.update(response_rule=check.get("response_rule"), started_at=observations.get("started_at"), ended_at=observations.get("ended_at"))
     if observed is None and "network_readonly" in check["expected"]:
         observed = {}
     return review_action(dict(action=step["action"], evidence_ref=f"/cases/{i}/steps/{j}",

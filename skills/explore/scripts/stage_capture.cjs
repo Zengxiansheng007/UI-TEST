@@ -6,7 +6,7 @@ const points = new Set(['pre_submit','receipt','final','timeout','failure','bloc
 const standardMask = 'input[type=password], [data-ui-sensitive], [autocomplete=cc-number], [autocomplete=one-time-code]';
 
 function caseCapture(row, output, caseMasks = []) {
-  return async function capture(page, step, moment) {
+  return async function capture(page, step, moment, missingReason) {
     const { point, object_ref, observation, reason, fullPage = false, maskSelectors = [] } = moment;
     const { preferred = false, support = 'direct', state_ref, moment_ref, final_goal } = moment;
     const qualifiers = Object.fromEntries(Object.entries({state_ref, moment_ref, final_goal})
@@ -31,6 +31,7 @@ function caseCapture(row, output, caseMasks = []) {
     if (reason) { image.reason = reason; entry.key_reason = reason; }
     entry.actual_result = observation;
     (entry.images ||= []).push(image);
+    if (missingReason) return Object.assign(image, {missing_reason: missingReason});
     const directory = path.join(output,'images');
     try {
       fs.mkdirSync(directory,{recursive:true});

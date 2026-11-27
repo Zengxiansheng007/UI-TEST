@@ -2,7 +2,7 @@
 
 ## Latest Changes
 
-- [CR-20261127-075 · Unknown write pause](entries/2026/2026-11/CR-20261127-075-unknown-write.md)
+- [CR-20261127-075 · Unknown write pause](entries/2026/2026-11/CR-20261127-075-unknown-write.md) Explicit unknown captures respect scope and waiting cases have zero attempts.
 
 - [CR-20261127-077 · Interrupted archive delivery](entries/2026/2026-11/CR-20261127-077-archive-index.md)
 

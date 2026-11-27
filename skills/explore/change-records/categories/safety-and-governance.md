@@ -10,4 +10,4 @@ Track safety-and-governance decisions for exploration.
 
 ## Detailed Records
 
-- [CR-20261127-075](../entries/2026/2026-11/CR-20261127-075-unknown-write.md)
+- [CR-20261127-075](../entries/2026/2026-11/CR-20261127-075-unknown-write.md) Explicit unknown captures respect scope and waiting cases have zero attempts.
