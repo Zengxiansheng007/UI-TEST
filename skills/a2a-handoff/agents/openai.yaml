@@ -1,0 +1,6 @@
+interface:
+  display_name: "UI Test A2A Handoff"
+  short_description: "Prepare a local handoff bundle from a validated UI-test Packet."
+  default_prompt: "Use $a2a-handoff to package this UI-test task for handoff."
+policy:
+  allow_implicit_invocation: true

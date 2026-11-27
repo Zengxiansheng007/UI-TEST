@@ -28,7 +28,7 @@ def activate(explicit=None):
     return root
 
 
-def main():
+def main(argv=None, *, quiet=False):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--suite", help="selected main ui-test Skill directory")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -36,12 +36,20 @@ def main():
     commands.add_parser("resolve").add_argument("name")
     for capability in ("assets", "experience"):
         commands.add_parser(capability).add_argument("--input", type=Path, required=True)
+    handoff = commands.add_parser("a2a-handoff", aliases=["ui-test-a2a-handoff"])
+    handoff.add_argument("source", type=Path)
+    handoff.add_argument("--review-notes", type=Path)
+    destination = handoff.add_mutually_exclusive_group(required=True)
+    destination.add_argument("--output", type=Path)
+    destination.add_argument("--project", type=Path)
+    handoff.add_argument("--stage", choices=("midscene", "playwright"))
+    handoff.add_argument("--stage-run-id")
     report = commands.add_parser("execution-report", aliases=["ui-test-execution-report"])
     source = report.add_mutually_exclusive_group(required=True)
     source.add_argument("--observations", type=Path)
     source.add_argument("--session", type=Path)
     report.add_argument("--output", required=True, type=Path)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     try:
         root = activate(args.suite)
         os.environ["UI_TEST_SUITE"] = str(root)
@@ -55,10 +63,13 @@ def main():
             owner = suite.load_package(args.command)
             request = json.loads(args.input.read_text(encoding="utf-8-sig"))
             result = owner.query(**request)
+        elif args.command in ("a2a-handoff", "ui-test-a2a-handoff"):
+            result = suite.load_package("a2a-handoff").deliver(args)
         else:
             owner = suite.load_package("execution-report")
             result = owner.rebuild(args.observations, args.session, args.output)
-        print(json.dumps(result, ensure_ascii=True, sort_keys=args.command in ('assets', 'experience')))
+        if not quiet:
+            print(json.dumps(result, ensure_ascii=True, sort_keys=args.command in ('assets', 'experience')))
     except (ValueError, OSError, KeyError, TypeError) as exc:
         parser.exit(2, str(exc) + "\n")
 

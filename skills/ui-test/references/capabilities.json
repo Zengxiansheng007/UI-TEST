@@ -194,6 +194,23 @@
         "pytest script, release manifest and compile receipt"
       ],
       "aliases": []
+    },
+    {
+      "name": "a2a-handoff",
+      "kind": "capability",
+      "description": "Build a local UI-test handoff bundle from a validated main Packet.",
+      "inputs": [
+        "UI-test Packet 3.0; optional revision notes"
+      ],
+      "requires": [
+        "Valid scope, identity, lineage and safe artifact references"
+      ],
+      "outputs": [
+        "handoff_packet, prompt_packet and artifact_refs"
+      ],
+      "aliases": [
+        "ui-test-a2a-handoff"
+      ]
     }
   ]
 }

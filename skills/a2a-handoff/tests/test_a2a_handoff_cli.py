@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
-SCRIPT = ROOT / "scripts" / "a2a_handoff.py"
+SCRIPT = ROOT.parent / "ui-test-a2a-handoff" / "scripts" / "a2a_handoff.py"
 FIXTURE = ROOT / "fixtures" / "source_packet_valid.json"
 
 
@@ -19,6 +19,20 @@ class A2AHandoffCliTests(unittest.TestCase):
             paths = list((Path(td) / "运行").glob("m*/交接/*.json"))
             self.assertEqual(len(paths), 1)
             self.assertIn("handoff_packet", json.loads(paths[0].read_text("utf8")))
+
+    def test_sensitive_references_are_rejected_before_writing(self):
+        with tempfile.TemporaryDirectory() as td:
+            packet = json.loads(FIXTURE.read_text())
+            packet["artifact_refs"].append("cookie-fixture-ref")
+            source = Path(td) / "unsafe.json"
+            source.write_text(json.dumps(packet))
+            dest = Path(td) / "bundle.json"
+            result = subprocess.run([sys.executable, str(SCRIPT), str(source), "--output", str(dest)],
+                                    capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("sensitive marker", result.stderr)
+            self.assertNotIn("cookie-fixture-ref", result.stderr)
+            self.assertFalse(dest.exists())
 
     def test_cli_writes_output(self):
         with tempfile.TemporaryDirectory() as td:

@@ -12,3 +12,5 @@ Track scripts-and-validation changes.
 ## Detailed Records
 
 [CR-20261118-004](../entries/2026/2026-11/CR-20261118-004-packet.md) — Package the complete source task locally and restrict review notes.
+
+- [CR-20261127-064 · Selected-suite handoff](../entries/2026/2026-11/CR-20261127-064-selected-handoff.md)

@@ -39,3 +39,5 @@ Track core-skill-md changes for this candidate Skill.
 - Impact: candidate package only; no global installation.
 - Validation: candidate quality, behavior and sensitive-data checks.
 - Detail record: `../entries/2026/2026-08/CR-20260822-001-ui-test-asset-governance.md`.
+
+- [CR-20261127-064 · Selected-suite handoff](../entries/2026/2026-11/CR-20261127-064-selected-handoff.md)
