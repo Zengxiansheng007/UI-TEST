@@ -124,18 +124,28 @@ def reconcile(task, batch_ref, row):
             raise ValueError("session schema")
         session_hash = result.pop("session_result_hash")
         node, = result["nodes"]
+        # A pre-fixture denial has a reserved process and sealed session, but no business attempt.
+        denied = (node["disposition"] == "not_executed" and node.get("missing_reason", "").startswith("E_FORMAL_BUDGET_")
+                  and node["finalization_status"] == "missing" and not node.get("run_id") and not node.get("attempt_ref")
+                  and manifest.get("reserved_run_id") == row["run_id"] and row["pytest_exit"] != 0)
+        if denied:
+            from ui_test_core.execution_attempt_store import derive_attempt_directory_name
+            reserved = derive_attempt_directory_name(run_id=row["run_id"], node_id=row["node_id"])
+            denied = not (root / "attempts" / reserved / "attempt-start.json").exists()
         if (session_hash != canonical_hash(result) or result["session_id"] != session_id or result.get("batch_id") != batch_ref
                 or result["expected_nodes"] != [row["node_id"]] or manifest["nodes"] != result["expected_nodes"]
-                or (node.get("node_id"), node.get("run_id")) != (row["node_id"], row["run_id"])
+                or node["node_id"] != row["node_id"] or (not denied and node.get("run_id") != row["run_id"])
                 or result["pytest_exitstatus"] != row["pytest_exit"] or result.get("unexpected_nodes")
                 or result.get("worker_errors") or not result.get("collection_consistent", True)
-                or not verify_node_evidence(root, session_id, node)):
+                or (not denied and not verify_node_evidence(root, session_id, node))):
             raise ValueError("session or terminal identity")
         passed = (result["session_status"] == "passed" and row["pytest_exit"] == 0
                   and node["disposition"] == "passed" and result["all_required_nodes_committed"])
         row.update(session_ref=str(session_path), session_hash=session_hash,
                    node_result=node, disposition="passed" if passed else "failed")
-        if manifest.get("r2") and not passed:
+        if denied:
+            row["disposition"] = "not_executed"
+        elif manifest.get("r2") and not passed:
             if manifest.get("write_state") in (None, "submitted_unknown", "write_outcome_unknown"):
                 row["disposition"] = "unknown"
     except (OSError, KeyError, ValueError, TypeError):
@@ -174,7 +184,8 @@ def active_status(task, state):
 
 
 def report_interruption(task, batch_ref, batch, reason):
-    from ui_test_core.stage_delivery import formal_cases, recorded_origin, report_engine
+    from ui_test_core.stage_delivery import formal_cases, report_engine
+    from ui_test_core.stage_origin import recorded_origin
     from ui_test_core.artifact_layout import batch_stage_id
 
     layout = ProjectLayout.from_evidence(batch.get("evidence_root", task)) or ProjectLayout(task.parent)

@@ -30,16 +30,29 @@ def test_batch_budget_stops_repeated_and_unlisted_clicks(tmp_path, monkeypatch):
     budget.write_text(json.dumps(dict(schema_version="ui-test.formal-write-budget.v1", batch=batch,
                                       task_ref=dispatch_task_ref(task), nodes=[row])))
     digest = hashlib.sha256(budget.read_bytes()).hexdigest()
-    run = subprocess.run([sys.executable, str(OWNER/"scripts/run.py"), "--task-ref", str(task),
+    command = [sys.executable, str(OWNER/"scripts/run.py"), "--task-ref", str(task),
                           "--batch-ref", batch, "--node", node_a, "--node", node_b, "--", "--ui-r2-approved",
-                          "--ui-write-budget", str(budget), "--ui-write-budget-sha256", digest],
-                         cwd=tmp_path, env=env, capture_output=True, timeout=240)
+                          "--ui-write-budget", str(budget), "--ui-write-budget-sha256", digest]
+    run = subprocess.run(command, cwd=tmp_path, env=env, capture_output=True, timeout=240)
     assert run.returncode != 0
     assert (tmp_path/"first.clicked").is_file() and (tmp_path/"exhausted.checked").is_file(), (run.stdout, run.stderr)
     assert not (tmp_path/"second.clicked").exists() and not (tmp_path/"unlisted.entered").exists()
     logs = [p.read_text(errors="replace") for p in tmp_path.rglob("pytest.log")]
     assert any("E_FORMAL_BUDGET_NODE" in log for log in logs), (run.stdout, run.stderr, logs)
-    state = json.loads(task.read_bytes())["batches"][batch]
+    journal = json.loads(task.read_bytes())
+    state = journal["batches"][batch]
+    assert journal["active"] is None and state["status"] == "failed"
+    assert state["runs"][1]["disposition"] == "not_executed"
+    assert state["runs"][1]["node_result"]["missing_reason"] == "E_FORMAL_BUDGET_NODE"
+    assert not state["runs"][1]["node_result"].get("attempt_ref")
+    report, = tmp_path.rglob("execution-summary.json")
+    cases = json.loads(report.read_bytes())["cases"]
+    assert cases[0]["run_result_hash"] and cases[0]["status"] == "passed"
+    assert cases[1]["status"] == "not_executed" and cases[1]["reason"] == "E_FORMAL_BUDGET_NODE"
+    again = subprocess.run(command, cwd=tmp_path, env=env, capture_output=True, timeout=240)
+    assert again.returncode == run.returncode == 1
+    assert json.loads(task.read_bytes()) == journal
+    assert not (tmp_path/"unlisted.entered").exists()
     assert state["runs"][0]["disposition"] == "passed" and state["nodes"] == [node_a, node_b]
 
 
