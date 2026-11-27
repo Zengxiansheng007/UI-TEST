@@ -134,9 +134,8 @@ def publish_session(source):
     return delivery
 
 
-def publish_batch(task, batch_id, batch):
-    from .artifact_layout import ProjectLayout, batch_stage_id, dispatch_task_ref
-    from .stage_origin import recorded_origin
+def formal_batch_cases(batch_id, batch):
+    """Reconcile every journal row with the exact sealed session and V5."""
     rows = batch["runs"]
     references = dict.fromkeys((row["session_ref"], row["session_hash"]) for row in rows)
     archive = {}
@@ -161,10 +160,22 @@ def publish_batch(task, batch_id, batch):
         cases.append(case)
     if archive or set(batch["nodes"]) != {case["node_id"] for case in cases}:
         raise ValueError("E_STAGE_BATCH_IDENTITY")
-    _, engine = report_engine()
-    projects = {project.root if (project := ProjectLayout.from_evidence(source)) else None for source, _ in references}
+    return cases
+
+
+def batch_location(task, batch_id, batch):
+    from .artifact_layout import ProjectLayout, batch_stage_id, dispatch_task_ref
+    references = {row["session_ref"] for row in batch["runs"]}
+    projects = {project.root if (project := ProjectLayout.from_evidence(source)) else None for source in references}
     project = ProjectLayout(projects.pop()) if len(projects) == 1 and None not in projects else ProjectLayout(task.parent)
-    batch_id = batch_stage_id(dispatch_task_ref(task), batch_id)
+    return project, batch_stage_id(dispatch_task_ref(task), batch_id)
+
+
+def publish_batch(task, batch_id, batch):
+    from .stage_origin import recorded_origin
+    cases = formal_batch_cases(batch_id, batch)
+    _, engine = report_engine()
+    project, batch_id = batch_location(task, batch_id, batch)
     output = project.reserve_run("playwright", batch_id)
     delivery = engine.publish_stage_report("playwright", batch_id, cases, output,
                                            origin=recorded_origin(output, "playwright", batch_id))

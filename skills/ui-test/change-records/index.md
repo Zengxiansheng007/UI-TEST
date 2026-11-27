@@ -6,6 +6,8 @@
 
 ## Latest Changes
 
+- [CR-20261127-079 · Offline batch report](entries/2026/2026-11/CR-20261127-079-batch-reader.md)
+
 - [CR-20261124-037 · 阶段异常与尝试归属](entries/2026/2026-11/CR-20261124-037-stage-outcomes.md)
 
 - [CR-20261120-022 · 正式运行配置、进程所有权与恢复](entries/2026/2026-11/CR-20261120-022-formal-concurrency.md)

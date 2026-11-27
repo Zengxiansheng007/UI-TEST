@@ -18,6 +18,8 @@ See the linked change records.
 
 ## Detailed Records
 
+- [CR-20261127-079 · Offline batch report](../entries/2026/2026-11/CR-20261127-079-batch-reader.md)
+
 ### CR-20261120-031 · 原始事务与未知执行接续
 
 ui-test core verifies the owner-bound transaction and node identity. The dispatcher retains an unknown run, waits for physical process exit and applies its serial scopes and concrete conflicts to later nodes. Both modes recheck a cached pass on re-entry. Concrete serial scopes now appear with the decision reference. [Details](../entries/2026/2026-11/CR-20261120-031-authoritative-session.md)

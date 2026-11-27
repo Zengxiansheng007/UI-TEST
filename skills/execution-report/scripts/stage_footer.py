@@ -5,14 +5,15 @@ from pathlib import Path
 from urllib.parse import quote
 
 
-def agent_footer(stage, run_id, cases, folder, origin, source_root=None):
+def agent_footer(stage, run_id, cases, folder, origin, source_root=None, original_folder=None):
     project = folder.parent.parent if folder and folder.parent.name == "运行" else None
 
     def link(path, title, *, fragment="", generated=False):
         if not folder or not path:
             return escape(title) + "未提供"
         path = Path(path)
-        target = path.resolve() if path.is_absolute() else ((project or folder) / path).resolve()
+        base = source_root if original_folder and not generated else project or folder
+        target = path.resolve() if path.is_absolute() else (base / path).resolve()
         allowed = (source_root if source_root and not generated else None) or project or folder
         if not target.is_relative_to(allowed) or (not generated and not target.is_file()):
             return escape(title) + "缺件或超出项目范围"
@@ -28,12 +29,13 @@ def agent_footer(stage, run_id, cases, folder, origin, source_root=None):
     if stage == "midscene" and project:
         parts.append('<p>' + link(project / "index.html", "查看关联正式执行", fragment="#stage-" + quote(run_id, safe=""), generated=True) + '</p>')
     elif stage == "playwright":
+        start = (original_folder or folder) / "start.json" if original_folder or folder else None
         if origin.get("kind") == "exploration":
             parts.append('<p>来源探索 · ' + link(origin["report"], origin["stage_id"]) + ' · '
-                         + link(origin["observations"], "探索观察原件") + ' · ' + link(folder / "start.json", "阶段来源记录") + '</p>')
+                         + link(origin["observations"], "探索观察原件") + ' · ' + link(start, "阶段来源记录") + '</p>')
         else:
             status = "独立执行" if origin.get("kind") == "independent" else "来源未知"
-            parts.append('<p>' + status + (' · ' + link(folder / "start.json", "阶段来源记录") if folder and (folder / "start.json").is_file() else '') + '</p>')
+            parts.append('<p>' + status + (' · ' + link(start, "阶段来源记录") if start and start.is_file() else '') + '</p>')
     for case in cases:
         identity = " / ".join(str(case[key]) for key in ("case_id","branch_id","node_id","attempt_ref") if case.get(key))
         binding = case.get("binding") or {}

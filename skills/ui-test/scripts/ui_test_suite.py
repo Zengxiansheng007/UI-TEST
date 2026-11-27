@@ -54,6 +54,8 @@ def main(argv=None, *, quiet=False):
     source = report.add_mutually_exclusive_group(required=True)
     source.add_argument("--observations", type=Path)
     source.add_argument("--session", type=Path)
+    source.add_argument("--task-ref", type=Path, help="original formal dispatch journal")
+    report.add_argument("--batch-ref", help="published batch ID within the journal")
     report.add_argument("--output", required=True, type=Path)
     args = parser.parse_args(argv)
     try:
@@ -83,7 +85,12 @@ def main(argv=None, *, quiet=False):
             result = suite.load_package("a2a-handoff").deliver(args)
         else:
             owner = suite.load_package("execution-report")
-            result = owner.rebuild(args.observations, args.session, args.output)
+            if args.task_ref or args.batch_ref is not None:
+                if not args.task_ref or not args.batch_ref:
+                    raise ValueError("E_STAGE_BATCH_SELECTOR: supply --task-ref and --batch-ref together")
+                result = owner.rebuild_batch(args.task_ref, args.batch_ref, args.output)
+            else:
+                result = owner.rebuild(args.observations, args.session, args.output)
         if not quiet:
             print(json.dumps(result, ensure_ascii=True, sort_keys=args.command in ('assets', 'experience')))
     except (ValueError, OSError, KeyError, TypeError) as exc:
