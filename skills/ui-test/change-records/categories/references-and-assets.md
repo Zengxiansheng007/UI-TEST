@@ -6,6 +6,8 @@ Changes affecting references-and-assets.
 
 ## Outline
 
+- [CR-20261127-076 · Formal write budget](../entries/2026/2026-11/CR-20261127-076-formal-budget.md)
+
 - [CR-20261120-031 · 主包文件基线](../entries/2026/2026-11/CR-20261120-031-authoritative-session.md)
 
 - [CR-20261120-022](../entries/2026/2026-11/CR-20261120-022-formal-concurrency.md) · 新增 2.4 配置模板及 V5 上下文、V2 会话契约，兼容 2.3 和历史结果。
@@ -154,3 +156,7 @@ pytest controller 和 Codex 整批收尾核对已提交的会话与各用例 V5�
 - [CR-20261127-068](../entries/2026/2026-11/CR-20261127-068-artifact-governance.md)
 
 - [CR-20261127-072 · Approved multi-stage workflow](../entries/2026/2026-11/CR-20261127-072-selected-workflow.md)
+
+### CR-20261127-076 · Scoped formal write permits
+
+The approved node and phase limit restricts protected writes before the click. See the [change and controlled regression evidence](../entries/2026/2026-11/CR-20261127-076-formal-budget.md).

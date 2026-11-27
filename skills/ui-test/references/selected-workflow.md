@@ -25,3 +25,11 @@ For an exploration-only approval omit formal. The result includes the exploratio
 Formal submission uses the selected playwright-run owner and its existing pytest contracts. The returned stage ID, task journal, V5 summary and report let the caller verify node, case, branch, attempt and result identity. The exploration monitoring ID is passed to formal execution for the registered cross-stage link.
 
 If an exploration ended on a known blocked case, return its reason and measured evidence. A separately authorized formal request may include reviewed_blockers equal to the returned case, branch, attempt and reason records. Verify only actually observed, successful steps for its selected nodes. Untouched or failed steps cannot qualify. An unknown outcome or unconfirmed executor exit continues to stop the flow.
+
+For new R2 dispatches, bind a UTF-8 JSON budget with the following exact structure. Set task_ref to dispatch_task_ref(absolute_task_journal_path) from ui_test_core.artifact_layout. The workflow journal is the project's `临时/workflow/<exploration-run-id>/formal-task.json`. The batch must match the request. Each node appears at most once. Use the actual case and branch markers, and the project phase identifiers. Use `single` for a project with no staged policy. A count of 1 authorizes one reservation. A zero count, missing phase or absent node grants no write.
+
+```json
+{"schema_version":"ui-test.formal-write-budget.v1","task_ref":"CODEX-<task journal digest>","batch":"reviewed-batch","nodes":[{"node":"test_case.py::test_a","case_id":"CASE-A","branch_id":"main","phases":{"single":1}}]}
+```
+
+Each reservation remains spent even if the worker stops before recording a result. Unversioned budgets remain readable for a previously completed workflow with the same approved request. A new dispatch needs a reviewed v1 file and its digest.

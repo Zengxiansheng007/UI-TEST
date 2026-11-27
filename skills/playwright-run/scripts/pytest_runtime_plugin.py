@@ -209,6 +209,8 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default=None,
         help="显式 Run ID；CLI/CI/Codex 必须提供，PyCharm 可自动生成。",
     )
+    group.addoption("--ui-write-budget", help="Reviewed formal batch limits in the project")
+    group.addoption("--ui-write-budget-sha256", help="Approved SHA-256 of the exact budget bytes")
     group.addoption(
         _OPTION_R2_APPROVED,
         action="store_true",
@@ -625,6 +627,29 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
             project.reserve_run("playwright", stage_id)
         locks = ExitStack()
         item.stash[_SCOPE_LOCKS] = locks
+        from copy import deepcopy
+        from ui_test_core.formal_write_budget import ItemBudget, bind_item
+        budget_path = item.config.getoption("--ui-write-budget")
+        budget_sha = item.config.getoption("--ui-write-budget-sha256")
+        formal_entry = os.environ.get("UI_TEST_REQUIRE_FORMAL_V5") == "1"
+        if budget_path or budget_sha or formal_entry:
+            authorized = context.approved and context.risk_level == "r2-ui-write-test"
+            if authorized and not (budget_path and budget_sha):
+                pytest.fail("E_FORMAL_BUDGET_REQUIRED", pytrace=False)
+            phases = context.config_summary.get("stage_write_budget", {}).get("phase_ids", ["single"])
+            bound = ItemBudget(Path(budget_path or "."), budget_sha, item.config.getoption("--ui-batch-id"),
+                               getattr(context, "task_ref", None), Path.cwd() / "临时" / "formal-write-permits", context.run_id, item.nodeid,
+                               context.case_id, context.branch_id, tuple(phases) if authorized else (),
+                               deepcopy(context.config_summary.get("stage_write_budget")))
+            if authorized:
+                if not bound.path.resolve().is_relative_to(Path.cwd().resolve()):
+                    pytest.fail("E_FORMAL_BUDGET_PROJECT", pytrace=False)
+
+                try:
+                    bound.check()
+                except (OSError, ValueError) as exc:
+                    pytest.fail(str(exc), pytrace=False)
+            locks.enter_context(bind_item(bound))
         for decision in config["effective_concurrency"]["serial_constraints"]:
             nodes = tuple(decision.get("node_ids", ()))
             if nodes and item.nodeid not in nodes:

@@ -8,6 +8,8 @@
 
 ## Outline
 
+- [CR-20261127-076 · Formal write budget](../entries/2026/2026-11/CR-20261127-076-formal-budget.md)
+
 - [CR-20261120-022](../entries/2026/2026-11/CR-20261120-022-formal-concurrency.md) · 单节点报告可核对新会话与原 V5 逐例结果。
 
 - CR-20261120-026 · 入口与共享待办示例、决定复用函数及针对性测试。
@@ -29,3 +31,7 @@
 - [CR-20261127-062 · Asset and experience owners](../entries/2026/2026-11/CR-20261127-062-asset-experience-owners.md)
 
 - [CR-20261127-072 · Approved multi-stage workflow](../entries/2026/2026-11/CR-20261127-072-selected-workflow.md)
+
+### CR-20261127-076 · Scoped formal write permits
+
+The approved node and phase limit restricts protected writes before the click. See the [change and controlled regression evidence](../entries/2026/2026-11/CR-20261127-076-formal-budget.md).

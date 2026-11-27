@@ -33,6 +33,14 @@ def pytest_sessionstart(session):
     config = session.config
     request = json.loads(os.environ["UI_TEST_CODEX_REQUEST"])
     option = config.option
+    if "write_budget" in request:
+        from ui_test_core.artifact_layout import dispatch_task_ref
+        journal = Path(os.environ["UI_TEST_CODEX_TASK_REF"]).resolve()
+        if request["task_ref"] != dispatch_task_ref(journal) or request["batch_ref"] != config.getoption("--ui-batch-id"):
+            raise pytest.UsageError("E_FORMAL_BUDGET_TASK")
+    if "write_budget" in request and request["write_budget"] != [
+            config.getoption("--ui-write-budget"), config.getoption("--ui-write-budget-sha256")]:
+        raise pytest.UsageError("E_FORMAL_BUDGET_DISPATCH_MISMATCH")
     workers = request.get("workers", 0)
     worker = getattr(config, "workerinput", None)
     if workers and worker is None:

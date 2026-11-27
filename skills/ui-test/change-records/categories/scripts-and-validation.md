@@ -8,6 +8,8 @@ Changes affecting scripts-and-validation.
 
 ## Outline
 
+- [CR-20261127-076 · Formal write budget](../entries/2026/2026-11/CR-20261127-076-formal-budget.md)
+
 - [CR-20261120-031 · 原始事务与未知执行接续](../entries/2026/2026-11/CR-20261120-031-authoritative-session.md)
 
 - [CR-20261120-022](../entries/2026/2026-11/CR-20261120-022-formal-concurrency.md) · 执行进程领取 attempt 并归档输出。定向恢复取得执行锁后复核绑定的目标、终态及提交回执。
@@ -211,3 +213,7 @@ pytest controller 和 Codex 整批收尾核对已提交的会话与各用例 V5�
 - [CR-20261127-072 · Approved multi-stage workflow](../entries/2026/2026-11/CR-20261127-072-selected-workflow.md)
 
 - [CR-20261127-074 · Independent report reader](../entries/2026/2026-11/CR-20261127-074-offline-report.md)
+
+### CR-20261127-076 · Scoped formal write permits
+
+The approved node and phase limit restricts protected writes before the click. See the [change and controlled regression evidence](../entries/2026/2026-11/CR-20261127-076-formal-budget.md).
