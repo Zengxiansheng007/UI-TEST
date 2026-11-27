@@ -152,3 +152,5 @@ pytest controller 和 Codex 整批收尾核对已提交的会话与各用例 V5�
 [CR-20261127-067](../entries/2026/2026-11/CR-20261127-067-repair.md) — Offline repair and historical compatibility.
 
 - [CR-20261127-068](../entries/2026/2026-11/CR-20261127-068-artifact-governance.md)
+
+- [CR-20261127-072 · Approved multi-stage workflow](../entries/2026/2026-11/CR-20261127-072-selected-workflow.md)

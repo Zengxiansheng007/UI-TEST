@@ -204,6 +204,10 @@ Before declaring success, confirm:
 
 Ask before private-page model export, any R2 write, global Skill installation, dependency installation, production access, or destructive migration. Block R3, API business creation, credential persistence, unapproved external disclosure, and any run whose project config, approval record, path plan, or sensitive scan is invalid. 2.2及更早配置不可用于新正式执行；未指定用例或缺少 `transaction-v1` 能力必须在 BrowserContext 前失败。
 
+## Complete UI workflow
+
+For a multi-stage task, use the [workflow request and approval contract](references/selected-workflow.md) and run the main suite's `workflow` command. Check each returned delivery and stop reason. An explicit child task returns after that child's delivery. Continue to use the documented compatibility entry for any owner awaiting migration.
+
 ## Selected installation
 
 Read [the capability catalog](references/capabilities.json) from this main Skill. Run `python scripts/ui_test_suite.py --suite <main-skill-directory> catalog` for its machine-readable entries. Set `UI_TEST_SUITE` to this absolute directory when invoking existing producers from another location. The installation manifest [suite-layout.json](references/suite-layout.json) maps relocated capability names to skill directories relative to this main Skill or absolute paths.

@@ -27,3 +27,5 @@
 - [CR-20261124-036 · 代表图与来源](../entries/2026/2026-11/CR-20261124-036-representative-images.md)
 
 - [CR-20261127-062 · Asset and experience owners](../entries/2026/2026-11/CR-20261127-062-asset-experience-owners.md)
+
+- [CR-20261127-072 · Approved multi-stage workflow](../entries/2026/2026-11/CR-20261127-072-selected-workflow.md)
