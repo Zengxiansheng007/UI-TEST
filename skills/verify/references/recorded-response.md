@@ -1,0 +1,5 @@
+# Reviewing a recorded page response
+
+Use the original Midscene observations delivery and its digest from the selected run. Pass `--input CHECK.json --observations observations.json --observations-sha256 DIGEST` to the review command. The check names the run, session, case, branch, attempt and step with `run_id`, `session_id`, `case_id`, `branch_id`, `attempt_ref` and `step_id`. Its `expected.network_readonly` is the selected response evidence reference. The workflow uses the same reader on the run it loaded.
+
+At capture time record the session on the case or step. Store the redacted observation in the step's `network_evidence`, tagged with all six identity fields above. Retain the observed GET or HEAD method, 2xx status, source `page-response`, timestamp `observed_at`, and matched request, response and business result flags from the listener. The timestamp must fall inside the recorded stage. A missing, stale, unmatched or unbound response produces `E_CURRENT_NETWORK_EVIDENCE_MISSING`. The checker returns the evidence reference and labels this check `recorded`. It performs no navigation, HTTP requests or action retries.

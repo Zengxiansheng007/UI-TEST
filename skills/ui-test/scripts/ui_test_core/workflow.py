@@ -73,24 +73,8 @@ def load_exploration(layout, run_id):
 
 
 def verify_checks(suite, observations, checks):
-    review = owned(suite, "verify", "review_action").review_action
-    results = []
-    for check in checks:
-        matches = [(i, j, step) for i, case in enumerate(observations["cases"])
-                   if all(case[key] == check[key] for key in ("case_id", "branch_id", "attempt_ref"))
-                   and case["status"] in {"observed", "blocked"}
-                   for j, step in enumerate(case["steps"]) if step["step_id"] == check["step_id"]]
-        if len(matches) != 1:
-            raise ValueError("E_WORKFLOW_OBSERVATION_IDENTITY: " + check["case_id"] + "/" + check["step_id"])
-        i, j, step = matches[0]
-        if step.get("status", "passed") not in ("passed", "observed"):
-            raise ValueError("E_WORKFLOW_OBSERVATION_STATUS: " + check["step_id"])
-        observed = step.get("observed")
-        if observed is None and isinstance(step.get("actual_result"), str):
-            observed = {"visible_text": [step["actual_result"]]}
-        results.append(review(dict(action=step["action"], evidence_ref=f"/cases/{i}/steps/{j}",
-                                   observed=observed, expected=check["expected"])))
-    return results
+    review = owned(suite, "verify", "review_action").review_recorded_step
+    return [review(observations, check) for check in checks]
 
 
 def build_script(suite, build, project, env, observations, delivery):
