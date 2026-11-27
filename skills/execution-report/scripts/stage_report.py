@@ -127,9 +127,9 @@ def render_step(step, anchor, entries, winners):
                         f'<dl>{explanations}</dl>{pictures}</li>'), "".join(index)
 
 
-def render_stage_html(stage, run_id, cases, *, folder=None, origin=None, source_root=None):
+def render_stage_html(stage, run_id, cases, *, folder=None, origin=None, source_root=None, original_folder=None):
     from .stage_footer import agent_footer
-    footer = agent_footer(stage, run_id, cases, folder, origin or {}, source_root)
+    footer = agent_footer(stage, run_id, cases, folder, origin or {}, source_root, original_folder)
     title = {"playwright": "Playwright 正式执行报告", "midscene": "Midscene 探索报告"}[stage]
     contents, sections, diagnostics = [], [], []
     for index, case in enumerate(cases, 1):
@@ -170,14 +170,15 @@ def render_stage_html(stage, run_id, cases, *, folder=None, origin=None, source_
         f'</details>{footer}</main></body></html>')
 
 
-def publish_stage_report(stage, run_id, cases, output_dir, *, origin=None, source_root=None):
+def publish_stage_report(stage, run_id, cases, output_dir, *, origin=None, source_root=None, original_folder=None):
     """Call only after the stage adapter has checked source identity and finalized evidence."""
     from .generate_report import scan_sensitive
 
     if scan_sensitive([run_id, cases]):
         raise ValueError("E_STAGE_SENSITIVE_FIELDS")
     output = Path(output_dir).resolve()
-    html_document = render_stage_html(stage, run_id, cases, folder=output, origin=origin, source_root=source_root)
+    html_document = render_stage_html(stage, run_id, cases, folder=output, origin=origin, source_root=source_root,
+                                      original_folder=original_folder)
     local_io_path(output).mkdir(parents=True, exist_ok=True)
     report = output / "report.html"
     summary = output / "execution-summary.json"

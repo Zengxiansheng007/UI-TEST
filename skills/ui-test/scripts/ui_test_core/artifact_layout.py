@@ -6,7 +6,6 @@ from pathlib import Path
 
 from .path_planner import validate_existing_path_containment
 from .path_utils import canonical_display_path, short_id
-from .codex_dispatch_state import publish
 from .file_lock import exclusive_file_lock
 
 
@@ -66,6 +65,7 @@ class ProjectLayout:
         return target
 
     def link_related(self, owner, kind, identity, source):
+        from .codex_dispatch_state import publish
         source = canonical_display_path(source)
         validate_existing_path_containment(self.root, source)
         if not source.is_file():
@@ -106,6 +106,7 @@ class ProjectLayout:
         return None
 
     def register_case(self, case_id, branch_id, display_name):
+        from .codex_dispatch_state import publish
         if not isinstance(display_name, str) or not display_name.strip():
             raise ValueError("E_ARTIFACT_DISPLAY_NAME")
         directory = self.case_dir(case_id, branch_id)
