@@ -22,6 +22,7 @@ See the linked change records.
 
 - [CR-20261127-079 · Offline batch report](../entries/2026/2026-11/CR-20261127-079-batch-reader.md)
 - [CR-20261127-075](../entries/2026/2026-11/CR-20261127-075-unknown-write.md)
+- [CR-20261127-078 · Network verification](../entries/2026/2026-11/CR-20261127-078-network-review.md)
 
 ### CR-20261120-031 · 原始事务与未知执行接续
 

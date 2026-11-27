@@ -202,9 +202,16 @@ class ModuleReadyObserver:
         identity["ui_observations"] = {ui_ref: {"verified_selectors": sig["ui_features_verified"], **checks}}
         identity["target_digest"] = hashlib.sha256(config["target_url"].encode()).hexdigest()
         generated = datetime.now(timezone.utc)
-        return build_module_ready_context(session_id=self.session_id, run_id=packet["run"]["run_id"], identity=identity,
+        context = build_module_ready_context(session_id=self.session_id, run_id=packet["run"]["run_id"], identity=identity,
             signature=sig, generated_at=generated.isoformat(), expires_at=(generated+timedelta(seconds=config["ttl_seconds"])).isoformat(),
             evidence_refs=[ui_ref] + ([ref] if ref else []), auth_reference_digest=None, policy_fingerprint=None)
+        if network:
+            from .case_contracts import canonical_hash
+            captures = getattr(self.page, "_ui_test_response_captures", {})
+            # Keep the live provenance on the originating Page; prune expired captures.
+            self.page._ui_test_response_captures = {key: end for key, end in captures.items() if end > generated}
+            self.page._ui_test_response_captures[canonical_hash(context)] = instant(context["expires_at"])
+        return context
 
 
 def consume_ready_context(context, *, packet, session_id, page, config):
