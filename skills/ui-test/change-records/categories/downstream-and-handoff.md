@@ -14,6 +14,8 @@
 
 ## Detailed Records
 
+- [CR-20261127-075](../entries/2026/2026-11/CR-20261127-075-unknown-write.md)
+
 ### CR-20261120-022 · 正式执行
 
 单节点报告可核对新会话与原 V5 逐例结果。 变更依据、前后行为及验证见[详细记录](../entries/2026/2026-11/CR-20261120-022-formal-concurrency.md)。

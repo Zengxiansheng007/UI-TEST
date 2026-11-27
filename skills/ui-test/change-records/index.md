@@ -7,6 +7,7 @@
 ## Latest Changes
 
 - [CR-20261127-079 · Offline batch report](entries/2026/2026-11/CR-20261127-079-batch-reader.md)
+- [CR-20261127-075 · Unknown write pause](entries/2026/2026-11/CR-20261127-075-unknown-write.md)
 
 - [CR-20261124-037 · 阶段异常与尝试归属](entries/2026/2026-11/CR-20261124-037-stage-outcomes.md)
 

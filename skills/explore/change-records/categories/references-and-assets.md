@@ -2,14 +2,16 @@
 
 ## Purpose
 
-Track changes to references-and-assets for standalone exploration.
+Track references-and-assets decisions for exploration.
 
 ## Outline
 
-| Date | Change ID | Change | Status |
-|---|---|---|---|
-| 2026-11-27 | CR-20261127-077 | Document archive redelivery after an interrupted publication. | validated |
+- CR-20261127-075 · Case-scoped write pause.
+
+- CR-20261127-077 · Recover a missing exploration step index.
 
 ## Detailed Records
 
-[CR-20261127-077](../entries/2026/2026-11/CR-20261127-077-archive-index.md) records the observed failure, changed behavior and regression check.
+- [CR-20261127-075](../entries/2026/2026-11/CR-20261127-075-unknown-write.md)
+
+- [CR-20261127-077](../entries/2026/2026-11/CR-20261127-077-archive-index.md)
