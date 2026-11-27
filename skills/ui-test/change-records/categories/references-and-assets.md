@@ -16,6 +16,8 @@ See the linked change records.
 
 ## Detailed Records
 
+- [CR-20261127-075](../entries/2026/2026-11/CR-20261127-075-unknown-write.md)
+
 ### CR-20261120-031 · 主包文件基线
 
 新增本轮变更记录后，按仓库跟踪文件重新核对主包 284 个文件与现行 SKILL.md 摘要。[验证与变更记录](../entries/2026/2026-11/CR-20261120-031-authoritative-session.md)

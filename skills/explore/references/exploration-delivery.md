@@ -1,6 +1,10 @@
 # Midscene batch delivery
 
-Wrap the approved batch inside its normal Midscene Playwright fixture. Supply the existing Python runtime, the governed output root, a fresh run ID and the complete ordered checklist. One callback corresponds to one case. Close over the fixture's page and AI operations. Choose the page and context per the approved packet; the batch wrapper never opens a browser. Specialized explorations supply their own case callbacks to the same entry.
+Wrap the approved batch inside its normal Midscene Playwright fixture. Supply the existing Python runtime, the governed output root, a fresh run ID and the complete ordered checklist. One callback corresponds to one case. Choose the page and context per the approved packet. Specialized explorations supply their own case callbacks to the same entry.
+
+For a batch containing writes, provide `page` from the fixture's authorized Playwright BrowserContext. Give every case `dependsOn` (earlier case IDs, or an empty array for independent cases) and `usesStagePage: true`. Implement `run(record, stop, capture, page)`; bind locators and Midscene operations to that invocation's page. Never capture a prior page or agent in this callback. Existing closed-over read-only callbacks remain supported for uninterrupted batches.
+
+When a submitted write has no deterministic result, call the awaited capture with the original step ID, action, `write_state: 'write_outcome_unknown'` and the unknown observation. Alternatively capture the scene first and call `record` with that step ID, action and write state. Let the resulting stop propagate. Serial fixture actions must finish before reporting their outcome. The original attempt remains blocked for confirmation. Dependent cases and repeated attempts wait. The runner opens a new page for each declared independent case in the same authorized context. It withholds callbacks that cannot establish independence and accept a fresh page. Review the original identity, screenshot and read-only result evidence before any separately authorized resumption. Never repeat the submission to determine its outcome.
 
 ```js
 const { runExplorationStage } = require(pathToExploreSkill + '/scripts/exploration_stage.cjs');
